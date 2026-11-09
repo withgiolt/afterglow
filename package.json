@@ -1,0 +1,8 @@
+{
+  "name": "glowc-phase0",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "wrangler": "4.159.0"
+  }
+}
