@@ -24,7 +24,7 @@ bench/coldstart.sh "$dir" "$name" "${COLD_N:-5}"
 if grep -qv ',200$' <(tail -n +2 "bench/results/$name-coldstart.csv"); then echo "a cold-start request was not 200; no load"; exit 1; fi
 [[ -n $ref ]] && bench/check-deployed.sh "$name" "$ref"
 version=$(tail -1 "bench/results/$name-coldstart.csv" | cut -d, -f2)
-for r in $(seq 1 "$runs"); do
+for ((r = 1; r <= runs; r++)); do  # not seq: BSD seq 1 0 counts down
   echo "-- run $r $(date -u +%FT%TZ)"
   bench/measure.sh "$name" "r$r" "$version"
 done

@@ -1,0 +1,109 @@
+{
+  "samples": [
+    {
+      "sample": 1,
+      "version": "be53ba2f-61c9-42d8-969c-849597e54191",
+      "startupMs": 18,
+      "serverMs": 52.8,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 4.491,
+      "wallMs": 5.048
+    },
+    {
+      "sample": 2,
+      "version": "b66d7aac-e141-4942-ae90-b65c2f273fff",
+      "startupMs": 20,
+      "serverMs": 80.6,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 5.015,
+      "wallMs": 5.557
+    },
+    {
+      "sample": 3,
+      "version": "a5cbd94d-9766-4df0-b579-f9348705b760",
+      "startupMs": 28,
+      "serverMs": 52,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 4.029,
+      "wallMs": 4.504
+    },
+    {
+      "sample": 4,
+      "version": "6e5e606d-444d-4ca3-bb59-ea497ffb27ef",
+      "startupMs": 21,
+      "serverMs": 34.5,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.332,
+      "wallMs": 3.694
+    },
+    {
+      "sample": 5,
+      "version": "18f8318d-5503-4ad1-85f2-1304fbfd01b9",
+      "startupMs": 21,
+      "serverMs": 54.7,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 5.429,
+      "wallMs": 5.99
+    },
+    {
+      "sample": 6,
+      "version": "56474c18-8d3b-4167-b6f2-057c14beb87b",
+      "startupMs": 17,
+      "serverMs": 41.9,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.681,
+      "wallMs": 4.12
+    },
+    {
+      "sample": 7,
+      "version": "660bf978-90cc-41cd-b6dd-0c0470196387",
+      "startupMs": 15,
+      "serverMs": 41.4,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.46,
+      "wallMs": 3.854
+    },
+    {
+      "sample": 8,
+      "version": "1c1fc77a-e309-444d-947e-a155dfe94b87",
+      "startupMs": 20,
+      "serverMs": 47.4,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.411,
+      "wallMs": 3.699
+    },
+    {
+      "sample": 9,
+      "version": "aaf1c3a6-86fa-4bdf-99cc-e120a3129d46",
+      "startupMs": 21,
+      "serverMs": 41.6,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.236,
+      "wallMs": 3.581
+    },
+    {
+      "sample": 10,
+      "version": "ae52d14c-4919-4082-a2fc-f76c6b443dbd",
+      "startupMs": 20,
+      "serverMs": 36,
+      "status": 200,
+      "requests": 5994,
+      "cpuMs": null,
+      "wallMs": null
+    }
+  ],
+  "median": {
+    "startupMs": 20,
+    "serverMs": 44.65,
+    "cpuMs": 3.681
+  }
+}

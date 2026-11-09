@@ -1,0 +1,27 @@
+{
+  "run": "glowvm-baseline-basic-get-sbs1",
+  "scriptVersion": "ae52d14c-4919-4082-a2fc-f76c6b443dbd",
+  "window": {
+    "start": "2026-11-09T23:47:55.000Z",
+    "end": "2026-11-09T23:51:14.000Z"
+  },
+  "byStatus": [
+    {
+      "status": "success",
+      "requests": 4969,
+      "errors": 0,
+      "cpuMs": {
+        "p25": 2.62,
+        "p50": 3.294,
+        "p75": 4.198,
+        "p90": 5.108,
+        "p99": 6.485,
+        "p999": 19.947
+      },
+      "wallMs": {
+        "p50": 3.706,
+        "p99": 8.419
+      }
+    }
+  ]
+}

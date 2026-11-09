@@ -1,0 +1,109 @@
+{
+  "samples": [
+    {
+      "sample": 1,
+      "version": "7800a3f3-5b8c-4b42-b15c-d2a0dc7e05bb",
+      "startupMs": 6,
+      "serverMs": 32.3,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.41,
+      "wallMs": 4.057
+    },
+    {
+      "sample": 2,
+      "version": "30abe261-c10e-46c9-a4d2-2d547a787f93",
+      "startupMs": 7,
+      "serverMs": 23.7,
+      "status": 200,
+      "requests": 0,
+      "cpuMs": null,
+      "wallMs": null
+    },
+    {
+      "sample": 3,
+      "version": "bf5b2907-f93d-4ee3-8e9a-1bf160ba82fe",
+      "startupMs": 6,
+      "serverMs": 32.6,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 2.762,
+      "wallMs": 3.064
+    },
+    {
+      "sample": 4,
+      "version": "ae4e44b9-7d7c-4a2a-a5d2-9ec48a671ce8",
+      "startupMs": 10,
+      "serverMs": 23.6,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 2.279,
+      "wallMs": 2.555
+    },
+    {
+      "sample": 5,
+      "version": "79073c3a-3c2b-4125-a7e2-c32d4b26bcc5",
+      "startupMs": 6,
+      "serverMs": 32.9,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.816,
+      "wallMs": 4.257
+    },
+    {
+      "sample": 6,
+      "version": "ce1999ea-9dbd-4661-9718-ce68a583d8b4",
+      "startupMs": 9,
+      "serverMs": 31.3,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 2.677,
+      "wallMs": 3.123
+    },
+    {
+      "sample": 7,
+      "version": "6c9e7789-5dad-4398-928d-f61b0c3ed0e1",
+      "startupMs": 6,
+      "serverMs": 28.7,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 2.741,
+      "wallMs": 3.17
+    },
+    {
+      "sample": 8,
+      "version": "f397d846-20be-489e-b919-2bead0931aa0",
+      "startupMs": 13,
+      "serverMs": 46.1,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 6.455,
+      "wallMs": 7.249
+    },
+    {
+      "sample": 9,
+      "version": "1582c257-de50-42ae-bcda-100f9526d9e9",
+      "startupMs": 8,
+      "serverMs": 33.7,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 4.53,
+      "wallMs": 5.043
+    },
+    {
+      "sample": 10,
+      "version": "5f822aa4-99fc-4c4a-9982-c5a3df824a71",
+      "startupMs": 5,
+      "serverMs": 36.2,
+      "status": 200,
+      "requests": 5988,
+      "cpuMs": null,
+      "wallMs": null
+    }
+  ],
+  "median": {
+    "startupMs": 6.5,
+    "serverMs": 32.45,
+    "cpuMs": 3.0860000000000003
+  }
+}

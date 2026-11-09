@@ -26,7 +26,9 @@ function deployed(prefix) {
     failureKinds: [...new Set(others.map((s) => s.status))],
   };
 }
-const cold = (prefix) => read(`${R}/${prefix}-coldstart.cpu.json`)?.median ?? null;
+// Cold start: the side-by-side 10-deploy series (2026-11-09 23:35 UTC, 60 s wait, versions
+// checked in analytics), not the Phase 0 5-deploy series.
+const cold = (prefix) => read(`${R}/${prefix}-cold10.cpu.json`)?.median ?? null;
 const local = (rt, f) => {
   const j = read(`${R}/local/local-${rt}-${f}.json`);
   if (!j) return null;
@@ -60,7 +62,7 @@ const cpuFixed = rows.slice(0, 2).map((r) => {
 });
 const j = rows[2];
 const heavyOk = j.lgc && j.lvm ? j.lgc.p50 * 5 <= j.lvm.p50 && j.lgc.p99 * 5 <= j.lvm.p99 : null;
-const coldOk = rows.slice(0, 2).every((r) => r.cgc) ? rows.slice(0, 2).every((r) => r.cgc.serverMs <= r.cvm.serverMs && r.cgc.cpuMs <= r.cvm.cpuMs) : null;
+const coldOk = rows.slice(0, 2).every((r) => r.cgc) ? rows.slice(0, 2).every((r) => r.cgc.startupMs <= r.cvm.startupMs && r.cgc.serverMs <= r.cvm.serverMs && r.cgc.cpuMs <= r.cvm.cpuMs) : null;
 const sizeOk = Object.values(size).every(([v, g]) => g <= v);
 const memOk = ["basic_get", "lustre_html"].every((k) => memory[k][1] < memory[k][0]);
 const correctness = rows.slice(0, 2).map((r) => {
@@ -77,8 +79,8 @@ const verdictRows = [
     cpuFixed.every((c) => c.ok === true) ? true : cpuFixed.some((c) => c.ok === false) ? false : null],
   ["CPU, heavy handler (json_roundtrip)", "≥ 5× lower p50 and p99 (local workerd: glowvm exceeds Free's CPU limit deployed)",
     `p50 ${fmt(j.lvm?.p50)} → ${fmt(j.lgc?.p50)} ms (${fmt(ratio(j.lvm?.p50, j.lgc?.p50), 0)}×), p99 ${fmt(j.lvm?.p99)} → ${fmt(j.lgc?.p99)} ms (${fmt(ratio(j.lvm?.p99, j.lgc?.p99), 0)}×)`, heavyOk],
-  ["Isolate startup", "no worse (first request after deploy, median of 5)",
-    rows.slice(0, 2).map((r) => `${r.name}: server ${fmt(r.cvm?.serverMs, 1)} → ${fmt(r.cgc?.serverMs, 1)} ms, CPU ${fmt(r.cvm?.cpuMs)} → ${fmt(r.cgc?.cpuMs)} ms`).join("<br>"), coldOk],
+  ["Isolate startup", "no worse (startup, first request after deploy; glowc and glowvm side by side, 10 deploys each)",
+    rows.slice(0, 2).map((r) => `${r.name}: startup ${fmt(r.cvm?.startupMs, 0)} → ${fmt(r.cgc?.startupMs, 0)} ms, server ${fmt(r.cvm?.serverMs, 1)} → ${fmt(r.cgc?.serverMs, 1)} ms, CPU ${fmt(r.cvm?.cpuMs)} → ${fmt(r.cgc?.cpuMs)} ms`).join("<br>"), coldOk],
   ["Bundle size", "≤ glowvm (gzip upload)", Object.entries(size).map(([k, [v, g]]) => `${k}: ${v} → ${g} KiB`).join("<br>"), sizeOk],
   ["Peak memory", "lower (basic_get, lustre_html)", Object.entries(memory).map(([k, [v, g]]) => `${k}: ${v} → ${g} KiB`).join("<br>") + "<br><span class=dim>json_roundtrip is higher on glowc; not a fixture of this row, flagged below</span>", memOk],
   ["Correctness", "byte-identical status, headers, body", `30/30 smoke requests identical on local workerd; deployed check: ${correctness.map((c, i) => `${rows[i].name} ${word(c)}`).join(", ")}`, corrOk],

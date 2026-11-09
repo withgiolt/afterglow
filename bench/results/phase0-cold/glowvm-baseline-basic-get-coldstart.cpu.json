@@ -1,0 +1,59 @@
+{
+  "samples": [
+    {
+      "sample": 1,
+      "version": "54f17dd9-801d-4c47-a720-61185efa9a11",
+      "startupMs": 22,
+      "serverMs": 89.5,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 5.611,
+      "wallMs": 6.182
+    },
+    {
+      "sample": 2,
+      "version": "46ba0a5b-207f-47c2-8c97-466c236143f8",
+      "startupMs": 19,
+      "serverMs": 89.9,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 9.814,
+      "wallMs": 10.762
+    },
+    {
+      "sample": 3,
+      "version": "b117f54a-4403-4f82-9213-fc35d59dc118",
+      "startupMs": 36,
+      "serverMs": 81.4,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 6.011,
+      "wallMs": 6.582
+    },
+    {
+      "sample": 4,
+      "version": "db47c9fb-9ef1-4882-90c3-8fee5e817f21",
+      "startupMs": 20,
+      "serverMs": 59.1,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 4.479,
+      "wallMs": 4.972
+    },
+    {
+      "sample": 5,
+      "version": "4aa7c816-5e18-49c7-b291-c25cd9df4467",
+      "startupMs": 40,
+      "serverMs": 30.6,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 3.746,
+      "wallMs": 4.112
+    }
+  ],
+  "median": {
+    "startupMs": 22,
+    "serverMs": 81.4,
+    "cpuMs": 5.611
+  }
+}
