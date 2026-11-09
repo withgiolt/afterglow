@@ -136,6 +136,7 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
       `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
       (https://<name>.SUBDOMAIN.workers.dev), observability on.
+- [ ] P3, planned: `glowc-p3-pingpong` (DO class GlowNode, nodes a and b). Delete after.
 - [ ] P2, planned: `glowc-p2-counter` (DO class GlowNode with SQLite rows). Delete after
       the check (`wrangler delete` removes the DO namespace and its data).
 - Workers Logs from observability are kept by Cloudflare (retention per plan); they go with the Workers.
@@ -423,6 +424,26 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   480 bytes per turn. PASS.
 - Next: one deployed check on Giolt (`glowc-p2-counter`, about 10 requests) after the
   day's M5 runs, then P3.
+
+### P3: messages between DOs (local workerd passing; deployed check pending)
+
+- Remote pids: the node's atom index sits in bits 36.. of the pid word; ETF carries the
+  node name (decoded back to a local pid when it names this node). `erlang:node/0,1`
+  return the DO's name, set by the host (`rt_set_node`).
+- A send to a remote pid or to `{Name, Node}` goes to the outbox. After the turn the DO
+  host sends one `{deliver, [{Dest, Msg}]}` turn per target DO through its stub, in
+  order per target (a promise chain under ctx.waitUntil, not awaited by the turn, so
+  ping-pong never nests DO calls). If delivery fails (the target throws or is
+  unreachable), the sender runs `{noconnection, Node}`.
+- Monitors on remote processes are stored on the target's side (a `$glowc_monitor`
+  control message; noproc comes back if the target is missing). `noconnection` fires
+  'DOWN' with reason noconnection for every monitor on that node.
+- Not done: links across DOs, remote monitors in checkpoints (lost if the watcher's DO
+  is evicted), at-most-once only (no retries).
+- `tests/erl/p3/pp.erl`, `tools/do/p3-test.mjs`: 500 round trips a -> {ponger, b}
+  (1,000 messages) in 787 ms on local workerd (1.6 ms per round trip; 200 round trips:
+  4.0 ms each), then a remote monitor fires noconnection after b throws on purpose
+  (`glowc:node_crash/0`). PASS. P2 DO test, regress 59/59 and smoke 30/30 still pass.
 
 ## User requests during the run
 

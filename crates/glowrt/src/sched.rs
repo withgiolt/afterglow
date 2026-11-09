@@ -49,7 +49,7 @@ pub struct P {
     start_args: Term,
     links: Vec<u32>,
     /// monitors held by others on this process: (ref, watcher pid)
-    watched_by: Vec<(Term, u32)>,
+    watched_by: Vec<(Term, Term)>, // (ref, watcher pid term, maybe remote)
     trap_exit: bool,
     pdict: Term,
     deadline: Option<u64>,
@@ -74,6 +74,12 @@ pub struct Sched {
     registered: Vec<(Term, u32)>,
     /// process aliases: (ref, owner pid)
     aliases: Vec<(Term, u32)>,
+    /// tier 2: messages for other nodes, (node atom, destination, message)
+    outbox: Vec<(Term, Term, Term)>,
+    /// monitors on processes in other nodes: (ref, node atom, target, watcher pid)
+    remote_mons: Vec<(Term, Term, Term, u32)>,
+    node_name: Term,
+    crash: bool,
     res: Rec,
     res_val: Term,
     main_result: Term,
@@ -93,6 +99,10 @@ static mut S: Sched = Sched {
     clock: 0,
     registered: Vec::new(),
     aliases: Vec::new(),
+    outbox: Vec::new(),
+    remote_mons: Vec::new(),
+    node_name: NONODE,
+    crash: false,
     res: Rec { tidx: 0, ab: 0, entry_sp: 0, sp: 0 },
     res_val: NIL,
     main_result: 0,
@@ -147,6 +157,9 @@ pub unsafe fn reset() {
     s.clock = 0;
     s.registered.clear();
     s.aliases.clear();
+    s.outbox.clear();
+    s.remote_mons.clear();
+    s.crash = false;
     s.res_val = NIL;
     s.main_result = 0;
     s.main = 0;
@@ -239,8 +252,9 @@ pub unsafe fn for_each_root(f: &mut dyn FnMut(&mut Term)) {
         f(&mut p.start_fun);
         f(&mut p.start_args);
         f(&mut p.gs);
-        for (r, _) in p.watched_by.iter_mut() {
+        for (r, w) in p.watched_by.iter_mut() {
             f(r);
+            f(w);
         }
         if i != s.cur {
             if let Some(lo) = p.recs.iter().map(|r| r.sp).filter(|&x| x != 0).min() {
@@ -258,6 +272,16 @@ pub unsafe fn for_each_root(f: &mut dyn FnMut(&mut Term)) {
     }
     for (r, _) in s.aliases.iter_mut() {
         f(r);
+    }
+    for (n, d, m) in s.outbox.iter_mut() {
+        f(n);
+        f(d);
+        f(m);
+    }
+    for (r, n, t, _) in s.remote_mons.iter_mut() {
+        f(r);
+        f(n);
+        f(t);
     }
     f(&mut s.res_val);
     if s.main_result != 0 {
@@ -318,8 +342,10 @@ unsafe fn do_exit(i: usize, reason: Term) {
     s.registered.retain(|&(_, p)| p != me);
     s.aliases.retain(|&(_, p)| p != me);
     for (r, w) in watchers {
-        if let Some(j) = find(w) {
-            let m = build::tuple(&[DOWN, r, PROCESS, pid(me as u64), reason]);
+        let m = build::tuple(&[DOWN, r, PROCESS, pid(me as u64), reason]);
+        if is_remote(w) {
+            outbox_push(w, m);
+        } else if let Some(j) = find(pid_val(w)) {
             deliver(j, m);
         }
     }
@@ -662,6 +688,10 @@ unsafe fn alias_opt(opts: Term) -> bool {
 
 #[no_mangle]
 pub unsafe extern "C" fn rt_send(d: Term, msg: Term) -> Term {
+    if let Some((node, dest)) = remote_dest(d) {
+        s().outbox.push((node, dest, msg));
+        return msg;
+    }
     match resolve_dest(d) {
         Some(Some(i)) => {
             deliver(i, msg);
@@ -693,7 +723,7 @@ unsafe fn spawn_common(fun: Term, args: Term, link: bool, monitor: bool) -> Term
     let mut r = NIL;
     if monitor {
         r = crate::bifs::make_ref();
-        p.watched_by.push((r, me));
+        p.watched_by.push((r, pid(me as u64)));
     }
     s.procs.push(p);
     let i = s.procs.len() - 1;
@@ -775,10 +805,17 @@ unsafe fn monitor_proc(target: Term) -> Term {
     let s = s();
     let me = s.procs[s.cur].pid;
     let r = crate::bifs::make_ref();
+    if let Some((node, dest)) = remote_dest(target) {
+        // Registered on the target's side; noconnection fires here if delivery fails.
+        s.remote_mons.push((r, node, target, me));
+        let ctl = build::tuple(&[intern("$glowc_monitor"), r, pid(me as u64)]);
+        s.outbox.push((node, dest, ctl));
+        return r;
+    }
     let dest = if is_pid(target) { Some(find(pid_val(target))) } else { resolve_dest(target) };
     match dest {
         Some(Some(j)) => {
-            s.procs[j].watched_by.push((r, me));
+            s.procs[j].watched_by.push((r, pid(me as u64)));
             s.procs[j].dirty = true;
         }
         _ => {
@@ -823,6 +860,7 @@ bif!("erlang:spawn_opt/4", fn spawn_opt4(m, f, a, opts) {
 unsafe fn demonitor_(r: Term, flush: bool) -> Term {
     let s = s();
     s.aliases.retain(|(x, _)| !crate::cmp::exact_eq(*x, r));
+    s.remote_mons.retain(|(x, _, _, _)| !crate::cmp::exact_eq(*x, r));
     for p in s.procs.iter_mut() {
         let n = p.watched_by.len();
         p.watched_by.retain(|&(x, _)| !crate::cmp::exact_eq(x, r));
@@ -989,7 +1027,7 @@ unsafe fn encode_proc(i: usize) -> Option<Vec<u8>> {
     };
     let names: Vec<Term> = s.registered.iter().filter(|&&(_, q)| q == p.pid).map(|&(n, _)| n).collect();
     let links: Vec<Term> = p.links.iter().map(|&x| pid(x as u64)).collect();
-    let watched: Vec<Term> = p.watched_by.iter().map(|&(r, w)| build::tuple(&[r, pid(w as u64)])).collect();
+    let watched: Vec<Term> = p.watched_by.iter().map(|&(r, w)| build::tuple(&[r, w])).collect();
     let pdict = if i == s.cur { roots::proc().pdict } else { p.pdict };
     let t = build::tuple(&[
         intern("glowc_proc"),
@@ -1108,7 +1146,7 @@ pub unsafe extern "C" fn rt_restore(upgrade: i32) -> i32 {
     np.watched_by = build::list_to_vec(f(9))
         .unwrap_or_default()
         .iter()
-        .map(|&x| (tuple_get(x, 0), pid_val(tuple_get(x, 1))))
+        .map(|&x| (tuple_get(x, 0), tuple_get(x, 1)))
         .collect();
     np.trap_exit = f(10) == TRUE;
     np.gs = f(14);
@@ -1210,4 +1248,133 @@ bif!("glowc:node_set_state/3", fn node_set_state(p, m, st) {
         s().procs[j].gs = gs;
     }
     OK
+});
+
+// --------------------------------------------------------------------------------
+// Tier 2 messaging between nodes (Durable Objects)
+//
+// A remote pid carries its node's atom index in its high bits; ETF carries the node
+// name. Sends to a remote pid or to {Name, Node} go to the outbox, which the host
+// delivers after the turn as one batch per node ({deliver, [{Dest, Msg}]}). Monitors
+// on remote processes are registered on the target's side with a control message; if
+// the host cannot deliver to a node, it runs {noconnection, Node}, and every monitor
+// on that node fires 'DOWN' with reason noconnection. Links across nodes are not
+// supported.
+
+pub fn node_name() -> Term {
+    s().node_name
+}
+
+fn is_remote(p: Term) -> bool {
+    let ni = pid_node_idx(p);
+    ni != 0 && atom(ni) != s().node_name
+}
+
+/// (node atom, destination on that node) when `d` names a process in another node.
+fn remote_dest(d: Term) -> Option<(Term, Term)> {
+    unsafe {
+        if is_pid(d) && is_remote(d) {
+            return Some((atom(pid_node_idx(d)), pid(pid_val(d) as u64)));
+        }
+        if is_tuple(d) && tuple_arity(d) == 2 && is_atom(tuple_get(d, 0)) && is_atom(tuple_get(d, 1)) {
+            let n = tuple_get(d, 1);
+            if n != s().node_name && n != NONODE {
+                return Some((n, tuple_get(d, 0)));
+            }
+        }
+    }
+    None
+}
+
+unsafe fn outbox_push(to: Term, msg: Term) {
+    if let Some((node, dest)) = remote_dest(to) {
+        s().outbox.push((node, dest, msg));
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rt_set_node(p: u32, len: u32) {
+    let name = core::str::from_utf8(core::slice::from_raw_parts(p as usize as *const u8, len as usize)).unwrap_or("nonode");
+    s().node_name = intern(name);
+}
+
+/// Outbox after a turn: the number of entries; then per entry rt_outbox_node (node name
+/// bytes) and rt_outbox_item (ETF of {Dest, Msg}). rt_outbox_clear when sent.
+#[no_mangle]
+pub unsafe extern "C" fn rt_outbox_count() -> u32 {
+    s().outbox.len() as u32
+}
+unsafe fn pack(b: &[u8]) -> u64 {
+    let p = mem::balloc(b.len());
+    core::ptr::copy_nonoverlapping(b.as_ptr(), p, b.len());
+    ((p as usize as u64) << 32) | b.len() as u64
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_outbox_node(i: u32) -> u64 {
+    pack(crate::atoms::name(s().outbox[i as usize].0).as_bytes())
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_outbox_item(i: u32) -> u64 {
+    let (_, d, m) = s().outbox[i as usize];
+    let t = build::tuple(&[d, m]);
+    pack(&crate::etf::term_to_binary(t).unwrap_or_default())
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_outbox_clear() {
+    s().outbox.clear();
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_take_crash() -> i32 {
+    let s = s();
+    let c = s.crash;
+    s.crash = false;
+    c as i32
+}
+
+/// glowc:node_deliver(Dest, Msg): a message from another node.
+bif!("glowc:node_deliver/2", fn node_deliver(d, m) {
+    let s = s();
+    if is_tuple(m) && tuple_arity(m) == 3 && tuple_get(m, 0) == intern("$glowc_monitor") {
+        let (r, w) = (tuple_get(m, 1), tuple_get(m, 2));
+        match resolve_dest(d) {
+            Some(Some(j)) => { s.procs[j].watched_by.push((r, w)); s.procs[j].dirty = true; }
+            _ => {
+                let target = if is_pid(d) { d } else { build::tuple(&[d, s.node_name]) };
+                outbox_push(w, build::tuple(&[DOWN, r, PROCESS, target, NOPROC]));
+            }
+        }
+        return OK;
+    }
+    if is_tuple(m) && tuple_arity(m) == 5 && tuple_get(m, 0) == DOWN {
+        let r = tuple_get(m, 1);
+        s.remote_mons.retain(|(x, _, _, _)| !crate::cmp::exact_eq(*x, r));
+    }
+    if let Some(Some(j)) = resolve_dest(d) {
+        deliver(j, m);
+    }
+    OK
+});
+
+/// glowc:node_noconnection(Node): delivery to Node failed.
+bif!("glowc:node_noconnection/1", fn node_noconnection(n) {
+    let s = s();
+    let mons = core::mem::take(&mut s.remote_mons);
+    for (r, node, target, w) in mons {
+        if node == n {
+            if let Some(j) = find(w) {
+                deliver(j, build::tuple(&[DOWN, r, PROCESS, target, NOCONNECTION]));
+            }
+        } else {
+            s.remote_mons.push((r, node, target, w));
+        }
+    }
+    OK
+});
+
+/// glowc:node_crash(): the host throws after this turn (tests: a failing node).
+bif!("glowc:node_crash/0", fn node_crash() { s().crash = true; OK });
+
+bif!("erlang:node/0", fn node0() { s().node_name });
+bif!("erlang:node/1", fn node1(p) {
+    if is_pid(p) && pid_node_idx(p) != 0 { atom(pid_node_idx(p)) } else { s().node_name }
 });

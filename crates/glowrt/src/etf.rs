@@ -99,8 +99,9 @@ impl Encoder {
         }
         if is_pid(t) {
             o.push(NEW_PID);
-            self.term(atoms::NONODE)?;
-            let id = (t >> 4) as u32;
+            let ni = pid_node_idx(t);
+            self.term(if ni == 0 { crate::sched::node_name() } else { atom(ni) })?;
+            let id = pid_val(t);
             self.out.extend_from_slice(&id.to_be_bytes());
             self.out.extend_from_slice(&0u32.to_be_bytes());
             self.out.extend_from_slice(&0u32.to_be_bytes());
@@ -332,10 +333,14 @@ impl<'a> Decoder<'a> {
                 crate::funs::export_fun(m, f, small_val(a) as u32)
             }
             NEW_PID => {
-                let _node = self.term()?;
+                let node = self.term()?;
                 let id = self.u32()?;
                 self.take(8)?;
-                Some(pid(id as u64))
+                if node == atoms::NONODE || node == crate::sched::node_name() {
+                    Some(pid(id as u64))
+                } else {
+                    Some(remote_pid(atom_index(node) as u32, id as u32))
+                }
             }
             NEWER_REF => {
                 let n = self.u16()?;

@@ -242,8 +242,6 @@ bif!("erlang:nif_error/2", fn nif_error2(r, _a) { error(r) });
 // ---------------------------------------------------------------------------
 // process-ish
 
-bif!("erlang:node/0", fn node0() { NONODE });
-bif!("erlang:node/1", fn node1(_x) { NONODE });
 bif!("erlang:group_leader/0", fn group_leader() { pid(1) });
 bif!("erlang:make_ref/0", fn make_ref() {
     let p = proc();

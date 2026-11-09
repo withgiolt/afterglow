@@ -1,18 +1,31 @@
-%% Tier 2 turn entry. Each turn's input is term_to_binary({call, Name, Mod, Msg}):
-%% the gen_server registered as Name (started from Mod if missing) gets Msg through
-%% gen_server:call, and the reply is the turn's output (term_to_binary). Before the
+%% Tier 2 turn entry. A turn's input (ETF) is one of:
+%%   {call, Name, Mod, Msg}: gen_server:call to Name (started from Mod if missing)
+%%   {apply, M, F, A}: apply(M, F, A) in the turn's process
+%%   {deliver, [{Dest, Msg}]}: messages from other nodes (DOs)
+%%   {noconnection, Node}: the host could not deliver to Node
+%% and the turn's output is the result as ETF. Before the
 %% turn ends, every changed gen-style process has its state snapshotted, so it can be
 %% restarted through code_change after a redeploy (upgrade/3).
 -module(glowc_node).
 -export([turn/0, upgrade/3]).
 
 turn() ->
-    {call, Name, Mod, Msg} = binary_to_term(host_io:read_stdin()),
-    case whereis(Name) of
-        undefined -> {ok, _} = gen_server:start({local, Name}, Mod, [], []);
-        _ -> ok
+    Reply = case binary_to_term(host_io:read_stdin()) of
+        {call, Name, Mod, Msg} ->
+            case whereis(Name) of
+                undefined -> {ok, _} = gen_server:start({local, Name}, Mod, [], []);
+                _ -> ok
+            end,
+            gen_server:call(Name, Msg);
+        {apply, M, F, A} ->
+            apply(M, F, A);
+        %% messages from other nodes; the receivers run after this process ends
+        {deliver, Msgs} ->
+            [glowc:node_deliver(D, M) || {D, M} <- Msgs],
+            ok;
+        {noconnection, Node} ->
+            glowc:node_noconnection(Node)
     end,
-    Reply = gen_server:call(Name, Msg),
     snapshot(),
     host_io:write_stdout(term_to_binary(Reply)).
 

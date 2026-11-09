@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# build-do.sh VERSION_DIR OUTDIR NAME: a Durable Object Worker for the P2 counter.
+# build-do.sh BEAM_DIR OUTDIR NAME [KEEP_MOD...]: a Durable Object Worker (glowc node)
+# built from BEAM_DIR (glowc_node.erl is compiled into it), keeping KEEP_MOD reachable.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
-src=$1 out=$2 name=$3
+src=$1 out=$2 name=$3; shift 3
+keep=(); for m in "${@:-counter}"; do keep+=(--keep "$m"); done
 mkdir -p "$out"
 erlc -o "$src" tests/erl/p2/glowc_node.erl
-tools/glowc-build.sh "$out/app.wasm" --beams "$src" --keep counter --keep gen --keep gen_server --keep glowc_node --entry glowc_node:turn/0 2>/dev/null
+tools/glowc-build.sh "$out/app.wasm" --beams "$src" "${keep[@]}" --keep gen --keep gen_server --keep glowc_node --entry glowc_node:turn/0 2>/dev/null
 build=$(shasum -a 256 "$out/app.wasm" | cut -c1-16)
 sed "s/__BUILD__/$build/" tools/do/node.js > "$out/index.js"
 cat > "$out/wrangler.jsonc" <<J

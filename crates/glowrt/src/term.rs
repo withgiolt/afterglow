@@ -68,6 +68,15 @@ pub fn pid(i: u64) -> Term {
 pub fn pid_val(t: Term) -> u32 {
     (t >> 4) as u32
 }
+/// Atom index of a pid's node (0 = this node). Bits 36.. of the pid word.
+#[inline]
+pub fn pid_node_idx(t: Term) -> u32 {
+    (t >> 36) as u32
+}
+#[inline]
+pub fn remote_pid(node_atom_idx: u32, id: u32) -> Term {
+    ((((node_atom_idx as u64) << 32) | id as u64) << 4) | 0x3
+}
 #[inline]
 pub fn is_pid(t: Term) -> bool {
     t & 0xF == 0x3

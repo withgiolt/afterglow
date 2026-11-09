@@ -58,7 +58,7 @@ unsafe fn write(s: &mut String, t: Term, depth: usize) {
         }
         s.push(']');
     } else if is_pid(t) {
-        s.push_str(&format!("<0.{}.0>", t >> 4));
+        s.push_str(&format!("<{}.{}.0>", pid_node_idx(t), pid_val(t)));
     } else {
         match boxed_sub(t) {
             Some(SUB_TUPLE) => {
