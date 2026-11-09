@@ -3,6 +3,7 @@
   // Settings match giolt's cloudflare_api.gleam upload: compat date 2025-08-06, no flags.
   "name": "glowvm-baseline-json-roundtrip",
   "main": "index.min.js",
+  "workers_dev": true,
   "compatibility_date": "2025-08-06",
   "account_id": "00000000000000000000000000000000",
   "rules": [{ "type": "Data", "globs": ["**/*.avm"] }],

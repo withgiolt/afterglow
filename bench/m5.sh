@@ -2,7 +2,7 @@
 # M5, one deployed Worker: 5 cold-start deploys, then 3 Phase 0 runs on the last version,
 # then delete the Worker (also on failure).
 # Usage: bench/m5.sh <worker-dir> [runs] [ref-prefix]   (the name comes from wrangler.jsonc)
-# Requests: 5 + 1 (correctness, if ref-prefix) + runs * 6,000.
+# Requests: COLD_N (default 5) + 1 (correctness, if ref-prefix) + runs * 6,000.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 dir=$1 runs=${2:-3} ref=${3:-}
@@ -20,7 +20,7 @@ for i in $(seq 1 60); do
 done
 echo "ready after $i probes (last status $code)"
 [[ $code == 200 ]] || { echo "not serving; giving up"; exit 1; }
-bench/coldstart.sh "$dir" "$name" 5
+bench/coldstart.sh "$dir" "$name" "${COLD_N:-5}"
 if grep -qv ',200$' <(tail -n +2 "bench/results/$name-coldstart.csv"); then echo "a cold-start request was not 200; no load"; exit 1; fi
 [[ -n $ref ]] && bench/check-deployed.sh "$name" "$ref"
 version=$(tail -1 "bench/results/$name-coldstart.csv" | cut -d, -f2)

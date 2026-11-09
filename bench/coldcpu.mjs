@@ -23,10 +23,10 @@ for (const [sample, version, startup, server, total, status] of rows) {
   const r = j.data.viewer.accounts[0].workersInvocationsAdaptive[0];
   out.push({ sample: +sample, version, startupMs: +startup, serverMs: +server, status: +status,
     requests: r?.sum.requests ?? 0,
-    // A version with more than a handful of requests also served the benchmark (the last
-    // deploy is the measured one), so its p50 is not the first request's CPU: excluded.
-    cpuMs: r && r.sum.requests <= 3 ? r.quantiles.cpuTimeP50 / 1000 : null,
-    wallMs: r && r.sum.requests <= 3 ? r.quantiles.wallTimeP50 / 1000 : null });
+    // Only a version with exactly one request counts: more means it also served the benchmark
+    // or a later sample (an older version still serving), so its p50 is not a first request.
+    cpuMs: r && r.sum.requests === 1 ? r.quantiles.cpuTimeP50 / 1000 : null,
+    wallMs: r && r.sum.requests === 1 ? r.quantiles.wallTimeP50 / 1000 : null });
 }
 const med = (a) => { const s = a.filter((x) => x != null).sort((x, y) => x - y); return s.length ? (s[(s.length - 1) >> 1] + s[s.length >> 1]) / 2 : null; };
 const summary = { samples: out, median: { startupMs: med(out.map((o) => o.startupMs)), serverMs: med(out.map((o) => o.serverMs)), cpuMs: med(out.map((o) => o.cpuMs)) } };

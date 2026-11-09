@@ -370,6 +370,29 @@ In this repo:
   hostname takes minutes to serve. `bench/m5.sh` now deploys, waits for a 200 (one
   probe per 15 s), and refuses to load a Worker whose cold-start requests were not 200.
   Runs restarted at 22:45 UTC.
+- Deployed results, 2026-11-09 22:45 to 23:20 UTC (both Workers deleted; all 30,000
+  measured requests 200, no errors in analytics; deployed responses identical to
+  glowvm's). CPU p50 / p99 ms, runs 1-3:
+  - basic_get 0.483 / 2.424, 0.456 / 2.505, 0.462 / 2.366. Median 0.462 / 2.424 against
+    ≤ 1.38 / 4.65. PASS (8.9× / 5.8× below glowvm's 4.13 / 13.94).
+  - lustre_html 0.560 / 2.782, 0.554 / 2.777, 0.545 / 2.862. Median 0.554 / 2.782
+    against ≤ 1.34 / 4.47. PASS (7.3× / 4.8× below glowvm's 4.02 / 13.41).
+- Cold-start series from those runs is not usable. Deleted Workers show as
+  `__unknown__` in analytics, so the series was checked per version account-wide. All
+  five basic_get cold requests were served by an older version (0e9b98c6, the readiness
+  deploy), not the freshly deployed one. Two of the five lustre_html requests were
+  missed the same way. A 5 s wait after deploy is too short: a new version can take over
+  a minute to reach every edge. The Phase 0 glowvm series passes the same check (each
+  version exactly 1 request). With all 5 samples, glowvm lustre_html first-request CPU
+  is 4.91 ms, not the 4.7 ms (n=4) in SPIKE.md. `coldstart.sh` now waits 60 s
+  (COLD_WAIT). `coldcpu.mjs` keeps only versions with exactly one request. 2026-11-09
+  23:50 UTC: new 10-sample series for glowc and glowvm, both fixtures, side by side.
+- First-request cost, local: with the flag warm-up (glowvm's contract, which glowc
+  keeps), the first real request runs handler code V8 has not compiled yet. Under Node
+  that costs about 0.9 ms more than later requests; a warm-up through the real handler
+  removes it (0.03 ms). glowvm's warm-up skips the handler too, so the gate build keeps
+  the flag warm-up. A full-handler warm-up would also run user code at global scope,
+  where workerd refuses random values.
 - Schedule (40k/day), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
@@ -506,5 +529,6 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 
 ## Next steps
 
-1. M5: run bench/m5.sh on the schedule above, verdict, update SPIKE.md and report.html,
-   build compare.html.
+1. M5: cold-start series (running), then from 2026-11-10 00:00 UTC json_roundtrip
+   (glowc 3 runs, glowvm one request), glowvm side-by-side runs, deployed P2-P5 checks.
+   Then the verdict, SPIKE.md, report.html and compare.html.

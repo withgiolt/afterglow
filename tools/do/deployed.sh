@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Deployed checks for P2-P5 (each Worker deleted after its check, also on failure).
+# Usage: tools/do/deployed.sh p2|p3|p4|p5      Requests: tens per check.
+set -uo pipefail
+cd "$(dirname "$0")/../.."
+export CLOUDFLARE_ACCOUNT_ID=00000000000000000000000000000000
+dev() { grep -q workers_dev "$1/wrangler.jsonc" || sed -i '' 's/  "compatibility_date"/  "workers_dev": true,\n  "compatibility_date"/' "$1/wrangler.jsonc"; }
+deploy() { dev "$1"; (cd "$1" && npx wrangler deploy 2>&1) | grep -E 'Startup|Version ID|Uploaded' ; }
+ready() { # a new workers.dev hostname answers 1042 for a few minutes
+  for i in $(seq 1 60); do
+    b=$(curl -s "https://$1.SUBDOMAIN.workers.dev/?node=probe"); grep -q 1042 <<<"$b" || break; sleep 15
+  done; echo "ready after $i probes"
+}
+base() { echo "https://$1.SUBDOMAIN.workers.dev"; }
+name=""
+trap '[[ -n $name ]] && { echo "deleting $name"; npx wrangler delete --name "$name" --force 2>&1 | tail -1; }' EXIT
+case $1 in
+p2) name=glowc-p2-counter
+  deploy out/do-v1; ready $name
+  node tools/do/p2-deployed.mjs "$(base $name)" incr incr
+  echo "idle 180 s (DO eviction)"; sleep 180
+  node tools/do/p2-deployed.mjs "$(base $name)" incr
+  deploy out/do-v2; echo "wait 90 s for the new version"; sleep 90
+  node tools/do/p2-deployed.mjs "$(base $name)" incr get
+  echo "idle 180 s"; sleep 180
+  node tools/do/p2-deployed.mjs "$(base $name)" incr ;;
+p3) name=glowc-p3-pingpong
+  deploy out/do-p3; ready $name
+  node tools/do/p3-test.mjs out/do-p3/wrangler.jsonc 200 "$(base $name)" ;;
+p4) name=glowc-p4-timers
+  deploy out/do-p4; ready $name
+  node tools/do/p4-deployed.mjs "$(base $name)" arm 60000
+  echo "idle 200 s, no requests: only the alarm can wake the DO; cron runs each minute"; sleep 200
+  node tools/do/p4-deployed.mjs "$(base $name)" check ;;
+p5) name=glowc-p5-chat
+  deploy out/do-p5; ready $name
+  node tools/do/p5-test.mjs out/do-p5/wrangler.jsonc "wss://$name.SUBDOMAIN.workers.dev" 30000 ;;
+esac
