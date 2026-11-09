@@ -172,9 +172,45 @@ In this repo:
 - The user wants the whole spike done in one continuous run (not spread over a week),
   driven with /goal. The goal text is in GOAL.md. Keep going milestone by milestone.
 
+## Spike run (goal in GOAL.md)
+
+### Survey (tools/reach.escript, beam_disasm, OTP 29 / erts 17.1.1)
+
+- Fixture app copied to `fixtures/app` (path dep on ../../../glowvm, read-only), built
+  with gleam 1.19.2. glowvm's AtomVM shims (base64, io_lib_format, json, maps, rand,
+  string, uri_string) are excluded; real OTP modules are used instead.
+- Reachable from start/0: basic_get 142 functions / 22 modules / 7.9k instructions;
+  lustre_html 181 / 28 / 9.4k; echo_body 162 / 24 / 13.4k; stdlib_string 697 / 37 / 36k.
+  unicode_util is the biggest (3.6k instructions in basic_get).
+- About 60 distinct opcodes; 24 to 74 BIFs per fixture (`erlang:is_builtin/3`).
+
+### Architecture decisions (spike-pragmatic; deviations from SPIKE.md noted)
+
+- Entry: compile the fixture's `start/0` unchanged. `host_io:read_stdin/0` and
+  `write_stdout/1` are runtime overrides (request in, framed response out), so glowvm's
+  bridge.gleam runs as is and responses are comparable byte for byte.
+- glowrt (Rust, wasm32-unknown-unknown, owns memory) + generated app module importing
+  glowrt functions and memory; linked with `wasm-merge`, then `wasm-opt`.
+- Terms: 64-bit ERTS-style tagging (primary 2 bits, immediate 4/6 bits). Boxed headers
+  with own subtags. Binaries: boxed [hdr, bitsize, byteptr, bitoff], bytes in a
+  per-request arena (literals in a permanent area).
+- Functions: one Wasm function per BEAM function, (x0..x(n-1): i64) -> i64; X regs are
+  locals; Y regs in a linear-memory stack. call_last/call_only -> return_call.
+  Result 0 = THE_NON_VALUE (exception); checked after every call.
+- Control flow: forward-only label graphs -> nested blocks (block per label);
+  functions with backward jumps -> loop + br_table dispatch.
+- Exceptions: catch stack in the runtime (frame SP, handler id); a faulting function
+  checks whether the top catch belongs to its frame, else restores SP and returns 0.
+- GC: copying, roots = spilled live X regs + Y stack + exception state + pdict.
+  Runtime allocation never collects (it chains a new block and sets a flag); collection
+  happens only at test_heap/allocate_heap and function entry, where liveness is known.
+- Literals: ETF blob decoded once per isolate at init (not per request). Deviation from
+  "startup parses nothing"; counted in the startup measurement.
+- Maps: sorted flat arrays at all sizes (no HAMT yet). Bignums via num-bigint.
+- No processes/receive in tier 1 (receive paths only on error branches); Phase 2 work.
+- Test host: Node 26 (V8, tail calls on by default). wasmtime not installed, not needed.
+
 ## Next steps
 
-1. Visual of the results (user asked). There is no glowvm-vs-glowc comparison yet:
-   that needs the compiler (M5). Only local Phase 0 numbers exist.
-2. Ask the user: deploy (account/region), repo location (withgiolt/glowc vs glowvm dir),
-   OTP 28 install (29 is installed), oha install.
+1. M1: beam-reader (chunks, compact terms, opcode table from beam_opcodes), glowc
+   codegen for the core instructions, glowrt core, difftest harness vs `erl`.
