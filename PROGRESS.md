@@ -110,7 +110,15 @@ CPU source (decided): Workers Analytics GraphQL `workersInvocationsAdaptive`, fi
 (`bench/analytics.mjs`). Counts are adaptive-sampled estimates (4,885–5,095 per 5,000 run).
 Each run: 1,000 warm-up, then 5,000 measured at c=10, 25 req/s, colo OTP.
 
-Not yet measured: memory high-water mark, cold-start first-request timing.
+Memory (local instrumented copy, bench/glowvm-mem): 589,824 B (basic_get) and
+655,360 B (lustre_html), the same on every request.
+Cold start (bench/coldstart.sh, 5 deploys each): startup median 22 / 21 ms, first
+request server time 81 / 68 ms, first-request CPU 5.6 / 4.7 ms (the 5th lustre sample
+was not yet in analytics). Each cold-start deploy made a new version, so the current
+baseline versions are no longer 86dbb6fe / cf34b825; look up the latest before
+querying analytics again.
+
+Phase 0 is complete. All results are in SPIKE.md.
 
 ## Cleanup list
 

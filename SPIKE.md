@@ -8,13 +8,13 @@ The spike proves that ahead-of-time compiling `.beam` files to Wasm, with a smal
 
 The spike passes only if every row below holds, measured on workerd (`wrangler dev` locally, then a deployed Worker), on the same fixture, side by side with glowvm. The targets are proposals; tune them once Phase 0 gives real baselines.
 
-| Measure | How | Target vs glowvm |
-| --- | --- | --- |
-| CPU per request, trivial handler (`basic_get`) | p50 and p99 over 10k requests | at least 3× lower |
-| CPU per request, heavy handler (`lustre_html` render, a JSON round trip) | p50 and p99 | at least 5× lower |
-| Isolate startup, including warm-up | workerd startup timing, first request after deploy | no worse |
-| Worker bundle size | compressed upload size | no larger than glowvm.wasm (455 KB) + app.avm |
-| Peak memory per request | wasm memory high-water mark | lower |
+| Measure | How | Target vs glowvm | glowvm baseline (Phase 0, deployed) | glowc must hit |
+| --- | --- | --- | --- | --- |
+| CPU per request, trivial handler (`basic_get`) | p50 and p99 over 5k requests (cut from 10k for the Free plan's daily limit) | at least 3× lower | p50 4.13 ms, p99 13.94 ms | p50 ≤ 1.38 ms, p99 ≤ 4.65 ms |
+| CPU per request, heavy handler (`lustre_html` render, a JSON round trip) | p50 and p99 | at least 5× lower | `lustre_html`: p50 4.02 ms, p99 13.41 ms. JSON round trip: not measured yet | p50 ≤ 0.80 ms, p99 ≤ 2.68 ms |
+| Isolate startup, including warm-up | workerd startup timing, first request after deploy | no worse | startup 22 / 21 ms; first request 81 / 68 ms server time, 5.6 / 4.7 ms CPU (`basic_get` / `lustre_html`, medians of 5) | ≤ the same |
+| Worker bundle size | compressed upload size | no larger than glowvm.wasm (455 KB) + app.avm | 298.73 KiB / 316.50 KiB gzip (823.58 / 860.82 KiB raw) | ≤ the same |
+| Peak memory per request | wasm memory high-water mark | lower | 576 KiB / 640 KiB (9 / 10 pages, fresh instance per request) | lower |
 | Correctness | every fixture the spike covers | byte-identical status, headers and body to glowvm |
 | Tier 2 persistence | gen_server counter in a Durable Object | state survives DO eviction and a redeploy (via `code_change`) |
 | Tier 2 messaging | send to a process in another DO and get a reply | round trip measured and reported, no target yet |
@@ -103,7 +103,7 @@ The design leans on one BEAM guarantee: anything live across a call or a `receiv
 
 The design above assumes features nobody has yet confirmed on workerd. Each check is a hand-written `.wat` file or a 20-line Worker, run under `wrangler dev` and then deployed. One hard failure changes the design before any compiler code exists.
 
-Local results, 2026-11-09, from `glowc-phase0` (`./build.sh`, then `node probe.mjs <config> <paths...>`). Deployed runs are still to do.
+Local results, 2026-11-09, from `glowc-phase0` (`./build.sh`, then `node probe.mjs <config> <paths...>`). Every probe was then deployed to the Giolt account (Workers Free, colo OTP) and gave the same results; the differences are noted per item.
 
 - [x] Pin the `wrangler` and `workerd` versions and record the V8 version they embed.
   - wrangler 4.159.0 (exact pin), workerd 1.20261109.1 (`workerd --version`: 2026-11-09), V8 15.8.62.5 (from `strings` on the binary; `process.versions.v8` is blank inside the Worker). compatibility_date 2026-11-01, only flag `nodejs_compat`.
@@ -112,7 +112,7 @@ Local results, 2026-11-09, from `glowc-phase0` (`./build.sh`, then `node probe.m
 - [x] The Wasm features `glowc` will emit (`bulk-memory`, `multivalue`, `sign-ext`, `nontrapping-float-to-int`) validate with no `v8_flags`. glowvm's build script already found that workerd rejects some newer encodings, so test the exact `wasm-opt` output, not just the source.
   - `/features` returns the expected 2147483819 for both wasm-opt outputs, with no `v8_flags`. `-Oz` inlines multivalue away; the re-encoded build keeps it.
 - [x] Code is imported, not compiled at runtime: the `.wasm` is bundled as a module import, and an instance created at module scope is reused across requests. Confirm workerd keeps that instance and its memory between requests in the same isolate.
-  - Three `/bump` calls return 1, 2, 3 with one isolate id: instance and memory persist. Runtime `new WebAssembly.Module(bytes)` fails with "Wasm code generation disallowed by embedder", so module imports are the only way in. Gotcha: `crypto.randomUUID()` at global scope is rejected ("Disallowed operation called within global scope"); `new WebAssembly.Instance` at global scope is fine.
+  - Three `/bump` calls return 1, 2, 3 with one isolate id: instance and memory persist. Deployed, the three calls hit two isolates (1, then 1 → 2 on the second isolate): reuse holds per isolate, but requests can spread across isolates, so warm state is not guaranteed. Runtime `new WebAssembly.Module(bytes)` fails with "Wasm code generation disallowed by embedder", so module imports are the only way in. Gotcha: `crypto.randomUUID()` at global scope is rejected ("Disallowed operation called within global scope"); `new WebAssembly.Instance` at global scope is fine.
 - [x] `i64` across the JS boundary arrives as `BigInt` with no extra flag. It's only needed for the host imports.
   - `/i64`: the export returns `bigint`, the import receives `bigint`, and 2^62 round-trips with the expected i64 wraparound.
 - [x] Wasm exception handling (`try_table`) is present. Optional: it's an alternative to the marker check, to measure later, not a dependency.
@@ -121,9 +121,17 @@ Local results, 2026-11-09, from `glowc-phase0` (`./build.sh`, then `node probe.m
   - True; `WebAssembly.promising` exists too. Not exercised yet.
 - [x] Durable Objects under `wrangler dev`: SQLite storage, `setAlarm`, and RPC between two DO classes all work locally.
   - SQLite upsert counts 1, 2, 3; a 500 ms alarm fired (checked after 2 s); `Caller` → `Counter` RPC works, about 1 ms measured in the caller.
-- [ ] Measurement: find a CPU-time source per request that both runtimes report the same way. Deployed Workers don't advance timers during pure compute, so timing inside the Worker isn't trustworthy. Use per-invocation CPU time from Workers observability or a Tail Worker as the source of truth, and confirm what `wrangler dev` can show locally.
-  - Local half done: `wrangler dev` logs wall time only (`GET /tail 200 OK (21ms)`), no CPU time. The CPU source has to be confirmed on a deployed Worker.
-- [ ] Baseline numbers: deploy glowvm's `basic_get` and `lustre_html` fixtures and record p50/p99 CPU, startup, bundle size and memory. These fill the targets in the first table.
+- [x] Measurement: find a CPU-time source per request that both runtimes report the same way. Deployed Workers don't advance timers during pure compute, so timing inside the Worker isn't trustworthy. Use per-invocation CPU time from Workers observability or a Tail Worker as the source of truth, and confirm what `wrangler dev` can show locally.
+  - `wrangler dev` logs wall time only (`GET /tail 200 OK (21ms)`), no CPU time.
+  - Tail Workers need Workers Paid; the Giolt account is on Free (error 100150).
+  - `wrangler tail --format json` has `cpuTime` per invocation, but in whole ms and sampled: it kept about 8% of events even at 25 req/s.
+  - Chosen source: Workers Analytics GraphQL, `workersInvocationsAdaptive` cpuTime quantiles (µs), filtered by `scriptVersion` and the exact window of the measured run (`bench/analytics.mjs`). New scripts show as `__unknown__`, so filter by version, not name. Counts are adaptive-sampled estimates. Needs an API token with Account Analytics: Read.
+  - Deployed timing gotcha: the DO RPC round trip measured inside the caller is about 35 ms deployed against 1 ms locally.
+- [x] Baseline numbers: deploy glowvm's `basic_get` and `lustre_html` fixtures and record p50/p99 CPU, startup, bundle size and memory. These fill the targets in the first table.
+  - glowvm commit 7190ebc, `fixtures/app/dist` copied unmodified, entry `index.min.js`, compatibility_date 2025-08-06 and no flags (giolt's upload settings), `.avm` as a Data module. Results are in the first table; raw data in `bench/results/`.
+  - Procedure: 1,000 warm-up requests, then 5,000 measured at concurrency 10 and 25 req/s with `oha`, three runs, median of the runs' p50 and p99. Cold start: 5 fresh deploys per fixture, first request timed. Memory: a local instrumented copy (`bench/glowvm-mem`) that reads `memory.buffer.byteLength` after `_start`.
+  - Reference responses (status 200): `basic_get` body sha256 a93e435a… (17 B), `lustre_html` 24f3e3de… (81 B), with headers saved next to them.
+  - The Giolt account also serves production Workers (`giolt`, `giolt-dash`, `gote`), which share the Free plan's daily request limit. Keep benchmark load small.
 
 Exit: every "must" passes and the baseline numbers are recorded in this doc. Tail calls failing, or instances not being reusable, sends the design back for review before Phase 1.
 
