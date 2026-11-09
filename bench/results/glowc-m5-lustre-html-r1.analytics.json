@@ -1,0 +1,27 @@
+{
+  "run": "glowc-m5-lustre-html-r1",
+  "scriptVersion": "adea09b9-3bf5-4b1c-96a3-dbcada5d8213",
+  "window": {
+    "start": "2026-11-09T23:03:50.000Z",
+    "end": "2026-11-09T23:07:09.000Z"
+  },
+  "byStatus": [
+    {
+      "status": "success",
+      "requests": 4888,
+      "errors": 0,
+      "cpuMs": {
+        "p25": 0.504,
+        "p50": 0.56,
+        "p75": 0.63,
+        "p90": 0.71,
+        "p99": 2.782,
+        "p999": 3.917
+      },
+      "wallMs": {
+        "p50": 0.995,
+        "p99": 3.421
+      }
+    }
+  ]
+}

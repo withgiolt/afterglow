@@ -1,0 +1,59 @@
+{
+  "samples": [
+    {
+      "sample": 1,
+      "version": "27c910af-b77e-4ebd-bc6d-f4572e3ff7be",
+      "startupMs": 7,
+      "serverMs": 29.8,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 5.304,
+      "wallMs": 5.92
+    },
+    {
+      "sample": 2,
+      "version": "3440e875-dd90-47a8-8d32-230850078b75",
+      "startupMs": 6,
+      "serverMs": 30.5,
+      "status": 200,
+      "requests": 0,
+      "cpuMs": null,
+      "wallMs": null
+    },
+    {
+      "sample": 3,
+      "version": "a8169549-12a8-4737-97d4-5f1a698fb135",
+      "startupMs": 11,
+      "serverMs": 28.8,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 4.163,
+      "wallMs": 4.723
+    },
+    {
+      "sample": 4,
+      "version": "69b57535-a6ca-4a08-9814-dceab9b8f7f2",
+      "startupMs": 11,
+      "serverMs": 23.7,
+      "status": 200,
+      "requests": 1,
+      "cpuMs": 5.213,
+      "wallMs": 5.656
+    },
+    {
+      "sample": 5,
+      "version": "adea09b9-3bf5-4b1c-96a3-dbcada5d8213",
+      "startupMs": 7,
+      "serverMs": 25.7,
+      "status": 200,
+      "requests": 18088,
+      "cpuMs": null,
+      "wallMs": null
+    }
+  ],
+  "median": {
+    "startupMs": 7,
+    "serverMs": 28.8,
+    "cpuMs": 5.213
+  }
+}

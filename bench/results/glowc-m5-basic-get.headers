@@ -1,14 +1,10 @@
-HTTP/2 404 
-date: Mon, 09 Nov 2026 22:36:39 GMT
-content-type: text/plain; charset=UTF-8
+HTTP/2 200 
+date: Mon, 09 Nov 2026 22:46:51 GMT
+content-type: text/plain
 content-length: 17
-cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
-expires: Thu, 01 Jan 1970 00:00:01 GMT
-referrer-policy: same-origin
-x-frame-options: SAMEORIGIN
-report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=x1En56AQAj2ICIsiMPnzd4oAolYObwpAtLzmW%2BhnKXABsXljCNhAgjS%2FIV1GQyaz7U7RYsmRn5Cpj1%2FwY40wgex7qSnn2TlaylMrSsuSTjdfozvP4DTusrI7mQH%2Fv4oa51TCIE5srdH3kXobHZW4lhcH46sd58o%3D"}]}
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=0dJD9cRRsgtTE60%2BFfTa%2F2V411u%2FtwdFUyVQtc54XINOgVKbVt40mE9t%2B0VoOkO7x4afzIENtqS%2BRd5KJGckKShYgwarDxGW%2BVslm0aSz425PGP2PZdd8g2Bl07YCwzWc2JMiBqrOF39tlj1uBIrBIVW3DsthKE%3D"}]}
 nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
 server: cloudflare
-cf-ray: a5804c2d1f86a0ba-OTP
+cf-ray: a5805b1edd35c9c3-OTP
 alt-svc: h3=":443"; ma=86400
 
