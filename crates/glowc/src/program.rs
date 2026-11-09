@@ -38,7 +38,8 @@ pub struct Program {
     pub function_id: HashMap<(usize, usize), u32>,
     pub targets: HashMap<Mfa, Target>,
     /// Per module: global literal index of each local literal.
-    pub literal_base: Vec<u32>,
+    /// Global literal index of each (module, local literal) used by reachable code.
+    pub lit_index: HashMap<(usize, u32), u32>,
     pub literals: Vec<Vec<u8>>,
     /// Lambdas used by make_fun3: (module, FunT index) -> global lambda id.
     pub lambdas: BTreeMap<(usize, u32), u32>,
@@ -61,7 +62,7 @@ impl Program {
             functions: Vec::new(),
             function_id: HashMap::new(),
             targets: HashMap::new(),
-            literal_base: Vec::new(),
+            lit_index: HashMap::new(),
             literals: Vec::new(),
             lambdas: BTreeMap::new(),
             undef: Vec::new(),
@@ -105,8 +106,6 @@ impl Program {
                 }
             };
             let idx = self.modules.len();
-            self.literal_base.push(self.literals.len() as u32);
-            self.literals.extend(m.literals.iter().cloned());
             for a in m.atoms.clone() {
                 self.atom(&a);
             }
@@ -232,7 +231,34 @@ impl Program {
                 }
             }
         }
+        self.number_literals();
         Ok(())
+    }
+
+    /// Numbers only the literals that reachable functions mention.
+    fn number_literals(&mut self) {
+        fn walk(o: &Operand, out: &mut Vec<u32>) {
+            match o {
+                Operand::Literal(i) => out.push(*i),
+                Operand::TypedReg(r, _) => walk(r, out),
+                Operand::List(v) => v.iter().for_each(|x| walk(x, out)),
+                _ => {}
+            }
+        }
+        for &(m, fi) in &self.functions {
+            let mut used = Vec::new();
+            for ins in &self.modules[m].functions[fi].code {
+                for a in &ins.args {
+                    walk(a, &mut used);
+                }
+            }
+            for i in used {
+                if !self.lit_index.contains_key(&(m, i)) {
+                    self.lit_index.insert((m, i), self.literals.len() as u32);
+                    self.literals.push(self.modules[m].literals[i as usize].clone());
+                }
+            }
+        }
     }
 
     fn import_mfa(&self, m: usize, imp: u32) -> Mfa {

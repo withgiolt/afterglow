@@ -22,11 +22,11 @@ pub static mut STATE: State = State { gc_pending: 0, hp: 0, hlim: 0, _pad: 0 };
 pub const X_REGS: usize = 1024;
 pub static mut XREGS: [u64; X_REGS] = [0; X_REGS];
 
-pub const STACK_WORDS: usize = 256 * 1024;
+pub const STACK_WORDS: usize = 16 * 1024; // 128 KiB; overflow raises system_limit
 pub static mut STACK_BASE: u32 = 0;
 pub static mut STACK_TOP: u32 = 0;
 
-const MIN_BLOCK_WORDS: usize = 32 * 1024; // 256 KiB
+const MIN_BLOCK_WORDS: usize = 8 * 1024; // 64 KiB
 
 struct Block {
     start: *mut u64,
@@ -365,7 +365,7 @@ pub struct Arena {
     exact_end: usize,
 }
 
-const CHUNK: usize = 64 * 1024;
+const CHUNK: usize = 16 * 1024;
 
 impl Arena {
     pub const fn new(permanent: bool) -> Self {

@@ -161,6 +161,7 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
         g_st: 1,
         g_xr: 2,
         g_lit: 3,
+        g_sb: 4,
         lambda_table: &lambda_table,
         extra_literals: std::cell::RefCell::new(Vec::new()),
         literal_count: prog.literals.len() as u32,
@@ -292,6 +293,8 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
         init.instruction(&I::GlobalSet(env.g_xr));
         init.instruction(&I::Call(rt["rt_stack_top"]));
         init.instruction(&I::GlobalSet(env.g_sp));
+        init.instruction(&I::Call(rt["rt_stack_base"]));
+        init.instruction(&I::GlobalSet(env.g_sb));
         init.instruction(&I::End);
     }
 
@@ -327,7 +330,7 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     });
     module.section(&tables);
     let mut globals = GlobalSection::new();
-    for _ in 0..4 {
+    for _ in 0..5 {
         globals.global(GlobalType { val_type: ValType::I32, mutable: true, shared: false }, &ConstExpr::i32_const(0));
     }
     module.section(&globals);

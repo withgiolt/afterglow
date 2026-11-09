@@ -42,6 +42,7 @@ pub struct Env<'a> {
     pub g_st: u32,
     pub g_xr: u32,
     pub g_lit: u32,
+    pub g_sb: u32,
     pub lambda_table: &'a HashMap<(usize, u32), u32>,
     pub extra_literals: std::cell::RefCell<Vec<Vec<u8>>>,
     pub literal_count: u32,
@@ -391,7 +392,7 @@ impl<'e, 'a> Fx<'e, 'a> {
             Operand::Nil => self.ins(I::I64Const(NIL)),
             Operand::Char(c) => self.ins(I::I64Const(small(*c as i64))),
             Operand::Literal(i) => {
-                let gi = self.env.prog.literal_base[self.m] + i;
+                let gi = self.env.prog.lit_index[&(self.m, *i)];
                 self.literal(gi);
             }
             Operand::U(v) => self.ins(I::I64Const(small(*v as i64))),
@@ -872,6 +873,21 @@ impl<'e, 'a> Fx<'e, 'a> {
                 let live = if ins.op.starts_with("allocate_heap") { u(2) } else { u(1) } as u32;
                 if n > 0 {
                     let sp = self.env.g_sp;
+                    // Y stack overflow: system_limit, like running out of process memory
+                    self.ins(I::GlobalGet(sp));
+                    self.ins(I::I32Const(8 * n as i32));
+                    self.ins(I::I32Sub);
+                    self.ins(I::GlobalGet(self.env.g_sb));
+                    self.ins(I::I32LtU);
+                    self.ins(I::If(BlockType::Empty));
+                    self.extra_depth += 1;
+                    let sl = self.env.prog.atom_index["system_limit"];
+                    self.ins(I::I64Const(atom(sl)));
+                    self.ins(I::Call(self.env.rt("rt_error")));
+                    self.ins(I::Drop);
+                    self.fault()?;
+                    self.extra_depth -= 1;
+                    self.ins(I::End);
                     self.ins(I::GlobalGet(sp));
                     self.ins(I::I32Const(8 * n as i32));
                     self.ins(I::I32Sub);

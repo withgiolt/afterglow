@@ -42,7 +42,7 @@ if (res === 0n) {
   process.exit(3);
 }
 if (process.env.GLOWC_STATS) {
-  process.stderr.write(`memory ${(mem.buffer.byteLength / 1048576).toFixed(1)} MiB, gcs ${x.rt_stats_gcs()}, heap words ${x.rt_stats_heap_words()}, arena ${(Number(x.rt_stats_arena_bytes()) / 1048576).toFixed(1)} MiB\n`);
+  process.stderr.write(`memory ${mem.buffer.byteLength / 1024} KiB, gcs ${x.rt_stats_gcs()}, heap words ${x.rt_stats_heap_words()}, arena ${(Number(x.rt_stats_arena_bytes()) / 1048576).toFixed(1)} MiB\n`);
 }
 if (process.env.GLOWC_TIME) {
   times.sort((a, b) => a - b);
