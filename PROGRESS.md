@@ -133,6 +133,9 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [x] deleted 2026-11-09: `glowc-phase0-do` (https://glowc-phase0-do.SUBDOMAIN.workers.dev), DO classes Counter + Caller with SQLite data.
 - [x] deleted 2026-11-09: `glowvm-baseline-basic-get` (https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev), observability on.
 - [x] deleted 2026-11-09: `glowvm-baseline-lustre-html` (https://glowvm-baseline-lustre-html.SUBDOMAIN.workers.dev), observability on.
+- [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
+      `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
+      (https://<name>.SUBDOMAIN.workers.dev), observability on.
 - Workers Logs from observability are kept by Cloudflare (retention per plan); they go with the Workers.
 - Workers with Durable Objects (`glowc-phase0-do`) also own DO namespaces and
   SQLite data; `wrangler delete` removes them with the Worker.
@@ -309,6 +312,34 @@ In this repo:
 - `tools/regress.sh`: 49 difftests vs erl (M1–M3 unit tests, all fixtures, gc_churn).
 - Port note: Helium's CDP listens on 9222, so the harness uses 9400+/9500+.
 
+### M5: benchmark gate (in progress)
+
+- Size pass (ccd46bb): only literals used by reachable code are emitted, Y stack 16K
+  words, Rust shadow stack 64 KiB, smaller GC blocks. `wrangler deploy --dry-run`:
+  basic_get 497.54 KiB / gzip 180.97 KiB (glowvm 298.73 KiB gzip); app.wasm gzip
+  lustre_html 184 KiB, json_roundtrip 202 KiB (glowvm 316.50 KiB). Size row: pass.
+- Memory: Wasm memory after a request, basic_get and lustre_html 512 KiB (8 pages) vs
+  glowvm 576 / 640 KiB. json_roundtrip about 5 MB. Memory row: pass.
+- Profiling pass (112c2df): GC nursery sized from the live set, inline bs_match fast
+  paths, name sections behind GLOWC_NAMES=1, `tools/profile.mjs`. json_roundtrip under
+  Node: median 5.6 ms -> 3.4 ms, GC share 32% -> about 7%.
+- Local workerd, same machine, oha c=1 (`bench/local.sh`, wall time ≈ CPU), before the
+  profiling pass: basic_get glowvm p50 0.81 / p99 3.66 ms, glowc 0.13 / 0.40 ms;
+  lustre_html glowvm 0.98 / 3.45, glowc 0.15 / 0.45; json_roundtrip glowvm 2644 / 2872 ms
+  (n=20), glowc 6.53 / 15.58 ms. After the profiling pass (2026-11-09 22:50, raw in
+  bench/results/local/): basic_get glowvm 0.86 / 3.67, glowc 0.14 / 0.71; lustre_html
+  glowvm 1.02 / 4.02, glowc 0.14 / 0.39; json_roundtrip glowvm 2367.73 / 2788.44 (n=20),
+  glowc 3.78 / 4.61 ms (626× at p50). Smoke on workerd: 30/30 identical.
+- Deployed measurement: `bench/m5.sh <dir>` = 5 cold-start deploys (`coldstart.sh`),
+  3 × (1k warm-up + 5k at c=10, 25 req/s) on the last version (`measure.sh`), CPU from
+  Analytics (`analytics.mjs`), first-request CPU per deploy (`coldcpu.mjs`, checked
+  against the Phase 0 glowvm CSV: median 5.61 ms, same as recorded), then delete.
+  Worker dirs: `bench/glowc/<fixture>` (built with tools/build-worker.sh).
+- Schedule (40k/day): 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
+  2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
+  redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
+  to record the failure mode.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare
@@ -318,5 +349,5 @@ In this repo:
 
 ## Next steps
 
-1. M5: size pass (wasm-metadce, literal pruning), local CPU comparison under workerd,
-   then deploy glowc only (request budget), measure with the Phase 0 method, verdict.
+1. M5: run bench/m5.sh on the schedule above, verdict, update SPIKE.md and report.html,
+   build compare.html.
