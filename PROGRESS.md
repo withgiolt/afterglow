@@ -136,6 +136,8 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
       `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
       (https://<name>.SUBDOMAIN.workers.dev), observability on.
+- [ ] P2, planned: `glowc-p2-counter` (DO class GlowNode with SQLite rows). Delete after
+      the check (`wrangler delete` removes the DO namespace and its data).
 - Workers Logs from observability are kept by Cloudflare (retention per plan); they go with the Workers.
 - Workers with Durable Objects (`glowc-phase0-do`) also own DO namespaces and
   SQLite data; `wrangler delete` removes them with the Worker.
@@ -414,8 +416,13 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 - Not done: local funs in checkpoints (ETF NEW_FUN_EXT is not encoded; such a process
   logs and is not checkpointed), stack traces from proc_lib crash reports (badmatch in
   proc_lib:my_info_1 on that error path).
-- Next: a Durable Object class (SQLite rows, the same calls as the harness) and one
-  deployed check of eviction and redeploy, after the day's M5 runs.
+- Durable Object host `tools/do/node.js` (class GlowNode, SQLite table procs(pid,
+  build, bytes), build hash baked in by `tools/do/build-do.sh`). Local workerd
+  (`tools/do/local-test.mjs`, wrangler dev with persisted storage; restart = eviction,
+  v2 restart = redeploy): {v1,1} {v1,2} {v1,3} {v2,4} {v2,4} {v2,5}, rows of about
+  480 bytes per turn. PASS.
+- Next: one deployed check on Giolt (`glowc-p2-counter`, about 10 requests) after the
+  day's M5 runs, then P3.
 
 ## User requests during the run
 
