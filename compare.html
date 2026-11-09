@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>glowvm vs glowc · M5 benchmark gate</title>
+<style>
+  :root { --bg:#111214; --surface:#1a1b1e; --border:#2a2c30; --text:#e8e6e3; --dim:#a09d98; --faint:#6d6a66;
+    --a:#7aa2f7; --b:#d97757; --ok:#7fbf7f; --warn:#e0b04f; --bad:#e06c6c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.55 -apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:48px 24px 96px; }
+  h1 { font-size:28px; margin:0 0 4px; letter-spacing:-0.01em; }
+  h2 { font-size:19px; margin:48px 0 12px; }
+  .sub { color:var(--dim); margin:0 0 28px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px 22px; margin:16px 0; }
+  .note, .dim { color:var(--faint); font-size:13px; }
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .kpi { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+  .kpi .v { font-size:24px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .kpi .l { color:var(--dim); font-size:13px; }
+  @media (max-width:640px) { .kpis { grid-template-columns:repeat(2,1fr); } }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--dim); font-weight:500; font-size:13px; }
+  td.num, th.num { text-align:right; }
+  .pass { color:var(--ok); font-weight:600; } .fail { color:var(--bad); font-weight:600; } .pend { color:var(--warn); font-weight:600; }
+  .legend { display:flex; gap:16px; font-size:13px; color:var(--dim); margin:6px 0 10px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+  .callout { border-left:3px solid var(--warn); background:#e0b04f14; padding:14px 18px; border-radius:6px; margin:16px 0; }
+  code { font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:13px; background:#ffffff0d; padding:1px 5px; border-radius:4px; }
+  svg text { fill:var(--dim); font-size:12px; font-family:inherit; }
+  svg .val { fill:var(--text); font-variant-numeric:tabular-nums; }
+  ul { padding-left:20px; } li { margin:4px 0; }
+  footer { color:var(--faint); font-size:13px; margin-top:56px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>glowvm vs glowc</h1>
+  <p class="sub">M5 benchmark gate · Cloudflare Workers Free, Giolt account · glowvm commit <code>7190ebc</code> (AtomVM interpreter, fresh VM per request) vs glowc (BEAM compiled ahead of time to Wasm, one instance per isolate) · generated 2026-11-09 20:55 UTC</p>
+
+  <div class="kpis">
+    <div class=kpi><div class=v><span class=pend>pending</span></div><div class=l>M5 verdict</div></div>
+    <div class=kpi><div class=v>pending</div><div class=l>basic_get CPU p50, deployed</div></div>
+    <div class=kpi><div class=v>pending</div><div class=l>lustre_html CPU p50, deployed</div></div>
+    <div class=kpi><div class=v>627×</div><div class=l>json_roundtrip p50, local workerd</div></div>
+  </div>
+
+  <h2>Verdict against SPIKE.md's success table</h2>
+  <div class="card"><table>
+    <tr><th>Row</th><th>Target</th><th>glowvm → glowc</th><th>Result</th></tr>
+    <tr><td>CPU, fixed overhead (basic_get, lustre_html)</td><td class=dim>≥ 3× lower p50 and p99 (deployed)</td><td>basic_get: p50 pending ≤ 1.38, p99 pending ≤ 4.65 ms<br>lustre_html: p50 pending ≤ 1.34, p99 pending ≤ 4.47 ms</td><td class=pend>pending</td></tr><tr><td>CPU, heavy handler (json_roundtrip)</td><td class=dim>≥ 5× lower p50 and p99 (local workerd: glowvm exceeds Free's CPU limit deployed)</td><td>p50 2367.73 → 3.78 ms (627×), p99 2788.44 → 4.61 ms (605×)</td><td class=pass>pass</td></tr><tr><td>Isolate startup</td><td class=dim>no worse (first request after deploy, median of 5)</td><td>basic_get: server 81.4 → pending ms, CPU 5.61 → pending ms<br>lustre_html: server 67.9 → pending ms, CPU 4.91 → pending ms</td><td class=pend>pending</td></tr><tr><td>Bundle size</td><td class=dim>≤ glowvm (gzip upload)</td><td>basic_get: 298.73 → 180.97 KiB<br>lustre_html: 316.5 → 187.5 KiB<br>json_roundtrip: 308.37 → 205.73 KiB</td><td class=pass>pass</td></tr><tr><td>Peak memory</td><td class=dim>lower (basic_get, lustre_html)</td><td>basic_get: 576 → 512 KiB<br>lustre_html: 640 → 512 KiB<br>json_roundtrip: 1280 → 4992 KiB<br><span class=dim>json_roundtrip is higher on glowc; not a fixture of this row, flagged below</span></td><td class=pass>pass</td></tr><tr><td>Correctness</td><td class=dim>byte-identical status, headers, body</td><td>30/30 smoke requests identical on local workerd; deployed check: basic_get pending, lustre_html pending</td><td class=pend>pending</td></tr>
+  </table>
+  <p class="note">Tier 2 rows (persistence, messaging) belong to Phase 2 and are not part of the M5 gate.</p></div>
+
+  <h2>CPU per request, deployed</h2>
+  <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span></div>
+  <div class="card"><svg viewBox="0 0 760 248" width="100%" role="img"><text x="0" y="15">basic_get p50</text><rect x="130" y="0" width="159.9" height="16" rx="3" fill="var(--a)"/><text class="val" x="295.8809096778822" y="12">4.13 ms</text><rect x="130" y="22" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="34">pending</text><text x="0" y="77">basic_get p99</text><rect x="130" y="62" width="540.0" height="16" rx="3" fill="var(--a)"/><text class="val" x="676" y="74">13.9 ms</text><rect x="130" y="84" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="96">pending</text><text x="0" y="139">lustre_html p50</text><rect x="130" y="124" width="155.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="291.69696534902073" y="136">4.02 ms</text><rect x="130" y="146" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="158">pending</text><text x="0" y="201">lustre_html p99</text><rect x="130" y="186" width="519.5" height="16" rx="3" fill="var(--a)"/><text class="val" x="655.5451610588995" y="198">13.4 ms</text><rect x="130" y="208" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="220">pending</text></svg>
+    <p class="note">Workers Analytics CPU time over every measured request (not sampled): 1,000 warm-up, then 5,000 at concurrency 10 and 25 req/s, 3 runs; the median of the runs' p50 and p99. glowvm numbers are the Phase 0 baselines (2026-11-09), same method.</p></div>
+  <div class="card"><table>
+    <tr><th>Fixture</th><th>glowvm p50 / p99 per run (ms)</th><th>glowc p50 / p99 per run (ms)</th><th class=num>glowc requests</th><th class=num>glowc non-success</th></tr>
+    <tr><td>basic_get</td><td>4.13 / 12.21<br>4.60 / 13.94<br>3.86 / 13.99</td><td>pending</td>
+    <td class=num>–</td><td class=num>–</td></tr><tr><td>lustre_html</td><td>4.25 / 13.41<br>3.84 / 11.30<br>4.02 / 15.79</td><td>pending</td>
+    <td class=num>–</td><td class=num>–</td></tr><tr><td>json_roundtrip</td><td>exceeds CPU limit (see below)</td><td>pending</td>
+    <td class=num>–</td><td class=num>–</td></tr>
+  </table></div>
+  
+
+  <h2>Local workerd, same machine</h2>
+  <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span><span>log scale</span></div>
+  <div class="card"><svg viewBox="0 0 760 186" width="100%" role="img"><text x="0" y="15">basic_get p50</text><rect x="130" y="0" width="129.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="265.7137179553163" y="12">0.86 ms</text><rect x="130" y="22" width="37.6" height="16" rx="3" fill="var(--b)"/><text class="val" x="173.5836126981937" y="34">0.14 ms</text><text x="0" y="77">lustre_html p50</text><rect x="130" y="62" width="138.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="274.65550125516745" y="74">1.02 ms</text><rect x="130" y="84" width="35.8" height="16" rx="3" fill="var(--b)"/><text class="val" x="171.75837767066986" y="96">0.14 ms</text><text x="0" y="139">json_roundtrip p50</text><rect x="130" y="124" width="540.0" height="16" rx="3" fill="var(--a)"/><text class="val" x="676" y="136">2368 ms</text><rect x="130" y="146" width="206.6" height="16" rx="3" fill="var(--b)"/><text class="val" x="342.56426772780605" y="158">3.78 ms</text></svg>
+    <p class="note">One workerd, oha at concurrency 1, wall time per request (pure compute, so close to CPU). n = basic_get 2000 / 2000, lustre_html 2000 / 2000, json_roundtrip 20 / 2000. glowvm takes about 2.4 s CPU for json_roundtrip, over the Free plan's 10 ms limit, so the heavy row is compared here.</p></div>
+
+  <h2>Cold start</h2>
+  <div class="card"><table>
+    <tr><th>Fixture</th><th class=num>startup (wrangler)</th><th class=num>first request, server time</th><th class=num>first request CPU</th></tr>
+    <tr><td>basic_get</td><td class=num>22 → pending ms</td><td class=num>81.4 → pending ms</td><td class=num>5.61 → pending ms</td></tr><tr><td>lustre_html</td><td class=num>21 → pending ms</td><td class=num>67.9 → pending ms</td><td class=num>4.91 → pending ms</td></tr><tr><td>json_roundtrip</td><td class=num>– → pending ms</td><td class=num>pending → pending ms</td><td class=num>pending → pending ms</td></tr>
+  </table><p class="note">Five deploys each, the first request after each one; medians. glowvm → glowc.</p></div>
+
+  <h2>Size and memory</h2>
+  <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span></div>
+  <div class="card"><h3>Upload size, gzip (KiB)</h3><svg viewBox="0 0 760 186" width="100%" role="img"><text x="0" y="15">basic_get</text><rect x="130" y="0" width="509.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="645.6815165876778" y="12">299 KiB</text><rect x="130" y="22" width="308.8" height="16" rx="3" fill="var(--b)"/><text class="val" x="444.763981042654" y="34">181 KiB</text><text x="0" y="77">lustre_html</text><rect x="130" y="62" width="540.0" height="16" rx="3" fill="var(--a)"/><text class="val" x="676" y="74">317 KiB</text><rect x="130" y="84" width="319.9" height="16" rx="3" fill="var(--b)"/><text class="val" x="455.9052132701422" y="96">188 KiB</text><text x="0" y="139">json_roundtrip</text><rect x="130" y="124" width="526.1" height="16" rx="3" fill="var(--a)"/><text class="val" x="662.1289099526067" y="136">308 KiB</text><rect x="130" y="146" width="351.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="487.0085308056872" y="158">206 KiB</text></svg></div>
+  <div class="card"><h3>Wasm memory high-water (KiB)</h3><svg viewBox="0 0 760 186" width="100%" role="img"><text x="0" y="15">basic_get</text><rect x="130" y="0" width="62.3" height="16" rx="3" fill="var(--a)"/><text class="val" x="198.30769230769232" y="12">576 KiB</text><rect x="130" y="22" width="55.4" height="16" rx="3" fill="var(--b)"/><text class="val" x="191.3846153846154" y="34">512 KiB</text><text x="0" y="77">lustre_html</text><rect x="130" y="62" width="69.2" height="16" rx="3" fill="var(--a)"/><text class="val" x="205.23076923076923" y="74">640 KiB</text><rect x="130" y="84" width="55.4" height="16" rx="3" fill="var(--b)"/><text class="val" x="191.3846153846154" y="96">512 KiB</text><text x="0" y="139">json_roundtrip</text><rect x="130" y="124" width="138.5" height="16" rx="3" fill="var(--a)"/><text class="val" x="274.46153846153845" y="136">1280 KiB</text><rect x="130" y="146" width="540.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="676" y="158">4992 KiB</text></svg>
+    <p class="note">glowvm: one fresh instance per request. glowc: one instance per isolate, 5,000 requests through it, highest value seen.</p></div>
+
+  <h2>Where glowc is not yet a drop-in replacement</h2>
+  <div class="callout"><ul>
+    <li><b>Recursion depth.</b> Body recursion deeper than about 12,340 frames fails on workerd (502, the next request works). glowvm handles 1,000,000. <code>lists:map</code> over ~12k elements hits it. The benchmark fixtures don't.</li>
+    <li><b>json_roundtrip memory.</b> 4,992 KiB vs glowvm's 1,280 KiB, from the 2 MiB GC nursery chosen for speed.</li>
+    <li><b>Map order above 32 keys and atom-key order in small maps</b> can differ from ERTS when a map is iterated (lookups and equality are the same).</li>
+    <li><b>Stack traces</b> are coarser than ERTS. No processes or <code>receive</code> yet (Phase 2).</li>
+  </ul></div>
+
+  <footer>Sources: <code>bench/results/*.analytics.json</code>, <code>*-coldstart.cpu.json</code>, <code>bench/results/local/</code>, PROGRESS.md (M5). Regenerate with <code>node bench/compare.mjs</code>.</footer>
+</main>
+</body>
+</html>
