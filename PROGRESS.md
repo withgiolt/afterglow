@@ -53,6 +53,13 @@ All local checks pass; details are recorded in SPIKE.md under Phase 0.
 - [~] CPU time: wrangler dev shows wall time only; needs a deployed Worker
 - [ ] Baselines (needs deploy: ask user)
 
+## User decisions (2026-11-09)
+
+- Deploy: yes, to the default account from `wrangler whoami`. Show the account before the first deploy.
+- Repo: keep local for now (no remote).
+- OTP: use OTP 29 (installed); the doc's pin was changed from 28 to 29.
+- oha: install via Homebrew.
+
 ## Next steps
 
 1. Visual of the results (user asked). There is no glowvm-vs-glowc comparison yet:

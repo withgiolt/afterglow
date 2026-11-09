@@ -47,7 +47,7 @@ A Rust compiler, `glowc`, turns the app's `.beam` files and the real OTP stdlib 
 ```mermaid
 flowchart LR
   subgraph build["Build time"]
-    A["gleam build<br/>Erlang target, unchanged"] --> B[".beam files<br/>app + Hex deps + OTP 28 stdlib"]
+    A["gleam build<br/>Erlang target, unchanged"] --> B[".beam files<br/>app + Hex deps + OTP 29 stdlib"]
     B --> C["glowc<br/>reachability, codegen to Wasm"]
     C --> D["app.wasm<br/>linked with glowrt and wasm32 NIFs"]
   end
@@ -65,7 +65,7 @@ Everything up to `app.wasm` happens at build time. At request time nothing is pa
 ### Pipeline
 
 1. `gleam build --target erlang` runs unchanged. No Gleam fork; Erlang and Elixir deps work the same way.
-2. `glowc` reads every `.beam` the app can reach: the app, its Hex deps, and OTP 28's own `stdlib`/`kernel` ebin files. It parses the chunks (`Code`, `AtU8`, `ImpT`, `ExpT`, `LitT`, `FunT`, `Line`) and decodes BEAM's compact term encoding into an IR, one function at a time.
+2. `glowc` reads every `.beam` the app can reach: the app, its Hex deps, and OTP 29's own `stdlib`/`kernel` ebin files. It parses the chunks (`Code`, `AtU8`, `ImpT`, `ExpT`, `LitT`, `FunT`, `Line`) and decodes BEAM's compact term encoding into an IR, one function at a time.
 3. Whole-program reachability from the entry `handle/1`. Unreached functions are dropped. Calls through `apply/3` or unknown funs keep their whole export table reachable, and the compiler reports which ones did.
 4. Codegen to Wasm with the `wasm-encoder` crate. The atom table and every literal from `LitT` go into data segments, built at compile time, so startup parses nothing.
 5. Link with `glowrt` (built for `wasm32-unknown-unknown`) and any NIF objects (also wasm32), then run `wasm-opt`. Outputs: `app.wasm`, plus a Worker entry and a Durable Object class in JS.
@@ -209,7 +209,7 @@ glowc/
   bench/           load scripts, wrangler configs per fixture, results/
 ```
 
-Tooling: stable Rust; `wasm-encoder` and `wasmparser` for writing and validating output; Binaryen `wasm-opt`; Erlang/OTP 28 and Gleam 1.18 or newer (matching glowvm); `wrangler`/`workerd` at the versions pinned in Phase 0; `wasmtime`, with tail calls and exception handling on, for fast local test runs; `bun` for the smoke tests; `oha` for load.
+Tooling: stable Rust; `wasm-encoder` and `wasmparser` for writing and validating output; Binaryen `wasm-opt`; Erlang/OTP 29 and Gleam 1.18 or newer (matching glowvm); `wrangler`/`workerd` at the versions pinned in Phase 0; `wasmtime`, with tail calls and exception handling on, for fast local test runs; `bun` for the smoke tests; `oha` for load.
 
 CI runs the `difftest` suite and the smoke tests on every pull request. Benchmarks run by hand against deployed Workers.
 
@@ -250,7 +250,7 @@ Fallback if the spike stops: pre-initialize glowvm at build time (boot AtomVM an
 ### Open questions
 
 - [ ] New repo `withgiolt/glowc`, or a directory inside glowvm?
-- [ ] Support only OTP 28 at first, or also 27?
+- [x] Support only OTP 28 at first, or also 27? Decided 2026-11-09: OTP 29, the installed version.
 - [ ] How does an app name its tier 2 nodes: `gleam.toml`, a `giolt` config, or code?
 - [ ] Outbound HTTP from Erlang code (`gleam_httpc`): run it through the scheduler as a message (the process sends a request and waits in `receive`, the host does `fetch`), or through JSPI if Phase 0 finds it? The message route needs nothing new from workerd.
 - [ ] How much of `proc_lib`, `gen` and `sys` does `gleam_otp` reach, and what does that add to bundle size?
