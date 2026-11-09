@@ -252,21 +252,24 @@ pub struct Arena {
     chunks: Vec<(*mut u8, usize)>,
     pos: usize,
     permanent: bool,
+    /// Exact end address of the most recent allocation (for in-place appends).
+    exact_end: usize,
 }
 
 const CHUNK: usize = 64 * 1024;
 
 impl Arena {
     pub const fn new(permanent: bool) -> Self {
-        Arena { chunks: Vec::new(), pos: 0, permanent }
+        Arena { chunks: Vec::new(), pos: 0, permanent, exact_end: 0 }
     }
 
-    pub unsafe fn alloc(&mut self, n: usize) -> *mut u8 {
-        let n = (n + 7) & !7;
+    pub unsafe fn alloc(&mut self, len: usize) -> *mut u8 {
+        let n = (len + 7) & !7;
         if let Some(&(p, size)) = self.chunks.last() {
             if self.pos + n <= size {
                 let r = p.add(self.pos);
                 self.pos += n;
+                self.exact_end = r as usize + len;
                 return r;
             }
         }
@@ -277,18 +280,22 @@ impl Arena {
         }
         self.chunks.push((p, size));
         self.pos = n;
+        self.exact_end = p as usize + len;
         p
     }
 
-    /// Tries to grow the most recent allocation in place (used for binary appends).
+    /// Tries to grow (or shrink) the most recent allocation in place. Only succeeds
+    /// when `start + old_len` is exactly where the last allocation ends, so a
+    /// sub-binary can never grow over bytes that belong to its parent.
     pub unsafe fn try_extend(&mut self, start: *const u8, old_len: usize, new_len: usize) -> bool {
         if let Some(&(p, size)) = self.chunks.last() {
-            let old_end = ((old_len + 7) & !7) + (start as usize - p as usize);
-            if start as usize >= p as usize
-                && old_end == self.pos
-                && (start as usize - p as usize) + new_len <= size
+            let off = start as usize;
+            if off >= p as usize
+                && off + old_len == self.exact_end
+                && (off - p as usize) + new_len <= size
             {
-                self.pos = (start as usize - p as usize) + ((new_len + 7) & !7);
+                self.pos = (off - p as usize) + ((new_len + 7) & !7);
+                self.exact_end = off + new_len;
                 return true;
             }
         }
@@ -315,6 +322,7 @@ impl Arena {
         self.chunks.clear();
         self.chunks.push((first, size));
         self.pos = 0;
+        self.exact_end = 0;
     }
 
     pub fn bytes_reserved(&self) -> usize {

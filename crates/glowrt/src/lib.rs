@@ -16,6 +16,9 @@ pub mod funs;
 pub mod mem;
 pub mod num;
 pub mod ops;
+pub mod bits;
+pub mod maps;
+pub mod binmod;
 pub mod roots;
 pub mod term;
 

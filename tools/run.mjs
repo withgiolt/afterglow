@@ -19,6 +19,7 @@ const { instance } = await WebAssembly.instantiate(bytes, { host });
 const x = instance.exports;
 mem = x.memory;
 x.init();
+if (process.env.GLOWC_DEBUG && x.rt_set_debug) x.rt_set_debug(1);
 const t1 = performance.now();
 const input = mode === 'request' ? fs.readFileSync(0) : new Uint8Array(0);
 const unpack = (v) => {

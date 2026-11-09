@@ -559,3 +559,13 @@ bif!("crypto:strong_rand_bytes/1", fn strong_rand_bytes(n) {
     crate::host_random(&mut v);
     build::binary(&v)
 });
+
+static mut DEBUG: bool = false;
+pub fn debug_enabled() -> bool {
+    unsafe { DEBUG }
+}
+/// Turns on runtime debug logging (undef calls, ...).
+#[no_mangle]
+pub unsafe extern "C" fn rt_set_debug(on: i32) {
+    DEBUG = on != 0;
+}

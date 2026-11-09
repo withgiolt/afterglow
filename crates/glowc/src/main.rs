@@ -42,7 +42,7 @@ fn main() {
             }
         }
         Some("build") => {
-            let (mut rt, mut beams, mut skip, mut entry, mut out, mut verbose) = (None, Vec::new(), Vec::new(), None, None, false);
+            let (mut rt, mut beams, mut skip, mut entry, mut out, mut verbose, mut list_ops) = (None, Vec::new(), Vec::new(), None, None, false, false);
             let mut i = 2;
             while i < args.len() {
                 let v = || args.get(i + 1).cloned().unwrap_or_else(|| usage());
@@ -56,6 +56,11 @@ fn main() {
                     }
                     "--entry" => entry = Some(parse_mfa(&v())),
                     "-o" => out = Some(v()),
+                    "--list-ops" => {
+                        list_ops = true;
+                        i += 1;
+                        continue;
+                    }
                     "-v" => {
                         verbose = true;
                         i += 1;
@@ -84,6 +89,47 @@ fn main() {
                 }
             } else if !prog.warnings.is_empty() {
                 eprintln!("glowc: {} warnings (-v to list)", prog.warnings.len());
+            }
+            if list_ops {
+                let mut ops: std::collections::BTreeMap<String, usize> = Default::default();
+                for &(m, fi) in &prog.functions {
+                    for ins in &prog.modules[m].functions[fi].code {
+                        let key = match ins.op {
+                            "bs_match" => match ins.args.get(2) {
+                                Some(beam_reader::Operand::List(cmds)) => {
+                                    for c in cmds {
+                                        if let beam_reader::Operand::Atom(a) = c {
+                                            *ops.entry(format!("bs_match:{}", prog.modules[m].atom(*a))).or_default() += 1;
+                                        }
+                                    }
+                                    "bs_match".to_string()
+                                }
+                                _ => "bs_match".to_string(),
+                            },
+                            op => op.to_string(),
+                        };
+                        *ops.entry(key).or_default() += 1;
+                    }
+                }
+                for (k, v) in ops {
+                    println!("{} {}", k, v);
+                }
+                if let Ok(sample) = std::env::var("GLOWC_SAMPLE") {
+                    let want: Vec<&str> = sample.split(',').collect();
+                    let mut seen: HashMap<&str, usize> = HashMap::new();
+                    for &(m, fi) in &prog.functions {
+                        for ins in &prog.modules[m].functions[fi].code {
+                            if want.contains(&ins.op) {
+                                let c = seen.entry(ins.op).or_default();
+                                if *c < 4 {
+                                    *c += 1;
+                                    println!("{} {:?}", program::mfa_str(&prog.mfa_of(m, fi)), ins);
+                                }
+                            }
+                        }
+                    }
+                }
+                return;
             }
             match module::build(&prog, &rt_funcs, &entry) {
                 Ok(o) => {

@@ -248,6 +248,22 @@ In this repo:
   includes `lists:map` over 100k elements. Measure the workerd limit at M4. Not a kill
   criterion; fixtures stay far below it.
 
+### M2: binaries and strings (done 2026-11-09)
+
+- glowrt: `bits.rs` (bs_create_bin incl. in-place append on the arena, match contexts,
+  old and OTP 26+ match ops, byte_size/bit_size on match contexts), `maps.rs` (flat
+  sorted maps, put/get/has, maps BIFs, `erts_internal:map_next/3`), `binmod.rs`
+  (binary:match/matches/split/compile_pattern/..., unicode:characters_to_binary/list).
+  Codegen: `codegen_ext.rs`. Exceptions now carry `{M,F,A,[]}` frames added on unwind.
+- Request difftest: `tools/difftest-req.sh MOD` (whole stdout byte for byte vs erl).
+  PASS: basic_get, not_found, no_content, stdlib_string, stdlib_bit_array,
+  stdlib_string_tree. Unit difftests `tests/erl/m2.erl` (8 tests) pass.
+- Bugs found on the way: bs_get_tail must not move the match position; arena in-place
+  append must compare exact (not rounded) ends.
+- Known deviation: ERTS orders atom keys in small maps by atom index (e.g. #{a,b,c}
+  iterates c,a,b on OTP 29); glowrt uses term order. =:= is unaffected; output that
+  iterates an atom-keyed map can differ. Exception stack traces are coarser than ERTS.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare
@@ -257,5 +273,5 @@ In this repo:
 
 ## Next steps
 
-1. M2: binaries and strings (bs_create_bin, bs_match, unicode NIFs); stdlib_string,
-   stdlib_bit_array, stdlib_string_tree vs erl.
+1. M3: maps, funs, exceptions, bignums: stdlib_dict, stdlib_int, stdlib_function,
+   stdlib_result, stdlib_dynamic vs erl, plus 2^200 arithmetic.

@@ -121,6 +121,9 @@ fn scan_regs(code: &[Instr]) -> (u32, u32) {
                 mx = mx.max(*a as u32 + 1);
             }
         }
+        if let ("apply" | "apply_last", Some(Operand::U(a))) = (i.op, i.args.first()) {
+            mx = mx.max(*a as u32 + 2).max(3);
+        }
         if matches!(i.op, "try_case") {
             mx = mx.max(3);
         }
@@ -478,6 +481,10 @@ impl<'e, 'a> Fx<'e, 'a> {
         } else {
             self.ins(I::LocalGet(self.l_entry_sp));
             self.ins(I::GlobalSet(self.env.g_sp));
+            self.ins(I::I64Const(self.mod_atom));
+            self.ins(I::I64Const(self.fun_atom));
+            self.ins(I::I32Const(self.arity as i32));
+            self.ins(I::Call(self.env.rt("rt_frame")));
             self.ins(I::I64Const(0));
             self.ins(I::Return);
             Ok(())
@@ -1372,7 +1379,39 @@ impl<'e, 'a> Fx<'e, 'a> {
             }
 
             // binaries, maps, records
-            op if op.starts_with("bs_") || matches!(op, "put_map_assoc" | "put_map_exact" | "get_map_elements" | "has_map_fields" | "update_record") => {
+            "apply" | "apply_last" => {
+                // x0..x(n-1) args, x(n) module, x(n+1) function
+                let n = u(0) as u32;
+                self.ins(I::I64Const(NIL));
+                self.ins(I::LocalSet(self.l_tmp + 1));
+                for i in (0..n).rev() {
+                    self.alloc(2, 0);
+                    let t = self.l_tmp + 1;
+                    self.store_word(0, 0, |fx| {
+                        fx.ins(I::LocalGet(i));
+                        Ok(())
+                    })?;
+                    self.store_word(0, 1, |fx| {
+                        fx.ins(I::LocalGet(t));
+                        Ok(())
+                    })?;
+                    self.ins(I::LocalGet(self.l_tmpi));
+                    self.ins(I::I64ExtendI32U);
+                    self.ins(I::I64Const(1));
+                    self.ins(I::I64Or);
+                    self.ins(I::LocalSet(t));
+                }
+                self.ins(I::LocalGet(n));
+                self.ins(I::LocalSet(0));
+                self.ins(I::LocalGet(n + 1));
+                self.ins(I::LocalSet(1));
+                self.ins(I::LocalGet(self.l_tmp + 1));
+                self.ins(I::LocalSet(2));
+                let tail = if ins.op == "apply_last" { Some(u(1)) } else { None };
+                self.apply_call(3, tail)?;
+            }
+
+            op if op.starts_with("bs_") || matches!(op, "put_map_assoc" | "put_map_exact" | "get_map_elements" | "has_map_fields" | "update_record" | "is_any_native_record") => {
                 crate::codegen_ext::instr(self_ext(self), ins)?;
             }
 
@@ -1470,6 +1509,15 @@ impl<'f, 'e, 'a> Ext<'f, 'e, 'a> {
     }
     pub fn nparams(&self) -> u32 {
         self.0.nparams
+    }
+    pub fn atom_name(&self, local: u32) -> &str {
+        self.0.env.prog.modules[self.0.m].atom(local)
+    }
+    pub fn module_literal(&self, i: u32) -> &[u8] {
+        &self.0.env.prog.modules[self.0.m].literals[i as usize]
+    }
+    pub fn g_xr(&self) -> u32 {
+        self.0.env.g_xr
     }
 }
 

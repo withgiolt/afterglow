@@ -12,6 +12,9 @@ pub unsafe fn raise(class: Term, reason: Term) -> Term {
 }
 
 pub unsafe fn raise_with(class: Term, reason: Term, frames: Term) -> Term {
+    if crate::bifs::debug_enabled() {
+        crate::host_log(&format!("raise {}:{}", crate::fmt::show(class), crate::fmt::show(reason)));
+    }
     let p = proc();
     p.exc_class = class;
     p.exc_reason = reason;
@@ -55,6 +58,9 @@ pub unsafe extern "C" fn rt_function_clause(m: Term, f: Term, a: u32) -> Term {
 }
 #[no_mangle]
 pub unsafe extern "C" fn rt_undef(m: Term, f: Term, a: u32) -> Term {
+    if crate::bifs::debug_enabled() {
+        crate::host_log(&format!("undef {}:{}/{}", crate::fmt::show(m), crate::fmt::show(f), a));
+    }
     let frame = build::tuple(&[m, f, small(a as i64), NIL]);
     let frames = build::list(&[frame]);
     raise_with(ERROR, UNDEF, frames)
@@ -125,4 +131,29 @@ pub unsafe fn raise3(class: Term, reason: Term, trace: Term) -> Term {
 pub unsafe fn describe() -> String {
     let p = proc();
     format!("{}:{}", crate::fmt::show(p.exc_class), crate::fmt::show(p.exc_reason))
+}
+
+/// Called by generated code when an exception leaves a function without a handler:
+/// appends {M, F, A, []} to the raw stacktrace (at most 8 frames, like ERTS).
+#[no_mangle]
+pub unsafe extern "C" fn rt_frame(m: Term, f: Term, a: u32) {
+    let p = proc();
+    let raw = p.exc_trace;
+    if !is_tuple(raw) || tuple_arity(raw) != 2 {
+        return;
+    }
+    let frames = tuple_get(raw, 1);
+    let Some(mut v) = build::list_to_vec(frames) else { return };
+    if v.len() >= 8 {
+        return;
+    }
+    if let Some(&last) = v.last() {
+        // the raising BIF/function already added itself
+        if is_tuple(last) && tuple_get(last, 0) == m && tuple_get(last, 1) == f && v.len() == 1 && tuple_get(last, 2) == small(a as i64) {
+            return;
+        }
+    }
+    v.push(build::tuple(&[m, f, small(a as i64), NIL]));
+    let nf = build::list(&v);
+    p.exc_trace = build::tuple(&[tuple_get(raw, 0), nf]);
 }
