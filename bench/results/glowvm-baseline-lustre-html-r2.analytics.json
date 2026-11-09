@@ -1,0 +1,27 @@
+{
+  "run": "glowvm-baseline-lustre-html-r2",
+  "scriptVersion": "cf34b825-3dda-489e-8f03-7f54373c1ccf",
+  "window": {
+    "start": "2026-11-09T17:32:49.000Z",
+    "end": "2026-11-09T17:36:08.000Z"
+  },
+  "byStatus": [
+    {
+      "status": "success",
+      "requests": 4961,
+      "errors": 0,
+      "cpuMs": {
+        "p25": 2.545,
+        "p50": 3.836,
+        "p75": 4.47,
+        "p90": 6.652,
+        "p99": 11.298,
+        "p999": 14.693
+      },
+      "wallMs": {
+        "p50": 4.234,
+        "p99": 12.601
+      }
+    }
+  ]
+}

@@ -98,10 +98,17 @@ All local checks pass; details are recorded in SPIKE.md under Phase 0.
 | --- | --- | --- |
 | Upload (total / gzip) | 823.58 KiB / 298.73 KiB | 860.82 KiB / 316.50 KiB |
 | Worker Startup Time (wrangler deploy) | 31 ms | 16 ms |
-| CPU p50 / p90 / p99 / max, r1 (8% tail sample) | 4 / 7 / 16 / 44 ms | 4 / 8 / 13 / 41 ms |
+| **CPU p50, median of 3 runs (Analytics, all requests)** | **4.13 ms** (4.13, 4.60, 3.86) | **4.02 ms** (4.25, 3.84, 4.02) |
+| **CPU p99, median of 3 runs (Analytics, all requests)** | **13.94 ms** (12.21, 13.94, 13.99) | **13.41 ms** (13.41, 11.30, 15.79) |
+| CPU p50 / p90 / p99 / max, r1 (8% tail sample, superseded) | 4 / 7 / 16 / 44 ms | 4 / 8 / 13 / 41 ms |
 | Worker wall p50 / p99 | 4 / 17 ms | 4 / 15 ms |
 | Client latency p50 / p99 (oha, 25 req/s) | 17.9 / 35.8 ms | 18.4 / 38.1 ms |
 | Reference body sha256 | a93e435a… (17 B) | 24f3e3de… (81 B) |
+
+CPU source (decided): Workers Analytics GraphQL `workersInvocationsAdaptive`, filtered by
+`scriptVersion` (new scripts show as `__unknown__`) and the measured run's exact window
+(`bench/analytics.mjs`). Counts are adaptive-sampled estimates (4,885–5,095 per 5,000 run).
+Each run: 1,000 warm-up, then 5,000 measured at c=10, 25 req/s, colo OTP.
 
 Not yet measured: memory high-water mark, cold-start first-request timing.
 
@@ -123,7 +130,15 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
   SQLite data; `wrangler delete` removes them with the Worker.
 - Remove with: `CLOUDFLARE_ACCOUNT_ID=00000000000000000000000000000000 npx wrangler delete --name <worker>`
 
+- [ ] User API token `glowc-phase0-analytics-read` (Account Analytics: Read, Giolt
+      only, expires 2026-11-16). Created via the dashboard in the user's Helium browser.
+      Delete it in My Profile → API Tokens when done.
+
 Local machine:
+- [ ] Token file `~/.config/glowc-phase0/cf-analytics-token` (mode 600). Delete with the token.
+- [ ] Helium remote debugging was turned on by the user (chrome://inspect/#remote-debugging);
+      turn it off when done. Also `agent-browser --session task-5af08f2bded3 close`
+      to detach (it does not close Helium's own tabs), and close the API-tokens tab it opened.
 - [ ] `oha` 1.16.0 installed with Homebrew (`brew uninstall oha` if not wanted after the spike).
 - [ ] wrangler OAuth login for the user's account, stored in `~/Library/Preferences/.wrangler/config/default.toml`
       (the user ran `wrangler login`; `npx wrangler logout` revokes it, if wanted).

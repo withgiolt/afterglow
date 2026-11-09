@@ -1,0 +1,27 @@
+{
+  "run": "glowvm-baseline-basic-get-r3",
+  "scriptVersion": "86dbb6fe-c926-490e-9de8-8036d8746f17",
+  "window": {
+    "start": "2026-11-09T17:36:38.000Z",
+    "end": "2026-11-09T17:39:57.000Z"
+  },
+  "byStatus": [
+    {
+      "status": "success",
+      "requests": 5017,
+      "errors": 0,
+      "cpuMs": {
+        "p25": 2.652,
+        "p50": 3.863,
+        "p75": 4.566,
+        "p90": 6.479,
+        "p99": 13.994,
+        "p999": 26.877
+      },
+      "wallMs": {
+        "p50": 4.252,
+        "p99": 14.736
+      }
+    }
+  ]
+}

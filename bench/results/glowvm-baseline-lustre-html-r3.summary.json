@@ -1,0 +1,29 @@
+{
+  "run": "glowvm-baseline-lustre-html-r3",
+  "tailEvents": 474,
+  "outcomes": {
+    "ok": 474
+  },
+  "colos": [
+    "OTP"
+  ],
+  "cpuMs": {
+    "p50": 4,
+    "p90": 11,
+    "p99": 32,
+    "max": 44,
+    "mean": 5.728
+  },
+  "workerWallMs": {
+    "p50": 5,
+    "p99": 33
+  },
+  "clientLatencyMs": {
+    "p50": 16.7,
+    "p99": 36.2
+  },
+  "rps": 25,
+  "statusCodes": {
+    "200": 5000
+  }
+}
