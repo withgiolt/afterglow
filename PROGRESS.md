@@ -280,6 +280,35 @@ In this repo:
   32 keys and iterates in hash order, so maps:to_list/fold over a >32-key map gives a
   different order than erl (lookups and =:= are the same). Not hit by any fixture.
 
+### M4: bridge, GC, workerd (done 2026-11-09)
+
+- Worker entry `tools/worker/index.js`: same request ETF and frame contract as glowvm's
+  index.js, one Wasm instance per isolate reused across requests (glowrt resets heap,
+  arena and process state in `rt_begin`), warm-up request at module scope, instance
+  recreated after a trap. Env vars: host writes `K=V\0` into `rt_env_buf`, read by
+  `os:getenv/0,1`. Build: `tools/build-worker.sh FIXTURE OUTDIR`.
+- Deviation from SPIKE.md M4 wording: no separate `handle_request` export or Rust bridge;
+  the fixture's `start/0` and glowvm's bridge.gleam run compiled, with host_io as runtime
+  overrides. Responses are byte-identical, which is the M4 gate.
+- Smoke on workerd (`tools/smoke/run.sh`, one workerd, every fixture on both runtimes,
+  glowvm side = glowvm's own fixtures/app/dist, read-only): all 30 requests from
+  glowvm's smoke.test.ts identical in status, headers and body (basic_get, not_found,
+  env_get, query_param, bytes_body, echo_body ×3 incl. 300 KB, no_content, lustre_html,
+  file_body, json_roundtrip, 18 stdlib_* fixtures).
+- GC: rewritten to a chained Cheney to-space sized from the last live size (it used to
+  double every cycle), and arena compaction: once 8 MB of binary bytes were allocated
+  since the last GC, a GC is requested and live byte ranges move to a fresh arena.
+  `fixtures/app/src/gc_churn.gleam`, 500 MB of garbage in total:
+  list cells: glowc 0.20 s, 5.4 MiB Wasm memory (5,997 GCs); glowvm 18.1 s.
+  binaries: glowc 0.11 s, 14.9 MiB; glowvm 0.11 s. Both inside 128 MB.
+- Recursion depth on workerd (body recursion `1 + depth(n - 1)`): glowc fails above
+  about 12,340 frames (`RangeError: Maximum call stack size exceeded`, 502, the next
+  request works again). glowvm handles 1,000,000 (33 s). **This is a real regression
+  against glowvm**, e.g. `lists:map` over ~12k elements. Not a kill criterion; candidates:
+  smaller frames, growable stacks (JSPI), or a CPS fallback for deep non-tail calls.
+- `tools/regress.sh`: 49 difftests vs erl (M1–M3 unit tests, all fixtures, gc_churn).
+- Port note: Helium's CDP listens on 9222, so the harness uses 9400+/9500+.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare
@@ -289,5 +318,5 @@ In this repo:
 
 ## Next steps
 
-1. M4: workerd host glue (index.js for glowc builds), smoke fixtures on both runtimes
-   under workerd byte-identical; 500 MB garbage test inside 128 MB.
+1. M5: size pass (wasm-metadce, literal pruning), local CPU comparison under workerd,
+   then deploy glowc only (request budget), measure with the Phase 0 method, verdict.

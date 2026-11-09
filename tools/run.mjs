@@ -41,6 +41,9 @@ if (res === 0n) {
   process.stderr.write('exception: ' + unpack(x.rt_exception_text()).toString() + '\n');
   process.exit(3);
 }
+if (process.env.GLOWC_STATS) {
+  process.stderr.write(`memory ${(mem.buffer.byteLength / 1048576).toFixed(1)} MiB, gcs ${x.rt_stats_gcs()}, heap words ${x.rt_stats_heap_words()}, arena ${(Number(x.rt_stats_arena_bytes()) / 1048576).toFixed(1)} MiB\n`);
+}
 if (process.env.GLOWC_TIME) {
   times.sort((a, b) => a - b);
   process.stderr.write(`init ${(t1 - t0).toFixed(1)} ms; main min ${times[0].toFixed(2)} median ${times[times.length >> 1].toFixed(2)} ms (${reps} runs)\n`);

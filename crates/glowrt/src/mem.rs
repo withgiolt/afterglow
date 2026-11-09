@@ -87,17 +87,50 @@ pub unsafe extern "C" fn rt_alloc_slow(words: u32) -> u32 {
 
 // ---------------------------------------------------------------------------
 // Copying collector
+//
+// Cheney over a chain of to-space blocks: the first is sized from the previous live
+// size, more are added when it fills. Binaries' bytes live in the arena, outside the
+// heap; when the arena has grown enough, live byte ranges are compacted into a fresh
+// arena during the same collection.
+
+static mut LAST_LIVE: usize = 0;
+/// Arena bytes allocated since the last collection; past ARENA_GC_BYTES a GC is asked
+/// for and the arena compacted.
+pub static mut ARENA_SINCE_GC: usize = 0;
+const ARENA_GC_BYTES: usize = 8 << 20;
+
+struct ToBlock {
+    start: *mut u64,
+    end: *mut u64,
+    hp: *mut u64,
+}
 
 struct Gc {
-    from: Vec<(usize, usize)>,
-    to_start: *mut u64,
-    to_hp: *mut u64,
+    from: Vec<(usize, usize)>, // sorted
+    to: Vec<ToBlock>,
+    bins: Vec<*mut u64>, // copied binary objects
 }
 
 impl Gc {
     #[inline]
     fn in_from(&self, addr: usize) -> bool {
-        self.from.iter().any(|&(s, e)| addr >= s && addr < e)
+        // binary search over sorted, non-overlapping ranges
+        let i = self.from.partition_point(|&(s, _)| s <= addr);
+        i > 0 && addr < self.from[i - 1].1
+    }
+
+    #[inline]
+    unsafe fn alloc(&mut self, n: usize) -> *mut u64 {
+        let b = self.to.last_mut().unwrap();
+        if (b.end as usize - b.hp as usize) / 8 >= n {
+            let r = b.hp;
+            b.hp = r.add(n);
+            return r;
+        }
+        let words = n.max(MIN_BLOCK_WORDS);
+        let p = new_block(words);
+        self.to.push(ToBlock { start: p, end: p.add(words), hp: p.add(n) });
+        p
     }
 
     unsafe fn copy(&mut self, t: Term) -> Term {
@@ -110,10 +143,9 @@ impl Gc {
                 if *p == NON_VALUE {
                     return *p.add(1); // forwarded
                 }
-                let n = self.to_hp;
+                let n = self.alloc(2);
                 *n = *p;
                 *n.add(1) = *p.add(1);
-                self.to_hp = n.add(2);
                 let nt = make_list(n);
                 *p = NON_VALUE;
                 *p.add(1) = nt;
@@ -129,9 +161,11 @@ impl Gc {
                     return h; // forwarded
                 }
                 let size = 1 + hdr_arity(h) as usize;
-                let n = self.to_hp;
+                let n = self.alloc(size);
                 core::ptr::copy_nonoverlapping(p, n, size);
-                self.to_hp = n.add(size);
+                if hdr_sub(h) == SUB_BIN {
+                    self.bins.push(n);
+                }
                 let nt = make_boxed(n);
                 *p = nt;
                 nt
@@ -141,26 +175,66 @@ impl Gc {
     }
 
     unsafe fn scan(&mut self) {
-        let mut s = self.to_start;
-        while s < self.to_hp {
-            let w = *s;
-            if w & TAG_MASK == 0 {
-                let arity = hdr_arity(w) as usize;
-                match hdr_sub(w) {
-                    SUB_FLOAT | SUB_POS_BIG | SUB_NEG_BIG | SUB_REF => {}
-                    _ => {
-                        for i in 1..=arity {
-                            *s.add(i) = self.copy(*s.add(i));
+        let mut bi = 0;
+        while bi < self.to.len() {
+            let mut s = self.to[bi].start;
+            while s < self.to[bi].hp {
+                let w = *s;
+                if w & TAG_MASK == 0 {
+                    let arity = hdr_arity(w) as usize;
+                    match hdr_sub(w) {
+                        SUB_FLOAT | SUB_POS_BIG | SUB_NEG_BIG | SUB_REF => {}
+                        _ => {
+                            for i in 1..=arity {
+                                *s.add(i) = self.copy(*s.add(i));
+                            }
                         }
                     }
+                    s = s.add(1 + arity);
+                } else {
+                    *s = self.copy(*s);
+                    *s.add(1) = self.copy(*s.add(1));
+                    s = s.add(2);
                 }
-                s = s.add(1 + arity);
-            } else {
-                *s = self.copy(*s);
-                *s.add(1) = self.copy(*s.add(1));
-                s = s.add(2);
+            }
+            bi += 1;
+        }
+    }
+
+    /// Moves the live byte ranges of arena binaries into a fresh arena.
+    unsafe fn compact_arena(&mut self) {
+        let arena = &mut *core::ptr::addr_of_mut!(ARENA);
+        // (start, end, object) for every binary whose bytes are in the arena
+        let mut spans: Vec<(usize, usize, *mut u64)> = Vec::new();
+        for &o in &self.bins {
+            let bits = small_val(*o.add(1)) as u64;
+            let base = small_val(*o.add(2)) as usize;
+            let bitoff = small_val(*o.add(3)) as u64;
+            if arena.contains(base) {
+                let len = ((bitoff + bits + 7) / 8) as usize;
+                spans.push((base, base + len, o));
             }
         }
+        spans.sort_by_key(|s| s.0);
+        let mut fresh = Arena::new(false);
+        let mut i = 0;
+        while i < spans.len() {
+            let (rs, mut re) = (spans[i].0, spans[i].1);
+            let mut j = i + 1;
+            while j < spans.len() && spans[j].0 <= re {
+                re = re.max(spans[j].1);
+                j += 1;
+            }
+            let np = fresh.alloc((re - rs).max(1));
+            core::ptr::copy_nonoverlapping(rs as *const u8, np, re - rs);
+            for k in i..j {
+                let o = spans[k].2;
+                *o.add(2) = small((np as usize + (spans[k].0 - rs)) as i64);
+            }
+            i = j;
+        }
+        arena.free_all();
+        *arena = fresh;
     }
 }
 
@@ -181,12 +255,13 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
             (top - b.start as usize) / 8
         })
         .sum();
-    let from: Vec<(usize, usize)> =
+    let mut from: Vec<(usize, usize)> =
         blocks.iter().map(|b| (b.start as usize, b.start.add(b.words) as usize)).collect();
+    from.sort();
     let old: Vec<Block> = core::mem::take(blocks);
-    let to_words = (used * 2).max(MIN_BLOCK_WORDS);
-    let to = new_block(to_words);
-    let mut gc = Gc { from, to_start: to, to_hp: to };
+    let first = (LAST_LIVE * 3).max(MIN_BLOCK_WORDS);
+    let to = new_block(first);
+    let mut gc = Gc { from, to: vec![ToBlock { start: to, end: to.add(first), hp: to }], bins: Vec::new() };
 
     let xregs = &mut *core::ptr::addr_of_mut!(XREGS);
     for i in 0..live as usize {
@@ -200,37 +275,71 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
     }
     crate::roots::for_each_root(|r| *r = gc.copy(*r));
     gc.scan();
+    let compact = ARENA_SINCE_GC >= ARENA_GC_BYTES;
+    if compact {
+        gc.compact_arena();
+    }
+    ARENA_SINCE_GC = 0;
 
     for b in old {
         // Zero before freeing so a later request can't read this one's data.
         core::ptr::write_bytes(b.start, 0, b.words);
         dealloc(b.start as *mut u8, block_layout(b.words));
     }
-    STATE.hp = gc.to_hp as usize as u32;
-    STATE.hlim = to.add(to_words) as usize as u32;
+    let live_words: usize = gc.to.iter().map(|b| (b.hp as usize - b.start as usize) / 8).sum();
+    LAST_LIVE = live_words;
+    let last = gc.to.last().unwrap();
+    STATE.hp = last.hp as usize as u32;
+    STATE.hlim = last.end as usize as u32;
     STATE.gc_pending = 0;
     STATS_GCS += 1;
+    if crate::bifs::debug_enabled() {
+        crate::host_log(&format!(
+            "gc #{}: used {} words, live {} words in {} blocks, live x {}, stack {} words, arena {} KiB{}",
+            STATS_GCS,
+            used,
+            live_words,
+            gc.to.len(),
+            live,
+            (STACK_TOP - sp) / 8,
+            (*core::ptr::addr_of!(ARENA)).bytes_reserved() / 1024,
+            if compact { " (compacted)" } else { "" }
+        ));
+    }
 }
 
-/// Frees every heap block but one, zeroes it and resets the bump pointer.
+/// Frees every heap block, keeping (or making) one of the minimum size, zeroed.
 pub unsafe fn reset_heap() {
     let blocks = &mut *core::ptr::addr_of_mut!(BLOCKS);
-    let keep = blocks.remove(0);
+    let hp = STATE.hp as usize;
+    let mut keep: Option<Block> = None;
     for b in blocks.drain(..) {
-        core::ptr::write_bytes(b.start, 0, b.words);
-        dealloc(b.start as *mut u8, block_layout(b.words));
+        let end = b.start.add(b.words) as usize;
+        let used_end = if hp > b.start as usize && hp <= end { hp } else { end };
+        if keep.is_none() && b.words == MIN_BLOCK_WORDS {
+            core::ptr::write_bytes(b.start as *mut u8, 0, used_end - b.start as usize);
+            keep = Some(b);
+        } else {
+            core::ptr::write_bytes(b.start, 0, b.words);
+            dealloc(b.start as *mut u8, block_layout(b.words));
+        }
     }
-    let used_end = if (STATE.hp as usize) > keep.start as usize
-        && (STATE.hp as usize) <= keep.start.add(keep.words) as usize
-    {
-        STATE.hp as usize
-    } else {
-        keep.start.add(keep.words) as usize
+    let keep = match keep {
+        Some(b) => {
+            blocks.push(b);
+            blocks.pop().unwrap()
+        }
+        None => {
+            let p = new_block(MIN_BLOCK_WORDS);
+            blocks.pop().unwrap();
+            Block { start: p, words: MIN_BLOCK_WORDS }
+        }
     };
-    core::ptr::write_bytes(keep.start as *mut u8, 0, used_end - keep.start as usize);
     STATE.hp = keep.start as usize as u32;
     STATE.hlim = keep.start.add(keep.words) as usize as u32;
     STATE.gc_pending = 0;
+    LAST_LIVE = 0;
+    ARENA_SINCE_GC = 0;
     blocks.push(keep);
 }
 
@@ -302,6 +411,18 @@ impl Arena {
         false
     }
 
+    /// Zeroes and frees every chunk.
+    pub unsafe fn free_all(&mut self) {
+        for (i, &(p, sz)) in self.chunks.iter().enumerate() {
+            let used = if i == self.chunks.len() - 1 { self.pos } else { sz };
+            core::ptr::write_bytes(p, 0, used);
+            dealloc(p, Layout::from_size_align(sz, 8).unwrap());
+        }
+        self.chunks.clear();
+        self.pos = 0;
+        self.exact_end = 0;
+    }
+
     pub fn contains(&self, addr: usize) -> bool {
         self.chunks.iter().any(|&(p, size)| addr >= p as usize && addr < p as usize + size)
     }
@@ -351,6 +472,10 @@ pub unsafe fn balloc(bytes: usize) -> *mut u8 {
     if TO_PERM {
         (*core::ptr::addr_of_mut!(PERM)).alloc(bytes.max(1))
     } else {
+        ARENA_SINCE_GC += bytes;
+        if ARENA_SINCE_GC >= ARENA_GC_BYTES {
+            STATE.gc_pending = 1;
+        }
         (*core::ptr::addr_of_mut!(ARENA)).alloc(bytes.max(1))
     }
 }

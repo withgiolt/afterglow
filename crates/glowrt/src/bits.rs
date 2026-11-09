@@ -309,6 +309,10 @@ unsafe fn create(s: &[u64]) -> Option<Term> {
         let add = w.buf.len();
         let arena = &mut *core::ptr::addr_of_mut!(ARENA);
         if w.bits % 8 == 0 && arena.try_extend(base, old, old + add) {
+            crate::mem::ARENA_SINCE_GC += add;
+            if crate::mem::ARENA_SINCE_GC >= 8 << 20 {
+                crate::mem::STATE.gc_pending = 1;
+            }
             core::ptr::copy_nonoverlapping(w.buf.as_ptr(), base.add(old) as *mut u8, add);
             return Some(build::bin_ref(base, 0, bits + w.bits));
         }

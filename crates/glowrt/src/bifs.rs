@@ -533,7 +533,54 @@ unsafe fn phash(t: Term) -> u64 {
     h & 0xFFFF_FFFF
 }
 bif!("erlang:display/1", fn display(t) { crate::host_log(&crate::fmt::show(t)); TRUE });
-bif!("os:getenv/1", fn getenv(_n) { FALSE });
+// Environment: the host fills ENV_BUF with "K=V\0" entries (rt_env_buf + rt_env_set).
+static mut ENV_BUF: Vec<u8> = Vec::new();
+static mut ENV_VARS: Vec<(String, String)> = Vec::new();
+#[no_mangle]
+pub unsafe extern "C" fn rt_env_buf(len: u32) -> u32 {
+    let b = &mut *core::ptr::addr_of_mut!(ENV_BUF);
+    b.clear();
+    b.resize(len as usize, 0);
+    b.as_mut_ptr() as usize as u32
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_env_set() {
+    let b = &*core::ptr::addr_of!(ENV_BUF);
+    let e = &mut *core::ptr::addr_of_mut!(ENV_VARS);
+    e.clear();
+    for entry in b.split(|&c| c == 0) {
+        if let Some(i) = entry.iter().position(|&c| c == b'=') {
+            e.push((String::from_utf8_lossy(&entry[..i]).into(), String::from_utf8_lossy(&entry[i + 1..]).into()));
+        }
+    }
+}
+unsafe fn charlist(s: &str) -> Term {
+    let v: Vec<Term> = s.chars().map(|c| small(c as i64)).collect();
+    build::list(&v)
+}
+bif!("os:getenv/1", fn getenv(n) {
+    let name: String = if is_binary(n) {
+        String::from_utf8_lossy(&bin_of(n).to_vec()).into()
+    } else {
+        let Some(v) = build::list_to_vec(n) else { return badarg() };
+        let mut s = String::new();
+        for c in v {
+            if !is_small(c) { return badarg(); }
+            match char::from_u32(small_val(c) as u32) { Some(ch) => s.push(ch), None => return badarg() }
+        }
+        s
+    };
+    let e = &*core::ptr::addr_of!(ENV_VARS);
+    match e.iter().find(|(k, _)| *k == name) {
+        Some((_, v)) => charlist(v),
+        None => FALSE,
+    }
+});
+bif!("os:getenv/0", fn getenv0() {
+    let e = &*core::ptr::addr_of!(ENV_VARS);
+    let v: Vec<Term> = e.iter().map(|(k, v)| charlist(&format!("{}={}", k, v))).collect();
+    build::list(&v)
+});
 /// Time in `unit` from a nanosecond count. None for a bad unit.
 unsafe fn in_unit(ns: i128, unit: Term) -> Option<Term> {
     let per_sec: i128 = if is_small(unit) && small_val(unit) > 0 {

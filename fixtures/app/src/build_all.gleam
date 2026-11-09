@@ -34,6 +34,7 @@ const modules = [
   "stdlib_bytes_tree",
   "stdlib_dynamic",
   "json_roundtrip",
+  "gc_churn",
 ]
 
 const runtime_dir = "../../../glowvm/priv"
