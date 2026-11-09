@@ -87,6 +87,10 @@ bif!("erlang:not/1", fn op_not(a) { match bool_of(a) { Some(x) => boolean(!x), N
 
 bif!("erlang:is_atom/1", fn is_atom_(a) { boolean(is_atom(a)) });
 bif!("erlang:is_integer/1", fn is_integer_(a) { boolean(is_integer(a)) });
+bif!("erlang:is_integer/3", fn is_integer3(a, lo, hi) {
+    if !is_integer(lo) || !is_integer(hi) { return crate::exc::badarg(); }
+    boolean(is_integer(a) && cmp::compare(lo, a) != core::cmp::Ordering::Greater && cmp::compare(a, hi) != core::cmp::Ordering::Greater)
+});
 bif!("erlang:is_float/1", fn is_float_(a) { boolean(is_float(a)) });
 bif!("erlang:is_number/1", fn is_number_(a) { boolean(is_number(a)) });
 bif!("erlang:is_list/1", fn is_list_(a) { boolean(a == NIL || is_list(a)) });
@@ -238,14 +242,9 @@ bif!("erlang:nif_error/2", fn nif_error2(r, _a) { error(r) });
 // ---------------------------------------------------------------------------
 // process-ish
 
-bif!("erlang:self/0", fn self_() { pid(0) });
 bif!("erlang:node/0", fn node0() { NONODE });
 bif!("erlang:node/1", fn node1(_x) { NONODE });
 bif!("erlang:group_leader/0", fn group_leader() { pid(1) });
-bif!("erlang:whereis/1", fn whereis(_n) { UNDEFINED });
-bif!("erlang:monitor/2", fn monitor(_t, _p) { make_ref() });
-bif!("erlang:demonitor/2", fn demonitor(_r, _o) { TRUE });
-bif!("erlang:demonitor/1", fn demonitor1(_r) { TRUE });
 bif!("erlang:make_ref/0", fn make_ref() {
     let p = proc();
     p.refs += 1;

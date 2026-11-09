@@ -65,6 +65,10 @@ pub fn pid(i: u64) -> Term {
     (i << 4) | 0x3
 }
 #[inline]
+pub fn pid_val(t: Term) -> u32 {
+    (t >> 4) as u32
+}
+#[inline]
 pub fn is_pid(t: Term) -> bool {
     t & 0xF == 0x3
 }

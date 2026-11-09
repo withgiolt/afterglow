@@ -20,6 +20,7 @@ pub mod bits;
 pub mod maps;
 pub mod binmod;
 pub mod roots;
+pub mod sched;
 pub mod term;
 
 use term::*;
@@ -92,6 +93,7 @@ pub unsafe extern "C" fn rt_begin(len: u32) -> u32 {
     (*core::ptr::addr_of_mut!(mem::ARENA)).reset();
     roots::reset();
     bifs::reset();
+    sched::reset();
     let buf = mem::balloc(len as usize);
     roots::proc().input = build::bin_ref(buf, 0, len as u64 * 8);
     buf as usize as u32

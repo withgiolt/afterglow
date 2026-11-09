@@ -14,10 +14,10 @@ pub struct State {
     pub gc_pending: u32, // offset 0, read by generated code
     pub hp: u32,         // offset 4
     pub hlim: u32,       // offset 8
-    pub _pad: u32,
+    pub suspended: u32, // offset 12, read by generated code
 }
 
-pub static mut STATE: State = State { gc_pending: 0, hp: 0, hlim: 0, _pad: 0 };
+pub static mut STATE: State = State { gc_pending: 0, hp: 0, hlim: 0, suspended: 0 };
 
 pub const X_REGS: usize = 1024;
 pub static mut XREGS: [u64; X_REGS] = [0; X_REGS];
@@ -270,7 +270,7 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
         xregs[i] = gc.copy(xregs[i]);
     }
     let mut y = sp as usize as *mut u64;
-    let top = STACK_TOP as usize as *mut u64;
+    let top = crate::sched::current_stack_top() as usize as *mut u64;
     while y < top {
         *y = gc.copy(*y);
         y = y.add(1);
@@ -303,7 +303,7 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
             live_words,
             gc.to.len(),
             live,
-            (STACK_TOP - sp) / 8,
+            (crate::sched::current_stack_top() - sp) / 8,
             (*core::ptr::addr_of!(ARENA)).bytes_reserved() / 1024,
             if compact { " (compacted)" } else { "" }
         ));

@@ -37,6 +37,7 @@ pub unsafe fn for_each_root(mut f: impl FnMut(&mut Term)) {
     f(&mut p.input);
     f(&mut p.output);
     crate::bifs::for_each_bif_root(&mut f);
+    crate::sched::for_each_root(&mut f);
 }
 
 pub fn reset() {

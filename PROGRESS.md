@@ -346,6 +346,39 @@ In this repo:
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
   to record the failure mode.
 
+### P1: in-request scheduler (started 2026-11-09 while M5 waits for the request budget)
+
+Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not rebuilt.
+
+- glowrt `sched.rs`: processes inside one request. spawn/1,3, spawn_link, spawn_monitor,
+  spawn_opt/2, `!`/send, selective receive (loop_rec, loop_rec_end, remove_message, wait,
+  wait_timeout, timeout; recv markers are no-ops), links, monitors (DOWN), exit signals
+  (kill/killed, normal ignored unless trapped, trap_exit 'EXIT' messages), exit/2,
+  register/whereis/unregister, is_process_alive, process_info/2 (a few items).
+  proc_lib:spawn_link/1,3 are runtime overrides (no proc_lib init_p, no $ancestors).
+- Suspension as SPIKE.md describes: a `wait` stores a resume record (table index, arity,
+  dispatch block, entry sp, sp) and returns the marker; each caller on the way out
+  that may resume after the call pushes its own record. The generated `main` is now a
+  scheduler loop around `rt_sched`, re-entering the top record's function through the
+  table with `g_res` = block + 1. Whole-program analysis marks functions that may
+  suspend; only non-tail call sites to those get a resume label (a dispatch block), so
+  the normal path is unchanged. json_roundtrip: 3.01 -> 3.02 ms median (Node);
+  app.wasm gzip +5% (basic_get 182 -> 193 KB), mostly from the reachability change below.
+- All processes share the request heap (messages are not copied). Each spawned process
+  gets its own 64 KiB Y stack. Receive timeouts use virtual time: they fire only when no
+  process can run.
+- Deviation: no preemption. A process runs until it waits or exits. A process that spins
+  without receiving starves the rest. Preempting at arbitrary call sites would make every
+  call site resumable; not worth it for request-scoped code.
+- Reachability: spawn/apply(M, F, A) with M and F moved in as atoms right before keeps
+  every exported M:F reachable (else a warning). Added raw_raise and erlang:is_integer/3
+  (needed by logger code that this pulls in).
+- Fixed on the way: a fault in a block laid out after its try handler's label jumped
+  backward without dispatch (gleam_erlang_ffi:register_process/2).
+- Tests vs erl: p1:actor_test (gleam_otp actor answering process.call), p1:pingpong_test
+  (100,000 messages), tests/erl/p1e.erl (basic, links, monitors, timeouts, selective
+  receive, registry). regress: 57/57. Smoke on workerd: 30/30.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare

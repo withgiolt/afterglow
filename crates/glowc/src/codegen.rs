@@ -10,7 +10,7 @@
 
 use crate::program::{Program, Target};
 use beam_reader::{Instr, Operand};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use wasm_encoder::{BlockType, Function, Instruction as I, MemArg, ValType};
 
 pub const NIL: i64 = 0x3B;
@@ -48,6 +48,88 @@ pub struct Env<'a> {
     pub literal_count: u32,
     /// helper functions defined in the generated module
     pub f_alloc: u32,
+    pub susp: &'a Suspend,
+    /// table index of each resumable function (re-entered by the scheduler)
+    pub resume_tidx: &'a HashMap<(usize, usize), u32>,
+    pub g_res: u32,
+}
+
+/// Which functions may suspend: they contain `wait`/`wait_timeout`, or call one that
+/// may. `ind`: a call through a fun or apply may suspend (some lambda or exported
+/// function may).
+pub struct Suspend {
+    pub may: HashSet<(usize, usize)>,
+    pub ind: bool,
+}
+
+fn has_wait(code: &[Instr]) -> bool {
+    code.iter().any(|i| matches!(i.op, "wait" | "wait_timeout"))
+}
+
+fn call_may_suspend(prog: &Program, m: usize, ins: &Instr, may: &HashSet<(usize, usize)>, ind: bool) -> bool {
+    match ins.op {
+        "call" | "call_last" | "call_only" => match ins.args.get(1) {
+            Some(Operand::Label(l)) => prog.function_by_label(m, *l).map_or(false, |fi| may.contains(&(m, fi))),
+            _ => false,
+        },
+        "call_ext" | "call_ext_last" | "call_ext_only" => match ins.args.get(1) {
+            Some(Operand::U(imp)) => {
+                let (mfa, t) = prog.import_target(m, *imp as u32);
+                if mfa.0 == "erlang" && mfa.1 == "apply" && (mfa.2 == 2 || mfa.2 == 3) {
+                    return ind;
+                }
+                matches!(t, Target::Compiled(m2, f2) if may.contains(&(m2, f2)))
+            }
+            _ => false,
+        },
+        "call_fun" | "call_fun2" | "apply" | "apply_last" => ind,
+        _ => false,
+    }
+}
+
+pub fn suspend_analysis(prog: &Program) -> Suspend {
+    let mut may: HashSet<(usize, usize)> =
+        prog.functions.iter().copied().filter(|&(m, fi)| has_wait(&prog.modules[m].functions[fi].code)).collect();
+    let mut indirect: HashSet<(usize, usize)> = HashSet::new();
+    for &(m, li) in prog.lambdas.keys() {
+        let lam = &prog.modules[m].lambdas[li as usize];
+        if let Some(fi) = prog.function_by_label(m, lam.label) {
+            indirect.insert((m, fi));
+        }
+    }
+    for &(m, fi) in &prog.functions {
+        let module = &prog.modules[m];
+        if module.exports.iter().any(|e| e.label == module.functions[fi].entry) {
+            indirect.insert((m, fi));
+        }
+    }
+    loop {
+        let ind = may.iter().any(|f| indirect.contains(f));
+        let mut changed = false;
+        for &(m, fi) in &prog.functions {
+            if may.contains(&(m, fi)) {
+                continue;
+            }
+            if prog.modules[m].functions[fi].code.iter().any(|ins| call_may_suspend(prog, m, ins, &may, ind)) {
+                may.insert((m, fi));
+                changed = true;
+            }
+        }
+        if !changed {
+            return Suspend { may, ind };
+        }
+    }
+}
+
+/// A non-tail call that may suspend: the caller must be able to resume after it.
+fn is_susp_site(prog: &Program, m: usize, ins: &Instr, sus: &Suspend) -> bool {
+    matches!(ins.op, "call" | "call_ext" | "call_fun" | "call_fun2" | "apply") && call_may_suspend(prog, m, ins, &sus.may, sus.ind)
+}
+
+/// Functions that need resume entry points.
+pub fn is_resumable(prog: &Program, sus: &Suspend, m: usize, fi: usize) -> bool {
+    let code = &prog.modules[m].functions[fi].code;
+    has_wait(code) || code.iter().any(|ins| is_susp_site(prog, m, ins, sus))
 }
 
 impl<'a> Env<'a> {
@@ -92,6 +174,10 @@ struct Fx<'e, 'a> {
     mod_atom: i64,
     fun_atom: i64,
     arity: u32,
+    /// resume table index when the function is resumable
+    tidx: Option<u32>,
+    /// the call being compiled may suspend: its result check comes after the resume label
+    defer_check: bool,
 }
 
 fn x_index(o: &Operand) -> Option<u32> {
@@ -149,7 +235,32 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
         .rev()
         .find_map(|i| if i.op == "label" { if let Some(Operand::U(l)) = i.args.first() { Some(*l as u32) } else { None } } else { None })
         .unwrap_or(0);
-    let body: Vec<Instr> = code[fi_pos + 1..].to_vec();
+    let mut body: Vec<Instr> = code[fi_pos + 1..].to_vec();
+    let tidx = env.resume_tidx.get(&(m, fi)).copied();
+    // Resumable: a label (new dispatch block) after every call that may suspend, where
+    // the result check happens, and after wait_timeout, where the timeout resumes.
+    let mut susp_sites: HashSet<usize> = HashSet::new();
+    if tidx.is_some() {
+        let mut nb = Vec::with_capacity(body.len() + 16);
+        let mut syn = 0x4000_0000u64;
+        for ins in body {
+            let site = is_susp_site(prog, m, &ins, env.susp);
+            let wt = if ins.op == "wait_timeout" { ins.args.first().cloned() } else { None };
+            nb.push(ins);
+            if site {
+                susp_sites.insert(nb.len() - 1);
+                nb.push(Instr { op: "label", args: vec![Operand::U(syn)] });
+                nb.push(Instr { op: "glowc_resume_check", args: vec![] });
+                syn += 1;
+            }
+            if let Some(l) = wt {
+                nb.push(Instr { op: "label", args: vec![Operand::U(syn)] });
+                nb.push(Instr { op: "glowc_timeout_resume", args: vec![l] });
+                syn += 1;
+            }
+        }
+        body = nb;
+    }
 
     // Blocks: each label starts one. Block 0 starts at the first instruction.
     let mut labels = HashMap::new();
@@ -173,7 +284,7 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
     }
 
     // Backward jumps? (fail label of func_info is handled inline, not a jump)
-    let mut dispatch = false;
+    let mut dispatch = tidx.is_some();
     for (k, ins) in body.iter().enumerate() {
         for l in jump_targets(ins) {
             if l == 0 || l == fi_label {
@@ -183,6 +294,17 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
                 Some(&b) if b <= block_of_instr[k] && !(ins.op == "label") => dispatch = true,
                 None => return Err(CgError(format!("jump to unknown label {} in {}", l, crate::program::mfa_str(&prog.mfa_of(m, fi))))),
                 _ => {}
+            }
+        }
+    }
+
+    // Static handler stack per block entry. A fault in a block after its handler's
+    // label (code laid out after the try_case) jumps backward: needs dispatch.
+    let handler_state = handler_analysis(&body, &labels, nblocks, &block_of_instr);
+    for (b, st) in handler_state.iter().enumerate() {
+        if let Some(hs) = st {
+            if hs.iter().any(|h| labels.get(h).map_or(false, |&hb| hb <= b)) {
+                dispatch = true;
             }
         }
     }
@@ -232,19 +354,43 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
         mod_atom: atom(prog.atom_index[module.name()]),
         fun_atom: atom(prog.atom_index[module.atom(func.name)]),
         arity: func.arity,
+        tidx,
+        defer_check: false,
     };
 
-    // Static handler stack per block entry.
-    let handler_state = handler_analysis(&body, &fx.labels, fx.nblocks, &block_of_instr);
 
-    // Prologue
-    fx.ins(I::GlobalGet(env.g_sp));
-    fx.ins(I::LocalSet(l_entry_sp));
-    fx.gc_check(func.arity);
-
-    if dispatch {
+    // Prologue. A resumable function entered by the scheduler (g_res = block + 1)
+    // restores its entry sp and x0 and jumps to the resume block.
+    if tidx.is_some() {
+        fx.ins(I::GlobalGet(env.g_res));
+        fx.ins(I::If(BlockType::Empty));
+        fx.ins(I::GlobalGet(env.g_res));
+        fx.ins(I::I32Const(1));
+        fx.ins(I::I32Sub);
+        fx.ins(I::LocalSet(l_pc));
+        fx.ins(I::I32Const(0));
+        fx.ins(I::GlobalSet(env.g_res));
+        fx.ins(I::Call(env.rt("rt_res_entry_sp")));
+        fx.ins(I::LocalSet(l_entry_sp));
+        fx.ins(I::Call(env.rt("rt_res_val")));
+        fx.ins(I::LocalSet(0));
+        fx.ins(I::Else);
+        fx.ins(I::GlobalGet(env.g_sp));
+        fx.ins(I::LocalSet(l_entry_sp));
+        fx.gc_check(func.arity);
         fx.ins(I::I32Const(0));
         fx.ins(I::LocalSet(l_pc));
+        fx.ins(I::End);
+    } else {
+        fx.ins(I::GlobalGet(env.g_sp));
+        fx.ins(I::LocalSet(l_entry_sp));
+        fx.gc_check(func.arity);
+        if dispatch {
+            fx.ins(I::I32Const(0));
+            fx.ins(I::LocalSet(l_pc));
+        }
+    }
+    if dispatch {
         fx.ins(I::Loop(BlockType::Empty));
     }
     for _ in 1..fx.nblocks {
@@ -272,6 +418,7 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
             k += 1;
             continue;
         }
+        fx.defer_check = susp_sites.contains(&k);
         fx.instr(ins).map_err(|e| CgError(format!("{} in {}: {:?}", e.0, crate::program::mfa_str(&prog.mfa_of(m, fi)), ins)))?;
         k += 1;
     }
@@ -621,8 +768,28 @@ impl<'e, 'a> Fx<'e, 'a> {
     }
 
     fn call_result(&mut self) -> Result<(), CgError> {
-        self.check()?;
+        if self.defer_check {
+            // checked by glowc_resume_check, after the resume label
+            self.defer_check = false;
+        } else {
+            self.check()?;
+        }
         self.ins(I::LocalSet(0));
+        Ok(())
+    }
+
+    /// arity << 16 | block, for a resume record
+    fn resume_ab(&self, block: usize) -> i32 {
+        ((self.arity << 16) | block as u32) as i32
+    }
+
+    /// Pushes the resume record arguments (table index, arity/block, entry sp, sp).
+    fn resume_args(&mut self, block: usize) -> Result<(), CgError> {
+        let t = self.tidx.ok_or_else(|| CgError("receive in a function that is not resumable".into()))?;
+        self.ins(I::I32Const(t as i32));
+        self.ins(I::I32Const(self.resume_ab(block)));
+        self.ins(I::LocalGet(self.l_entry_sp));
+        self.ins(I::GlobalGet(self.env.g_sp));
         Ok(())
     }
 
@@ -1313,6 +1480,15 @@ impl<'e, 'a> Fx<'e, 'a> {
                 let (t, v) = (a[0].clone(), a[1].clone());
                 self.raise_call("rt_raise_raw", &[&t, &v])?;
             }
+            "raw_raise" => {
+                // x0 = class, x1 = reason, x2 = raw stacktrace
+                self.ins(I::LocalGet(0));
+                self.ins(I::LocalGet(1));
+                self.ins(I::LocalGet(2));
+                self.ins(I::Call(self.env.rt("erlang:raise/3")));
+                self.ins(I::Drop);
+                self.fault()?;
+            }
             "build_stacktrace" => {
                 self.ins(I::LocalGet(0));
                 self.ins(I::Call(self.env.rt("rt_build_stacktrace")));
@@ -1386,16 +1562,81 @@ impl<'e, 'a> Fx<'e, 'a> {
                 })?;
             }
 
-            // receive is not supported in tier 1
-            "loop_rec" | "loop_rec_end" | "wait" | "wait_timeout" | "timeout" | "remove_message" | "send" => {
-                let name = self.env.prog.atom_index.get(ins.op).copied();
-                match name {
-                    Some(n) => self.ins(I::I64Const(atom(n))),
-                    None => self.ins(I::I64Const(NIL)),
-                }
-                self.ins(I::Call(self.env.rt("rt_unsupported")));
-                self.ins(I::Drop);
+            // receive (processes: sched.rs)
+            "glowc_resume_check" => {
+                let b = self.cur_block;
+                self.ins(I::LocalGet(0));
+                self.ins(I::I64Eqz);
+                self.ins(I::If(BlockType::Empty));
+                self.extra_depth += 1;
+                self.ins(I::GlobalGet(self.env.g_st));
+                self.ins(I::I32Load(mem32(12)));
+                self.ins(I::If(BlockType::Empty));
+                self.resume_args(b)?;
+                self.ins(I::Call(self.env.rt("rt_susp_push")));
+                self.ins(I::I64Const(0));
+                self.ins(I::Return);
+                self.ins(I::End);
                 self.fault()?;
+                self.extra_depth -= 1;
+                self.ins(I::End);
+            }
+            "wait" => {
+                let b = *self.labels.get(&lab(0)).ok_or_else(|| CgError("wait to unknown label".into()))?;
+                self.resume_args(b)?;
+                self.ins(I::Call(self.env.rt("rt_wait")));
+                self.ins(I::I64Const(0));
+                self.ins(I::Return);
+            }
+            "wait_timeout" => {
+                let t = a[1].clone();
+                self.src(&t)?;
+                let b = self.cur_block + 1; // the resume label right after
+                self.resume_args(b)?;
+                self.ins(I::Call(self.env.rt("rt_wait_timeout")));
+                self.ins(I::LocalTee(self.l_tmpi));
+                self.ins(I::I32Const(-1));
+                self.ins(I::I32Eq);
+                self.ins(I::If(BlockType::Empty));
+                self.extra_depth += 1;
+                self.fault()?;
+                self.extra_depth -= 1;
+                self.ins(I::End);
+                self.ins(I::LocalGet(self.l_tmpi));
+                self.ins(I::If(BlockType::Empty));
+                self.ins(I::I64Const(0));
+                self.ins(I::Return);
+                self.ins(I::End);
+            }
+            "glowc_timeout_resume" => {
+                self.ins(I::Call(self.env.rt("rt_take_timed_out")));
+                self.ins(I::I32Eqz);
+                self.br_if_label(lab(0))?;
+            }
+            "loop_rec" => {
+                let t = self.l_tmp;
+                self.ins(I::Call(self.env.rt("rt_loop_rec")));
+                self.ins(I::LocalTee(t));
+                self.ins(I::I64Eqz);
+                self.br_if_label(lab(0))?;
+                let d = a[1].clone();
+                self.dst(&d, |fx| {
+                    fx.ins(I::LocalGet(t));
+                    Ok(())
+                })?;
+            }
+            "loop_rec_end" => {
+                self.ins(I::Call(self.env.rt("rt_loop_rec_end")));
+                self.br_label(lab(0))?;
+            }
+            "remove_message" => self.ins(I::Call(self.env.rt("rt_remove_message"))),
+            "timeout" => self.ins(I::Call(self.env.rt("rt_timeout"))),
+            "send" => {
+                self.ins(I::LocalGet(0));
+                self.ins(I::LocalGet(1));
+                self.ins(I::Call(self.env.rt("rt_send")));
+                self.check()?;
+                self.ins(I::LocalSet(0));
             }
 
             // binaries, maps, records

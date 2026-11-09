@@ -121,7 +121,8 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     let f_apply2 = nimp + 2;
     let f_init = nimp + 3;
     let f_main = nimp + 4;
-    let func_base = nimp + 5;
+    let f_resume = nimp + 5;
+    let func_base = nimp + 6;
     rt.insert("glowc_apply3".into(), f_apply3);
     rt.insert("glowc_apply2".into(), f_apply2);
     let ncompiled = prog.functions.len() as u32;
@@ -152,6 +153,19 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     }
     let wrapper_base = func_base + ncompiled;
 
+    // Resumable functions get table entries after the wrappers; the scheduler loop in
+    // main re-enters them through call_indirect.
+    let susp = codegen::suspend_analysis(prog);
+    let mut resume_tidx: HashMap<(usize, usize), u32> = HashMap::new();
+    let mut resume_funcs: Vec<u32> = Vec::new();
+    for &(m, fi) in &prog.functions {
+        if codegen::is_resumable(prog, &susp, m, fi) {
+            resume_tidx.insert((m, fi), (wrappers.len() + resume_funcs.len()) as u32);
+            resume_funcs.push(func_base + prog.function_id[&(m, fi)]);
+        }
+    }
+    let table_len = wrappers.len() + resume_funcs.len();
+
     let env = Env {
         prog,
         rt: &rt,
@@ -166,6 +180,9 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
         extra_literals: std::cell::RefCell::new(Vec::new()),
         literal_count: prog.literals.len() as u32,
         f_alloc,
+        susp: &susp,
+        resume_tidx: &resume_tidx,
+        g_res: 5,
     };
 
     // Compile
@@ -217,6 +234,8 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     let t_unit = types.get(vec![], vec![]);
     funcs.function(t_unit);
     funcs.function(arity_types[0]);
+    let t_resume = types.get(vec![ValType::I32, ValType::I32], vec![ValType::I64]);
+    funcs.function(t_resume);
     for &(m, fi) in &prog.functions {
         funcs.function(arity_types[prog.modules[m].functions[fi].arity as usize]);
     }
@@ -305,11 +324,83 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     if entry.2 != 0 {
         return Err("entry must have arity 0".into());
     }
-    let mut main = Function::new(vec![]);
-    main.instruction(&Instruction::Call(rt["rt_stack_top"]));
-    main.instruction(&Instruction::GlobalSet(env.g_sp));
-    main.instruction(&Instruction::Call(func_base + entry_id));
-    main.instruction(&Instruction::End);
+    // main: run the entry in the main process, then let the scheduler decide what runs
+    // next until the main process is done (rt_sched returns 0).
+    let mut main = Function::new(vec![(1, ValType::I64), (1, ValType::I32)]);
+    {
+        use Instruction as I;
+        for i in [
+            I::Call(rt["rt_stack_top"]),
+            I::GlobalSet(env.g_sp),
+            I::Call(rt["rt_stack_base"]),
+            I::GlobalSet(env.g_sb),
+            I::I32Const(0),
+            I::GlobalSet(env.g_res),
+            I::Call(func_base + entry_id),
+            I::LocalSet(0),
+            I::Loop(BlockType::Empty),
+            I::LocalGet(0),
+            I::Call(rt["rt_sched"]),
+            I::LocalTee(1),
+            I::I32Eqz,
+            I::If(BlockType::Empty),
+            I::Call(rt["rt_main_result"]),
+            I::Return,
+            I::End,
+            I::Call(rt["rt_cur_stack_base"]),
+            I::GlobalSet(env.g_sb),
+            I::LocalGet(1),
+            I::I32Const(1),
+            I::I32Eq,
+            I::If(BlockType::Empty),
+            I::GlobalGet(env.g_sp),
+            I::Call(rt["rt_res_sp"]),
+            I::GlobalSet(env.g_sp),
+            I::Call(rt["rt_res_block"]),
+            I::I32Const(1),
+            I::I32Add,
+            I::GlobalSet(env.g_res),
+            I::Call(rt["rt_res_tidx"]),
+            I::Call(rt["rt_res_arity"]),
+            I::Call(f_resume),
+            I::LocalSet(0),
+            I::Else,
+            I::Call(rt["rt_cur_stack_top"]),
+            I::GlobalSet(env.g_sp),
+            I::Call(rt["rt_start_fun"]),
+            I::Call(rt["rt_start_args"]),
+            I::Call(f_apply2),
+            I::LocalSet(0),
+            I::End,
+            I::Br(0),
+            I::End,
+            I::Unreachable,
+            I::End,
+        ] {
+            main.instruction(&i);
+        }
+    }
+    // glowc_resume(table index, arity): call_indirect with zero arguments.
+    let max_resume_arity = resume_tidx.keys().map(|&(m, fi)| prog.modules[m].functions[fi].arity).max().unwrap_or(0) as usize;
+    let mut resume = Function::new(vec![]);
+    {
+        use Instruction as I;
+        for _ in 0..=max_resume_arity {
+            resume.instruction(&I::Block(BlockType::Empty));
+        }
+        resume.instruction(&I::LocalGet(1));
+        let targets: Vec<u32> = (0..=max_resume_arity as u32).collect();
+        resume.instruction(&I::BrTable(targets.into(), max_resume_arity as u32));
+        for k in 0..=max_resume_arity {
+            resume.instruction(&I::End);
+            for _ in 0..k {
+                resume.instruction(&I::I64Const(0));
+            }
+            resume.instruction(&I::LocalGet(0));
+            resume.instruction(&I::ReturnCallIndirect { type_index: arity_types[k], table_index: 0 });
+        }
+        resume.instruction(&I::End);
+    }
 
     // Assemble
     let mut module = Module::new();
@@ -323,14 +414,14 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     let mut tables = TableSection::new();
     tables.table(TableType {
         element_type: RefType::FUNCREF,
-        minimum: wrappers.len() as u64,
-        maximum: Some(wrappers.len() as u64),
+        minimum: table_len as u64,
+        maximum: Some(table_len as u64),
         table64: false,
         shared: false,
     });
     module.section(&tables);
     let mut globals = GlobalSection::new();
-    for _ in 0..5 {
+    for _ in 0..6 {
         globals.global(GlobalType { val_type: ValType::I32, mutable: true, shared: false }, &ConstExpr::i32_const(0));
     }
     module.section(&globals);
@@ -339,7 +430,8 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     exports.export("main", ExportKind::Func, f_main);
     module.section(&exports);
     let mut elems = ElementSection::new();
-    let idxs: Vec<u32> = (0..wrappers.len() as u32).map(|i| wrapper_base + i).collect();
+    let mut idxs: Vec<u32> = (0..wrappers.len() as u32).map(|i| wrapper_base + i).collect();
+    idxs.extend_from_slice(&resume_funcs);
     elems.active(Some(0), &ConstExpr::i32_const(0), Elements::Functions(idxs.into()));
     module.section(&elems);
     module.section(&DataCountSection { count: 3 });
@@ -349,6 +441,7 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     code.function(&apply2);
     code.function(&init);
     code.function(&main);
+    code.function(&resume);
     for b in &bodies {
         code.function(b);
     }
@@ -371,6 +464,7 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     names.append(f_apply2, "glowc_apply2");
     names.append(f_init, "glowc_init");
     names.append(f_main, "glowc_main");
+    names.append(f_resume, "glowc_resume");
     for (k, &(m, fi)) in prog.functions.iter().enumerate() {
         names.append(func_base + k as u32, &crate::program::mfa_str(&prog.mfa_of(m, fi)));
     }

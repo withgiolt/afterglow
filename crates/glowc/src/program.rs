@@ -196,9 +196,46 @@ impl Program {
         }
         while let Some((m, fi)) = queue.pop_front() {
             let code = self.modules[m].functions[fi].code.clone();
-            for ins in &code {
+            for (k, ins) in code.iter().enumerate() {
                 for mfa in self.call_targets(m, ins) {
                     self.resolve(&mfa, &mut queue);
+                    // spawn(M, F, A) / apply(M, F, A) with M and F moved in as atoms
+                    // just before: keep every exported M:F reachable.
+                    let dynamic = mfa.0 == "erlang" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link" | "spawn_monitor" | "apply")
+                        || mfa.0 == "proc_lib" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link");
+                    if dynamic {
+                        let mut mf: [Option<String>; 2] = [None, None];
+                        for prev in code[..k].iter().rev().take(12) {
+                            if prev.op == "label" || prev.op.starts_with("call") {
+                                break;
+                            }
+                            if prev.op == "move" {
+                                if let (Operand::Atom(a), Operand::X(x)) = (prev.args[0].plain(), prev.args[1].plain()) {
+                                    if *x < 2 && mf[*x as usize].is_none() && *a > 0 {
+                                        mf[*x as usize] = Some(self.modules[m].atom(*a).to_string());
+                                    }
+                                }
+                            }
+                        }
+                        if let [Some(mn), Some(fname)] = mf {
+                            if let Some(tm) = self.load_module(&mn) {
+                                let ex: Vec<(String, u32)> = self.modules[tm]
+                                    .exports
+                                    .iter()
+                                    .filter_map(|e| {
+                                        let f = self.modules[tm].functions.iter().find(|f| f.entry == e.label)?;
+                                        let name = self.modules[tm].atom(f.name).to_string();
+                                        (name == fname).then_some((name, f.arity))
+                                    })
+                                    .collect();
+                                for (name, a) in ex {
+                                    self.resolve(&(mn.clone(), name, a), &mut queue);
+                                }
+                            }
+                        } else {
+                            self.warnings.push(format!("{} with a computed target in {}", mfa_str(&mfa), self.modules[m].name()));
+                        }
+                    }
                 }
                 match ins.op {
                     "call" | "call_only" | "call_last" => {
