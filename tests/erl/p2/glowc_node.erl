@@ -3,6 +3,7 @@
 %%   {apply, M, F, A}: apply(M, F, A) in the turn's process
 %%   {deliver, [{Dest, Msg}]}: messages from other nodes (DOs)
 %%   {noconnection, Node}: the host could not deliver to Node
+%%   timers: the DO alarm (every turn first fires the timers that are due)
 %% and the turn's output is the result as ETF. Before the
 %% turn ends, every changed gen-style process has its state snapshotted, so it can be
 %% restarted through code_change after a redeploy (upgrade/3).
@@ -10,7 +11,11 @@
 -export([turn/0, upgrade/3]).
 
 turn() ->
+    _ = glowc:node_fire_timers(),
     Reply = case binary_to_term(host_io:read_stdin()) of
+        %% the DO alarm: due timers already fired above
+        timers ->
+            ok;
         {call, Name, Mod, Msg} ->
             case whereis(Name) of
                 undefined -> {ok, _} = gen_server:start({local, Name}, Mod, [], []);

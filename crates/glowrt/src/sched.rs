@@ -80,6 +80,8 @@ pub struct Sched {
     remote_mons: Vec<(Term, Term, Term, u32)>,
     node_name: Term,
     crash: bool,
+    /// erlang timers: (ref, deadline ms, destination, message as delivered)
+    timers: Vec<(Term, u64, Term, Term)>,
     res: Rec,
     res_val: Term,
     main_result: Term,
@@ -103,6 +105,7 @@ static mut S: Sched = Sched {
     remote_mons: Vec::new(),
     node_name: NONODE,
     crash: false,
+    timers: Vec::new(),
     res: Rec { tidx: 0, ab: 0, entry_sp: 0, sp: 0 },
     res_val: NIL,
     main_result: 0,
@@ -160,6 +163,7 @@ pub unsafe fn reset() {
     s.outbox.clear();
     s.remote_mons.clear();
     s.crash = false;
+    s.timers.clear();
     s.res_val = NIL;
     s.main_result = 0;
     s.main = 0;
@@ -282,6 +286,11 @@ pub unsafe fn for_each_root(f: &mut dyn FnMut(&mut Term)) {
         f(r);
         f(n);
         f(t);
+    }
+    for (r, _, d, m) in s.timers.iter_mut() {
+        f(r);
+        f(d);
+        f(m);
     }
     f(&mut s.res_val);
     if s.main_result != 0 {
@@ -461,6 +470,18 @@ unsafe fn rt_sched_(v: Term) -> i32 {
         if s.procs[s.main].status == Status::Exited {
             // node mode: main is done and every other process waits: end of the turn
             return 0;
+        }
+        // Nothing can run: in tier 1 (virtual time) an erlang timer that is due before
+        // every receive timeout fires first.
+        if !s.node {
+            let rt = s.procs.iter().filter(|p| p.status == Status::Waiting).filter_map(|p| p.deadline).min();
+            if let Some(at) = s.timers.iter().map(|t| t.1).min() {
+                if rt.map_or(true, |d| at <= d) {
+                    s.clock = s.clock.max(at);
+                    fire_due(s.clock);
+                    continue;
+                }
+            }
         }
         // Nothing can run: fire the earliest receive timeout.
         let next = s
@@ -1069,7 +1090,8 @@ pub unsafe extern "C" fn rt_checkpoint() -> u32 {
             None => crate::host_log(&format!("checkpoint: process <0.{}.0> holds a term ETF cannot encode", s.procs[i].pid)),
         }
     }
-    let meta = build::tuple(&[intern("glowc_meta"), small(s.next_pid as i64), small(roots::proc().refs as i64), small(s.clock as i64)]);
+    let timers: Vec<Term> = s.timers.iter().map(|&(r, at, d, m)| build::tuple(&[r, build::int(at as i64), d, m])).collect();
+    let meta = build::tuple(&[intern("glowc_meta"), small(s.next_pid as i64), small(roots::proc().refs as i64), small(s.clock as i64), build::list(&timers)]);
     if let Some(b) = crate::etf::term_to_binary(meta) {
         s.ckpt.push((META_PID, b));
     }
@@ -1125,6 +1147,13 @@ pub unsafe extern "C" fn rt_restore(upgrade: i32) -> i32 {
             roots::proc().refs = r;
         }
         s.clock = s.clock.max(small_val(tuple_get(t, 3)) as u64);
+        if tuple_arity(t) >= 5 {
+            s.timers.clear();
+            for x in build::list_to_vec(tuple_get(t, 4)).unwrap_or_default() {
+                let at = crate::num::to_i64(tuple_get(x, 1)).unwrap_or(0) as u64;
+                s.timers.push((tuple_get(x, 0), at, tuple_get(x, 2), tuple_get(x, 3)));
+            }
+        }
         return 0;
     }
     if !is_tuple(t) || tuple_arity(t) != 15 || tuple_get(t, 0) != intern("glowc_proc") {
@@ -1378,3 +1407,75 @@ bif!("erlang:node/0", fn node0() { s().node_name });
 bif!("erlang:node/1", fn node1(p) {
     if is_pid(p) && pid_node_idx(p) != 0 { atom(pid_node_idx(p)) } else { s().node_name }
 });
+
+// --------------------------------------------------------------------------------
+// Timers: erlang:send_after/start_timer/cancel_timer/read_timer.
+//
+// Tier 1 uses the virtual clock (a timer fires when nothing can run, like a receive
+// timeout). In node mode deadlines are wall-clock ms; the host arms one DO alarm for
+// the earliest (rt_next_timer) and the alarm's turn fires the due ones. The table is
+// part of the meta checkpoint row, so timers survive eviction.
+
+fn now_ms() -> u64 {
+    if s().node { (crate::host_now_us() / 1000.0) as u64 } else { s().clock }
+}
+
+unsafe fn fire_due(now: u64) -> u32 {
+    let s = s();
+    let mut due: Vec<(Term, u64, Term, Term)> = Vec::new();
+    s.timers.retain(|&t| if t.1 <= now { due.push(t); false } else { true });
+    due.sort_by_key(|t| t.1);
+    for &(_, _, d, m) in &due {
+        if let Some((node, dest)) = remote_dest(d) {
+            s.outbox.push((node, dest, m));
+        } else if let Some(Some(j)) = resolve_dest(d) {
+            deliver(j, m);
+        }
+    }
+    due.len() as u32
+}
+
+unsafe fn timer(t: Term, d: Term, m: Term, wrap: bool) -> Term {
+    let Some(ms) = crate::num::to_i64(t) else { return exc::badarg() };
+    if ms < 0 || !(is_pid(d) || is_atom(d)) { return exc::badarg(); }
+    let r = crate::bifs::make_ref();
+    let msg = if wrap { build::tuple(&[intern("timeout"), r, m]) } else { m };
+    let at = now_ms() + ms as u64;
+    s().timers.push((r, at, d, msg));
+    r
+}
+bif!("erlang:send_after/3", fn send_after3(t, d, m) { timer(t, d, m, false) });
+bif!("erlang:send_after/4", fn send_after4(t, d, m, _o) { timer(t, d, m, false) });
+bif!("erlang:start_timer/3", fn start_timer3(t, d, m) { timer(t, d, m, true) });
+bif!("erlang:start_timer/4", fn start_timer4(t, d, m, _o) { timer(t, d, m, true) });
+
+unsafe fn cancel(r: Term, remove: bool) -> Term {
+    if !is_ref(r) { return exc::badarg(); }
+    let s = s();
+    let now = now_ms();
+    match s.timers.iter().position(|t| crate::cmp::exact_eq(t.0, r)) {
+        Some(i) => {
+            let left = s.timers[i].1.saturating_sub(now);
+            if remove { s.timers.remove(i); }
+            build::int(left as i64)
+        }
+        None => FALSE,
+    }
+}
+bif!("erlang:cancel_timer/1", fn cancel_timer1(r) { cancel(r, true) });
+bif!("erlang:cancel_timer/2", fn cancel_timer2(r, o) {
+    let v = cancel(r, true);
+    let info_false = build::list_to_vec(o).unwrap_or_default().iter().any(|&x| is_tuple(x) && tuple_arity(x) == 2 && tuple_get(x, 0) == intern("info") && tuple_get(x, 1) == FALSE);
+    if info_false { OK } else { v }
+});
+bif!("erlang:read_timer/1", fn read_timer1(r) { cancel(r, false) });
+bif!("erlang:read_timer/2", fn read_timer2(r, _o) { cancel(r, false) });
+
+/// Earliest timer deadline (ms since the epoch in node mode), or -1.
+#[no_mangle]
+pub unsafe extern "C" fn rt_next_timer() -> f64 {
+    s().timers.iter().map(|t| t.1).min().map_or(-1.0, |x| x as f64)
+}
+
+/// glowc:node_fire_timers(): fire every due timer (the alarm's turn). Returns the count.
+bif!("glowc:node_fire_timers/0", fn node_fire_timers() { small(fire_due(now_ms()) as i64) });

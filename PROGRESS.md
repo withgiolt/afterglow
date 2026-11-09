@@ -349,7 +349,12 @@ In this repo:
   limit (not strictly enforced: glowvm's p99 reached about 14 ms with no failures).
   Report the non-success rows (exceededResources and the like) from analytics before
   claiming this workload fits Free. The heavy row itself is judged locally.
-- Schedule (40k/day): 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
+- 2026-11-09 22:35 UTC, on the user's request ("don't wait for it please, go ahead"),
+  the basic_get and lustre_html runs started without waiting for the UTC day: the
+  account was at 50,338 requests that day (47,153 from spike Workers), so 2026-11-09
+  ends near 86k, over the goal's 40k cap but under Free's 100k. json_roundtrip waits
+  for 2026-11-10 UTC so the day stays under 100k.
+- Schedule (40k/day), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
   to record the failure mode.
@@ -444,6 +449,23 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   (1,000 messages) in 787 ms on local workerd (1.6 ms per round trip; 200 round trips:
   4.0 ms each), then a remote monitor fires noconnection after b throws on purpose
   (`glowc:node_crash/0`). PASS. P2 DO test, regress 59/59 and smoke 30/30 still pass.
+
+### P4: timers (local workerd passing; deployed check pending)
+
+- glowrt: erlang:send_after/3,4, start_timer/3,4 ({timeout, Ref, Msg}), cancel_timer/1,2,
+  read_timer/1,2. Tier 1: virtual clock (a timer fires when nothing can run, before a
+  later receive timeout); `tests/erl/p1t.erl` matches erl. Node mode: wall-clock
+  deadlines; the timer table is part of the meta checkpoint row.
+- DO host: after each turn one alarm for the earliest timer (`rt_next_timer`); `alarm()`
+  runs a `timers` turn (every turn first fires the due timers). The DO's name is kept in
+  SQLite (alarms have no request). Cron: the Worker's `scheduled` sends {tick, Cron} to
+  GLOWC_CRON_PROC in DO GLOWC_CRON_NODE (`CRON=... tools/do/build-do.sh`).
+- `tests/erl/p4/tm.erl`, `tools/do/p4-test.mjs`: a 60 s timer armed, Worker restarted
+  with persisted storage (instance gone), no request for 65 s: the alarm woke the DO,
+  the restored process got its message at 60,020 ms. Two Cron ticks reached `ticker`
+  and survived the restart. PASS. Receive `after` timeouts stay virtual in node mode
+  (they do not arm alarms): a deviation.
+- regress 60/60, P2 and P3 DO tests still pass.
 
 ## User requests during the run
 

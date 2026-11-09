@@ -21,4 +21,14 @@ cat > "$out/wrangler.jsonc" <<J
   "observability": { "enabled": true, "head_sampling_rate": 1 }
 }
 J
+# Cron and its target, when CRON is set: CRON="* * * * *" CRON_NODE=t CRON_PROC=ticker
+if [[ -n "${CRON:-}" ]]; then
+  python3 - "$out/wrangler.jsonc" "$CRON" "${CRON_NODE:-default}" "${CRON_PROC:-ticker}" <<'P'
+import sys
+p, cron, node, proc = sys.argv[1:]
+s = open(p).read()
+s = s.replace('"observability"', '"triggers": { "crons": ["%s"] },\n  "vars": { "GLOWC_CRON_NODE": "%s", "GLOWC_CRON_PROC": "%s" },\n  "observability"' % (cron, node, proc))
+open(p, "w").write(s)
+P
+fi
 echo "$out build $build"

@@ -19,6 +19,9 @@ export class GlowNode extends DurableObject {
     this.inst = null;
     this.chains = new Map();
     ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS procs (pid INTEGER PRIMARY KEY, build TEXT, bytes BLOB)");
+    ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)");
+    const row = [...ctx.storage.sql.exec("SELECT v FROM meta WHERE k = 'name'")][0];
+    this.name = row ? row.v : null;
   }
 
   boot() {
@@ -57,7 +60,11 @@ export class GlowNode extends DurableObject {
   }
 
   async fetch(request) {
-    this.name = request.headers.get("x-glowc-node") || "default";
+    const name = request.headers.get("x-glowc-node") || "default";
+    if (this.name !== name) {
+      this.name = name;
+      this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta (k, v) VALUES ('name', ?)", name);
+    }
     const input = new Uint8Array(await request.arrayBuffer());
     const r = this.turn(input);
     return new Response(r.body, { status: r.status, headers: r.headers });
@@ -91,11 +98,21 @@ export class GlowNode extends DurableObject {
     for (let i = 0; i < x.rt_dead_count(); i++) sql.exec("DELETE FROM procs WHERE pid = ?", x.rt_dead_pid(i));
     x.rt_checkpoint_done();
     this.flush(x);
+    // one alarm for the earliest erlang timer
+    const next = x.rt_next_timer();
+    if (next >= 0) this.ctx.storage.setAlarm(next);
+    else this.ctx.storage.deleteAlarm();
     return { status, body, headers: {
       "x-glowc-boot": fresh ? JSON.stringify(this.bootInfo) : "warm",
       "x-glowc-rows": String(n), "x-glowc-row-bytes": String(bytesWritten),
       "x-glowc-turn-ms": String(Date.now() - t0),
+      "x-glowc-alarm-runs": String(this.alarmRuns || 0),
     } };
+  }
+
+  async alarm() {
+    this.alarmRuns = (this.alarmRuns || 0) + 1;
+    this.turn(Uint8Array.from([131, ...atom("timers")]));
   }
 
   flush(x) {
@@ -145,7 +162,24 @@ function etfNoconnection(node) {
   return Uint8Array.from([131, 104, 2, ...atom("noconnection"), ...atom(node)]);
 }
 
+// Cron Triggers: {tick, Cron} to the process registered as GLOWC_CRON_PROC in the DO
+// named GLOWC_CRON_NODE.
+function etfTick(proc, cron) {
+  const c = enc.encode(cron);
+  const out = [131, 104, 2, ...atom("deliver"), 108, 0, 0, 0, 1,
+    104, 2, ...atom(proc), 104, 2, ...atom("tick"), 109, 0, 0, 0, 0, ...c, 106];
+  const u = Uint8Array.from(out);
+  new DataView(u.buffer).setUint32(u.length - 1 - c.length - 4, c.length);
+  return u;
+}
+
 export default {
+  async scheduled(event, env, ctx) {
+    const node = env.GLOWC_CRON_NODE || "default", proc = env.GLOWC_CRON_PROC || "ticker";
+    const stub = env.NODE.get(env.NODE.idFromName(node));
+    const r = await stub.fetch("http://do/", { method: "POST", body: etfTick(proc, event.cron), headers: { "x-glowc-node": node } });
+    await r.arrayBuffer();
+  },
   async fetch(request, env) {
     const url = new URL(request.url);
     const name = url.searchParams.get("node") || "default";

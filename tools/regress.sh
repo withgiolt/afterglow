@@ -7,7 +7,7 @@ t() { if "$@" >/tmp/regress.out 2>&1; then pass=$((pass+1)); else fail=$((fail+1
 for f in m1:fib_test m1:sum_test m1:mixed_test m1_depth:d10k \
          m2:t_match m2:t_split m2:t_bins m2:t_utf m2:t_build m2:t_ints m2:t_unicode m2:t_maps \
          m3:t_big m3:t_funs m3:t_exc m3:t_bigmap ur:t \
-         p1e:t_basic p1e:t_links p1e:t_monitors p1e:t_timeouts p1e:t_selective p1e:t_misc; do
+         p1e:t_basic p1e:t_links p1e:t_monitors p1e:t_timeouts p1e:t_selective p1e:t_misc p1t:t_timers; do
   t tools/difftest.sh "$f/0" --beams out
 done
 for f in m1_gleam:fib_test m1_gleam:sum_test; do
