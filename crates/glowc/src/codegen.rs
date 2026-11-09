@@ -1360,6 +1360,36 @@ impl<'e, 'a> Fx<'e, 'a> {
                 })?;
             }
 
+            "update_record" => {
+                // update_record Hint Size Src Dst [Index, Value, ...]: a copy of tuple Src
+                // with the given 1-based elements replaced (the reuse hint is ignored).
+                let n = u(1) as u32;
+                let (src, dst) = (a[2].clone(), a[3].clone());
+                let Operand::List(ups) = &a[4] else { return Err(CgError("bad update_record".into())) };
+                let ups = ups.clone();
+                self.alloc(n + 1, 0);
+                self.ins(I::LocalGet(self.l_tmpi));
+                self.src(&src)?;
+                self.ins(I::I32WrapI64);
+                self.ins(I::I32Const(2));
+                self.ins(I::I32Sub);
+                self.ins(I::I32Const(8 * (n as i32 + 1)));
+                self.ins(I::MemoryCopy { src_mem: 0, dst_mem: 0 });
+                for pair in ups.chunks(2) {
+                    let Operand::U(idx) = pair[0] else { return Err(CgError("bad update_record index".into())) };
+                    let v = pair[1].clone();
+                    self.store_word(0, idx as u32, |fx| fx.src(&v))?;
+                }
+                let p = self.l_tmpi;
+                self.dst(&dst, |fx| {
+                    fx.ins(I::LocalGet(p));
+                    fx.ins(I::I64ExtendI32U);
+                    fx.ins(I::I64Const(2));
+                    fx.ins(I::I64Or);
+                    Ok(())
+                })?;
+            }
+
             // errors
             "badmatch" => self.raise_error2("badmatch", &a[0].clone())?,
             "case_end" => self.raise_error2("case_clause", &a[0].clone())?,

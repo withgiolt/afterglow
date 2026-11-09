@@ -341,6 +341,11 @@ In this repo:
   Analytics (`analytics.mjs`), first-request CPU per deploy (`coldcpu.mjs`, checked
   against the Phase 0 glowvm CSV: median 5.61 ms, same as recorded), then delete.
   Worker dirs: `bench/glowc/<fixture>` (built with tools/build-worker.sh).
+- Check when json_roundtrip lands: glowvm's deployed CPU was about 4.8× its local wall
+  time, which would put glowc's json_roundtrip near 18 ms deployed, over Free's 10 ms
+  limit (not strictly enforced: glowvm's p99 reached about 14 ms with no failures).
+  Report the non-success rows (exceededResources and the like) from analytics before
+  claiming this workload fits Free. The heavy row itself is judged locally.
 - Schedule (40k/day): 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
@@ -379,17 +384,38 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   (100,000 messages), tests/erl/p1e.erl (basic, links, monitors, timeouts, selective
   receive, registry). regress: 57/57. Smoke on workerd: 30/30.
 
-### P2: checkpoint and restore (in progress, not tested yet)
+### P2: checkpoint and restore (Node harness passing; Durable Object next)
 
-- Done (builds, untested): glowc `--keep MOD`; glowrt node mode (`rt_node_mode`; heap,
-  arena and processes persist across turns, a new main process each turn), dirty
-  tracking, `rt_checkpoint` / `rt_restore` / `rt_restore_done` (ETF rows per process,
-  resume records with stack-top offsets), `glowc:node_gen_servers/0`,
-  `glowc:node_set_state/3`.
-- Next: ETF for local funs (NEW_FUN_EXT), `glowc_node.erl` (start/0 turn wrapper,
-  snapshot via sys:get_state, upgrade/3 via code_change + gen_server:enter_loop),
-  counter v1/v2 fixtures, a Node harness that simulates eviction and a redeploy, then
-  the Durable Object class and a deployed test. Rerun regress before committing more.
+- glowrt node mode (`rt_node_mode`): heap, arena and processes persist across turns;
+  each turn gets a fresh main process on the main stack. Dirty tracking per process
+  (ran, got a message, link/monitor/name changed).
+- Checkpoint (`rt_checkpoint`): one ETF row per dirty process: status, resume records
+  (sps as offsets from the stack top), the Y stack from the lowest frame (non-term words
+  wrapped), mailbox, save pointer, dictionary, links, monitors, trap_exit, names, start
+  closure, and the last gen-style state {Mod, State}. Plus a meta row (next pid, ref
+  counter, virtual clock). Exited processes are reported for deletion.
+- Restore (`rt_restore(upgrade)`): same build: the process comes back with its frames
+  and resumes exactly where it waited. Another build: gen-style processes restart in
+  `glowc_node:upgrade/3` (Mod:code_change, then gen_server:enter_loop under the same
+  name, which stays registered across the restore); the rest exit with code_upgrade.
+- `tests/erl/p2/glowc_node.erl`: turn entry ({call, Name, Mod, Msg} in, reply out) and
+  the state snapshot (sys:get_state of every dirty process whose '$initial_call' is
+  {Mod, init, 1}). `tools/node-harness.mjs`: a simulated DO (rows in a Map tagged with
+  the build hash; evict = drop the instance).
+- Tier-2 builds need `--keep counter --keep gen --keep gen_server --keep glowc_node`
+  (proc_lib and the upgrade path reach them only through computed apply).
+- Added on the way: process aliases (monitor/3 alias option, alias/0,1, unalias/1; gen
+  replies go to the alias), erlang:spawn_opt/4, erlang:make_fun/3, the update_record
+  opcode (tests/erl/ur.erl), reachability through spawn_opt/4.
+- Fixed: a restored process lost its dictionary (new_turn saved the empty global one
+  into it).
+- `tools/p2-test.sh` (in regress): {v1,1} {v1,2} evict {v1,3} redeploy {v2,4} {v2,4}
+  evict {v2,5}: PASS. regress 59/59, smoke 30/30.
+- Not done: local funs in checkpoints (ETF NEW_FUN_EXT is not encoded; such a process
+  logs and is not checkpointed), stack traces from proc_lib crash reports (badmatch in
+  proc_lib:my_info_1 on that error path).
+- Next: a Durable Object class (SQLite rows, the same calls as the harness) and one
+  deployed check of eviction and redeploy, after the day's M5 runs.
 
 ## User requests during the run
 

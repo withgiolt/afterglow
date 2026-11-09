@@ -72,6 +72,8 @@ pub struct Sched {
     mark: usize,
     clock: u64,
     registered: Vec<(Term, u32)>,
+    /// process aliases: (ref, owner pid)
+    aliases: Vec<(Term, u32)>,
     res: Rec,
     res_val: Term,
     main_result: Term,
@@ -90,6 +92,7 @@ static mut S: Sched = Sched {
     mark: 0,
     clock: 0,
     registered: Vec::new(),
+    aliases: Vec::new(),
     res: Rec { tidx: 0, ab: 0, entry_sp: 0, sp: 0 },
     res_val: NIL,
     main_result: 0,
@@ -143,6 +146,7 @@ pub unsafe fn reset() {
     s.mark = 0;
     s.clock = 0;
     s.registered.clear();
+    s.aliases.clear();
     s.res_val = NIL;
     s.main_result = 0;
     s.main = 0;
@@ -186,6 +190,7 @@ pub unsafe extern "C" fn rt_node_mode() {
     reset();
     let s = s();
     s.procs.clear();
+    s.cur = usize::MAX; // no process has run yet: new_turn must not save a dictionary
     s.node = true;
 }
 pub fn node_mode() -> bool {
@@ -251,6 +256,9 @@ pub unsafe fn for_each_root(f: &mut dyn FnMut(&mut Term)) {
     for (n, _) in s.registered.iter_mut() {
         f(n);
     }
+    for (r, _) in s.aliases.iter_mut() {
+        f(r);
+    }
     f(&mut s.res_val);
     if s.main_result != 0 {
         f(&mut s.main_result);
@@ -308,6 +316,7 @@ unsafe fn do_exit(i: usize, reason: Term) {
     let links = core::mem::take(&mut s.procs[i].links);
     let watchers = core::mem::take(&mut s.procs[i].watched_by);
     s.registered.retain(|&(_, p)| p != me);
+    s.aliases.retain(|&(_, p)| p != me);
     for (r, w) in watchers {
         if let Some(j) = find(w) {
             let m = build::tuple(&[DOWN, r, PROCESS, pid(me as u64), reason]);
@@ -378,8 +387,17 @@ unsafe fn rt_sched_(v: Term) -> i32 {
             s.main_result = v;
             // main is done: the request ends, like erl's -eval halting. In node mode
             // the other processes keep running until they all wait (end of the turn).
-            if v != 0 {
+            if v != 0 || s.node {
                 s.procs[i].status = Status::Exited;
+            }
+            if s.node {
+                // the turn's main process is gone: its names and aliases go with it
+                let me = s.procs[i].pid;
+                s.registered.retain(|&(_, p)| p != me);
+                s.aliases.retain(|&(_, p)| p != me);
+                for p in s.procs.iter_mut() {
+                    p.links.retain(|&x| x != me);
+                }
             }
             if !s.node || s.runq.is_empty() {
                 return 0;
@@ -619,7 +637,27 @@ unsafe fn resolve_dest(d: Term) -> Option<Option<usize>> {
     if is_tuple(d) && tuple_arity(d) == 2 && is_atom(tuple_get(d, 0)) {
         return resolve_dest(tuple_get(d, 0));
     }
+    if is_ref(d) {
+        // an alias; a message to an inactive alias is dropped, like ERTS
+        let owner = s().aliases.iter().find(|(r, _)| crate::cmp::exact_eq(*r, d)).map(|&(_, p)| p);
+        return Some(owner.and_then(find));
+    }
     None
+}
+
+fn has_opt(opts: Term, name: &str) -> bool {
+    let n = crate::atoms::intern(name);
+    unsafe {
+        build::list_to_vec(opts).unwrap_or_default().iter().any(|&o| {
+            o == n || (is_tuple(o) && tuple_arity(o) == 2 && tuple_get(o, 0) == n)
+        })
+    }
+}
+
+/// monitor/3 alias options: {alias, explicit_unalias | demonitor | reply_demonitor}.
+unsafe fn alias_opt(opts: Term) -> bool {
+    let a = crate::atoms::intern("alias");
+    build::list_to_vec(opts).unwrap_or_default().iter().any(|&o| is_tuple(o) && tuple_arity(o) == 2 && tuple_get(o, 0) == a)
 }
 
 #[no_mangle]
@@ -694,10 +732,7 @@ bif!("erlang:spawn_link/3", fn spawn_link3(m, f, a) {
 bif!("proc_lib:spawn_link/3", fn pl_spawn_link3(m, f, a) { spawn_link3(m, f, a) });
 bif!("erlang:spawn_monitor/1", fn spawn_monitor1(f) { spawn_common(f, NIL, false, true) });
 bif!("erlang:spawn_opt/2", fn spawn_opt2(f, opts) {
-    let o = build::list_to_vec(opts).unwrap_or_default();
-    let link = o.contains(&crate::atoms::intern("link"));
-    let mon = o.contains(&crate::atoms::intern("monitor"));
-    spawn_common(f, NIL, link, mon)
+    spawn_common(f, NIL, has_opt(opts, "link"), has_opt(opts, "monitor"))
 });
 
 bif!("erlang:link/1", fn link1(p) {
@@ -757,12 +792,37 @@ bif!("erlang:monitor/2", fn monitor2(t, p) {
     if t != PROCESS { return exc::badarg(); }
     monitor_proc(p)
 });
-bif!("erlang:monitor/3", fn monitor3(t, p, _o) {
+bif!("erlang:monitor/3", fn monitor3(t, p, o) {
     if t != PROCESS { return exc::badarg(); }
-    monitor_proc(p)
+    let r = monitor_proc(p);
+    if alias_opt(o) {
+        let me = cur().pid;
+        s().aliases.push((r, me));
+    }
+    r
+});
+bif!("erlang:alias/0", fn alias0() {
+    let r = crate::bifs::make_ref();
+    let me = cur().pid;
+    s().aliases.push((r, me));
+    r
+});
+bif!("erlang:alias/1", fn alias1(_o) { alias0() });
+bif!("erlang:unalias/1", fn unalias(r) {
+    let s = s();
+    let n = s.aliases.len();
+    s.aliases.retain(|(x, _)| !crate::cmp::exact_eq(*x, r));
+    boolean(s.aliases.len() != n)
+});
+bif!("erlang:spawn_opt/4", fn spawn_opt4(m, f, a, opts) {
+    match mfa_fun(m, f, a) {
+        Some((fun, a)) => spawn_common(fun, a, has_opt(opts, "link"), has_opt(opts, "monitor")),
+        None => exc::badarg(),
+    }
 });
 unsafe fn demonitor_(r: Term, flush: bool) -> Term {
     let s = s();
+    s.aliases.retain(|(x, _)| !crate::cmp::exact_eq(*x, r));
     for p in s.procs.iter_mut() {
         let n = p.watched_by.len();
         p.watched_by.retain(|&(x, _)| !crate::cmp::exact_eq(x, r));
@@ -1062,6 +1122,10 @@ pub unsafe extern "C" fn rt_restore(upgrade: i32) -> i32 {
             np.pdict = NIL;
             np.save = 0;
             np.dirty = true;
+            // keep the name taken, so the turn's own code finds the server before it runs
+            for n in names {
+                s.registered.push((n, id));
+            }
         } else {
             np.status = Status::Waiting;
             np.pending_kill = true;

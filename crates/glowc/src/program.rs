@@ -217,6 +217,7 @@ impl Program {
                     // spawn(M, F, A) / apply(M, F, A) with M and F moved in as atoms
                     // just before: keep every exported M:F reachable.
                     let dynamic = mfa.0 == "erlang" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link" | "spawn_monitor" | "apply")
+                        || mfa.0 == "erlang" && mfa.2 == 4 && mfa.1 == "spawn_opt"
                         || mfa.0 == "proc_lib" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link");
                     if dynamic {
                         let mut mf: [Option<String>; 2] = [None, None];

@@ -650,6 +650,10 @@ bif!("erlang:fun_info/2", fn fun_info2(f, item) {
     build::tuple(&[item, v])
 });
 bif!("erlang:module_loaded/1", fn module_loaded(_m) { TRUE });
+bif!("erlang:make_fun/3", fn make_fun3(m, f, a) {
+    if !is_atom(m) || !is_atom(f) || !is_small(a) || small_val(a) < 0 || small_val(a) > 255 { return badarg(); }
+    crate::funs::export_fun(m, f, small_val(a) as u32).unwrap_or_else(|| badarg())
+});
 bif!("erlang:function_exported/3", fn function_exported(m, f, a) {
     if !is_small(a) { return badarg(); }
     boolean(crate::funs::rt_export_lookup(m, f, small_val(a) as u32) >= 0)

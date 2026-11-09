@@ -1,0 +1,11 @@
+[{"wasm": "out/p2v1.wasm"},
+ {"call": ["counter", "counter", "incr"]},
+ {"call": ["counter", "counter", "incr"]},
+ {"evict": true},
+ {"call": ["counter", "counter", "incr"]},
+ {"evict": true},
+ {"wasm": "out/p2v2.wasm"},
+ {"call": ["counter", "counter", "incr"]},
+ {"call": ["counter", "counter", "get"]},
+ {"evict": true},
+ {"call": ["counter", "counter", "incr"]}]
