@@ -232,7 +232,30 @@ In this repo:
   deploys only glowc for those (2 × 18k = 36k in one UTC day), and json_roundtrip is
   compared locally. Analytics token expires 2026-11-16.
 
+### M1: core codegen (done 2026-11-09)
+
+- Pipeline: `tools/glowc-build.sh OUT --entry M:F/0 --beams DIR` = cargo build glowc + glowrt,
+  `glowc build` (app module importing glowrt), `wasm-merge` with glowrt, `wasm-opt -O3`.
+  Runner: `tools/run.mjs` (Node 26). Difftest: `tools/difftest.sh M:F/0 --beams DIR` runs
+  the same function under erl and compares with `=:=`.
+- Passing vs erl (OTP 29): `m1:fib_test/0` (fib(30)), `m1:sum_test/0` (1..1,000,000 as a
+  list), `m1:mixed_test/0` (tuples, bignums, try/catch, catch, lists, a fun), and the Gleam
+  versions `m1_gleam:fib_test/0`, `m1_gleam:sum_test/0` (fixtures/app/src/m1_gleam.gleam).
+- Local timings (Node, after warm-up): fib(30) 8.3 ms (erl JIT 6.5 ms); sum 4.8 ms
+  (erl 9.1 ms). Instance init 2.1 ms.
+- Risk found: body recursion uses the native V8 stack. Depth 10k passes, 100k overflows
+  (`RangeError: Maximum call stack size exceeded`) under Node's default stack; that
+  includes `lists:map` over 100k elements. Measure the workerd limit at M4. Not a kill
+  criterion; fixtures stay far below it.
+
+## User requests during the run
+
+- 2026-11-09: "after you are done, create an html file so i can visualize and compare
+  glowvm to glowc". Deliverable: `compare.html` (glowvm vs glowc: CPU p50/p99 per fixture,
+  size, memory, cold start, targets from SPIKE.md's first table, verdict). Build it at
+  the end of M5, from the measured numbers.
+
 ## Next steps
 
-1. M1: beam-reader (chunks, compact terms, opcode table from beam_opcodes), glowc
-   codegen for the core instructions, glowrt core, difftest harness vs `erl`.
+1. M2: binaries and strings (bs_create_bin, bs_match, unicode NIFs); stdlib_string,
+   stdlib_bit_array, stdlib_string_tree vs erl.
