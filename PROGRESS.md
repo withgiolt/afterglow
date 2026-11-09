@@ -361,9 +361,15 @@ In this repo:
   response was `404`, body `error code: 1042` (5 cold-start requests, 1 check, 1,000
   warm-up, then stopped; about 1,006 requests). A redeploy with `"workers_dev": true`
   gave the same. Production Workers on workers.dev (`gote`, `giolt-next`) returned the
-  same 404/1042 at 22:38 UTC: account-wide, not glowc. Cause unknown (not verified).
-  glowc-m5-basic-get deleted 22:39 UTC; lustre_html never deployed. No deployed load
-  until the user has looked at the account.
+  same 404/1042 at 22:38 UTC. glowc-m5-basic-get deleted 22:39 UTC.
+- Checked in the dashboard (user's Helium, own tab, closed after): production runs on
+  custom domains (giolt.com 200, dash.giolt.com 307, gote.giolt.app 200), so `gote` and
+  `giolt-next` simply have no workers.dev route; the account showed 50,346 / 100,000
+  requests. Redeployed glowc-m5-basic-get: the dashboard listed its workers.dev URL as
+  enabled, and it answered 1042 for about 3 minutes, then 200. Cause: a new workers.dev
+  hostname takes minutes to serve. `bench/m5.sh` now deploys, waits for a 200 (one
+  probe per 15 s), and refuses to load a Worker whose cold-start requests were not 200.
+  Runs restarted at 22:45 UTC.
 - Schedule (40k/day), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
