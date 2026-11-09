@@ -65,6 +65,7 @@ export class GlowNode extends DurableObject {
       this.name = name;
       this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta (k, v) VALUES ('name', ?)", name);
     }
+    if (request.headers.get("upgrade") === "websocket") return this.accept(request);
     const input = new Uint8Array(await request.arrayBuffer());
     const r = this.turn(input);
     return new Response(r.body, { status: r.status, headers: r.headers });
@@ -98,6 +99,7 @@ export class GlowNode extends DurableObject {
     for (let i = 0; i < x.rt_dead_count(); i++) sql.exec("DELETE FROM procs WHERE pid = ?", x.rt_dead_pid(i));
     x.rt_checkpoint_done();
     this.flush(x);
+    this.sendWs(x);
     // one alarm for the earliest erlang timer
     const next = x.rt_next_timer();
     if (next >= 0) this.ctx.storage.setAlarm(next);
@@ -108,6 +110,60 @@ export class GlowNode extends DurableObject {
       "x-glowc-turn-ms": String(Date.now() - t0),
       "x-glowc-alarm-runs": String(this.alarmRuns || 0),
     } };
+  }
+
+  // WebSockets: accepted with the Hibernation API, so the DO can be evicted while they
+  // stay open. Each socket gets an id (persisted counter) and an owner process (?ws=
+  // Name, started as Mod:start() from ?mod=, default Name), kept in its attachment.
+  accept(request) {
+    const url = new URL(request.url);
+    const owner = url.searchParams.get("ws") || "ws";
+    const mod = url.searchParams.get("mod") || owner;
+    const row = [...this.ctx.storage.sql.exec("SELECT v FROM meta WHERE k = 'ws_next'")][0];
+    const id = row ? Number(row.v) : 1;
+    this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta (k, v) VALUES ('ws_next', ?)", String(id + 1));
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server, ["ws" + id]);
+    server.serializeAttachment({ id, owner, mod, node: this.name });
+    this.wsEvent(server, [...atom("open")]);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
+  wsEvent(ws, eventEtf) {
+    const a = ws.deserializeAttachment();
+    if (!this.name) this.name = a.node;
+    const fresh = !this.inst;
+    const ref = [104, 2, ...atom("glowc_ws"), 98, ...u32be(a.id)];
+    this.turn(Uint8Array.from([131, 104, 5, ...atom("ws"), ...atom(a.owner), ...atom(a.mod), ...ref, ...eventEtf]));
+    if (fresh && this.bootInfo.restored > 0) {
+      try { ws.send("__boot " + JSON.stringify(this.bootInfo)); } catch {}
+    }
+  }
+
+  async webSocketMessage(ws, message) {
+    if (message === "__evict") { this.inst = null; return; } // tests: drop the instance, keep the sockets
+    if (typeof message === "string") {
+      const b = enc.encode(message);
+      this.wsEvent(ws, [104, 2, ...atom("text"), 109, ...u32be(b.length), ...b]);
+    } else {
+      const b = new Uint8Array(message);
+      this.wsEvent(ws, [104, 2, ...atom("binary"), 109, ...u32be(b.length), ...b]);
+    }
+  }
+
+  async webSocketClose(ws) {
+    this.wsEvent(ws, [...atom("closed")]);
+  }
+
+  sendWs(x) {
+    for (let i = 0; i < x.rt_ws_count(); i++) {
+      const id = x.rt_ws_id(i), kind = x.rt_ws_kind(i);
+      const data = this.unpack(x.rt_ws_data(i));
+      for (const ws of this.ctx.getWebSockets("ws" + id)) {
+        try { kind === 1 ? ws.close(1000, "closed") : ws.send(dec.decode(data)); } catch {}
+      }
+    }
+    x.rt_ws_clear();
   }
 
   async alarm() {
@@ -146,6 +202,7 @@ export class GlowNode extends DurableObject {
 }
 
 const enc = new TextEncoder();
+function u32be(n) { return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]; }
 function atom(s) { const b = enc.encode(s); return [119, b.length, ...b]; }
 function etfDeliver(items) {
   const len = items.reduce((n, i) => n + i.length, 0);

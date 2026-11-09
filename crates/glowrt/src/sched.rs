@@ -82,6 +82,8 @@ pub struct Sched {
     crash: bool,
     /// erlang timers: (ref, deadline ms, destination, message as delivered)
     timers: Vec<(Term, u64, Term, Term)>,
+    /// WebSocket output for the host: (socket id, 0 = send / 1 = close, bytes)
+    ws_out: Vec<(u32, u32, Vec<u8>)>,
     res: Rec,
     res_val: Term,
     main_result: Term,
@@ -106,6 +108,7 @@ static mut S: Sched = Sched {
     node_name: NONODE,
     crash: false,
     timers: Vec::new(),
+    ws_out: Vec::new(),
     res: Rec { tidx: 0, ab: 0, entry_sp: 0, sp: 0 },
     res_val: NIL,
     main_result: 0,
@@ -164,6 +167,7 @@ pub unsafe fn reset() {
     s.remote_mons.clear();
     s.crash = false;
     s.timers.clear();
+    s.ws_out.clear();
     s.res_val = NIL;
     s.main_result = 0;
     s.main = 0;
@@ -1479,3 +1483,48 @@ pub unsafe extern "C" fn rt_next_timer() -> f64 {
 
 /// glowc:node_fire_timers(): fire every due timer (the alarm's turn). Returns the count.
 bif!("glowc:node_fire_timers/0", fn node_fire_timers() { small(fire_due(now_ms()) as i64) });
+
+// --------------------------------------------------------------------------------
+// WebSockets (tier 2, Hibernation API). A socket is named by {glowc_ws, Id}; the host
+// delivers {websocket, Ref, open | {text, Bin} | {binary, Bin} | closed} to the owning
+// process and sends what glowc:ws_send/2 queued after the turn.
+
+unsafe fn ws_id(r: Term) -> Option<u32> {
+    if is_tuple(r) && tuple_arity(r) == 2 && tuple_get(r, 0) == intern("glowc_ws") && is_small(tuple_get(r, 1)) {
+        Some(small_val(tuple_get(r, 1)) as u32)
+    } else {
+        None
+    }
+}
+bif!("glowc:ws_send/2", fn ws_send(r, data) {
+    let Some(id) = ws_id(r) else { return exc::badarg() };
+    let Some(bytes) = crate::bits::iolist_bytes(data) else { return exc::badarg() };
+    s().ws_out.push((id, 0, bytes));
+    OK
+});
+bif!("glowc:ws_close/1", fn ws_close(r) {
+    let Some(id) = ws_id(r) else { return exc::badarg() };
+    s().ws_out.push((id, 1, Vec::new()));
+    OK
+});
+#[no_mangle]
+pub unsafe extern "C" fn rt_ws_count() -> u32 {
+    s().ws_out.len() as u32
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ws_id(i: u32) -> u32 {
+    s().ws_out[i as usize].0
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ws_kind(i: u32) -> u32 {
+    s().ws_out[i as usize].1
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ws_data(i: u32) -> u64 {
+    let b = s().ws_out[i as usize].2.clone();
+    pack(&b)
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ws_clear() {
+    s().ws_out.clear();
+}

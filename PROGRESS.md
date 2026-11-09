@@ -136,6 +136,8 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
       `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
       (https://<name>.SUBDOMAIN.workers.dev), observability on.
+- [ ] P4/P5, planned: `glowc-p4-timers` (DO + Cron "* * * * *"), `glowc-p5-chat` (DO with
+      WebSockets). Delete after their checks.
 - [ ] P3, planned: `glowc-p3-pingpong` (DO class GlowNode, nodes a and b). Delete after.
 - [ ] P2, planned: `glowc-p2-counter` (DO class GlowNode with SQLite rows). Delete after
       the check (`wrangler delete` removes the DO namespace and its data).
@@ -466,6 +468,20 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   and survived the restart. PASS. Receive `after` timeouts stay virtual in node mode
   (they do not arm alarms): a deviation.
 - regress 60/60, P2 and P3 DO tests still pass.
+
+### P5: WebSockets (local workerd passing; deployed check pending)
+
+- DO host: `Upgrade: websocket` -> `ctx.acceptWebSocket` (Hibernation API). A socket is
+  `{glowc_ws, Id}` (id from a persisted counter), its owner process name and module in
+  the socket attachment. Events reach the owner as `{websocket, Ref, open | {text, Bin}
+  | {binary, Bin} | closed}` through a `{ws, Name, Mod, Ref, Event}` turn (the owner is
+  started as Mod:start() if missing). `glowc:ws_send/2` (binary or iolist) and
+  `glowc:ws_close/1` queue output that the host sends after the turn.
+- `tests/erl/p5/chat.erl`, `tools/do/p5-test.mjs`: two clients; after "hi", the DO
+  instance is dropped with the sockets open ("__evict", local stand-in for
+  hibernation), then "yo" restores the room from SQLite: both clients get
+  "2: yo (members 2, messages 2)", and the restore is reported ({"restored":2}). PASS.
+  Deployed: wait past the hibernation idle time instead of "__evict".
 
 ## User requests during the run
 

@@ -882,6 +882,17 @@ pub unsafe fn iolist(t: Term, w: &mut Writer, allow_bits: bool) -> bool {
     true
 }
 
+/// The bytes of a binary or iolist (None if it is neither, or not byte-aligned).
+pub unsafe fn iolist_bytes(t: Term) -> Option<Vec<u8>> {
+    let mut w = Writer::new();
+    if is_binary(t) || is_list(t) || t == NIL {
+        if iolist(t, &mut w, false) && w.bits % 8 == 0 {
+            return Some(w.buf);
+        }
+    }
+    None
+}
+
 bif!("erlang:iolist_to_binary/1", fn iolist_to_binary(t) {
     if is_binary(t) { return t; }
     let mut w = Writer::new();

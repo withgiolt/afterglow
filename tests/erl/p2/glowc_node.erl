@@ -3,6 +3,7 @@
 %%   {apply, M, F, A}: apply(M, F, A) in the turn's process
 %%   {deliver, [{Dest, Msg}]}: messages from other nodes (DOs)
 %%   {noconnection, Node}: the host could not deliver to Node
+%%   {ws, Name, Mod, Ref, Event}: a WebSocket event for Name (Mod:start() if missing)
 %%   timers: the DO alarm (every turn first fires the timers that are due)
 %% and the turn's output is the result as ETF. Before the
 %% turn ends, every changed gen-style process has its state snapshotted, so it can be
@@ -29,7 +30,15 @@ turn() ->
             [glowc:node_deliver(D, M) || {D, M} <- Msgs],
             ok;
         {noconnection, Node} ->
-            glowc:node_noconnection(Node)
+            glowc:node_noconnection(Node);
+        %% a WebSocket event for the process registered as Name (started as Mod:start())
+        {ws, Name, Mod, Ref, Event} ->
+            case whereis(Name) of
+                undefined -> register(Name, spawn(Mod, start, []));
+                _ -> ok
+            end,
+            Name ! {websocket, Ref, Event},
+            ok
     end,
     snapshot(),
     host_io:write_stdout(term_to_binary(Reply)).
