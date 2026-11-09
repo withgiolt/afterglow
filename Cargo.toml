@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["crates/beam-reader", "crates/glowc", "crates/glowrt"]
+
+[profile.release]
+opt-level = 3
+debug = false
+panic = "abort"
+lto = true
+codegen-units = 1
