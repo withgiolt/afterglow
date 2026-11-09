@@ -127,12 +127,12 @@ tick it when removed.
 
 Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [x] `glowc-phase0-tail`: deleted 2026-11-09 (Tail Workers need Paid; user chose Free + Workers Logs).
-- [ ] `glowc-phase0-core` (https://glowc-phase0-core.SUBDOMAIN.workers.dev), observability on. `?n=` capped at 20M.
-- [ ] `glowc-phase0-eh-exnref` (https://glowc-phase0-eh-exnref.SUBDOMAIN.workers.dev)
-- [ ] `glowc-phase0-eh-legacy` (https://glowc-phase0-eh-legacy.SUBDOMAIN.workers.dev)
-- [ ] `glowc-phase0-do` (https://glowc-phase0-do.SUBDOMAIN.workers.dev), DO classes Counter + Caller with SQLite data.
-- [ ] `glowvm-baseline-basic-get` (https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev), observability on.
-- [ ] `glowvm-baseline-lustre-html` (https://glowvm-baseline-lustre-html.SUBDOMAIN.workers.dev), observability on.
+- [x] deleted 2026-11-09: `glowc-phase0-core` (https://glowc-phase0-core.SUBDOMAIN.workers.dev), observability on. `?n=` capped at 20M.
+- [x] deleted 2026-11-09: `glowc-phase0-eh-exnref` (https://glowc-phase0-eh-exnref.SUBDOMAIN.workers.dev)
+- [x] deleted 2026-11-09: `glowc-phase0-eh-legacy` (https://glowc-phase0-eh-legacy.SUBDOMAIN.workers.dev)
+- [x] deleted 2026-11-09: `glowc-phase0-do` (https://glowc-phase0-do.SUBDOMAIN.workers.dev), DO classes Counter + Caller with SQLite data.
+- [x] deleted 2026-11-09: `glowvm-baseline-basic-get` (https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev), observability on.
+- [x] deleted 2026-11-09: `glowvm-baseline-lustre-html` (https://glowvm-baseline-lustre-html.SUBDOMAIN.workers.dev), observability on.
 - Workers Logs from observability are kept by Cloudflare (retention per plan); they go with the Workers.
 - Workers with Durable Objects (`glowc-phase0-do`) also own DO namespaces and
   SQLite data; `wrangler delete` removes them with the Worker.
@@ -140,7 +140,7 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 
 - [ ] User API token `glowc-phase0-analytics-read` (Account Analytics: Read, Giolt
       only, expires 2026-11-16). Created via the dashboard in the user's Helium browser.
-      Delete it in My Profile → API Tokens when done.
+      User decided: let it expire on 2026-11-16 (no revoke). Delete the local file after.
 
 Local machine:
 - [ ] Token file `~/.config/glowc-phase0/cf-analytics-token` (mode 600). Delete with the token.
@@ -163,6 +163,14 @@ In this repo:
       `cf` geo data. Strip or delete them before the repo ever gets a remote.
 - [ ] `build/` artifacts are committed on purpose (the exact bytes tested). Revisit
       if the repo gets a remote.
+
+## Decisions after Phase 0 (2026-11-09)
+
+- Probe and baseline Workers deleted. Baselines get redeployed from `bench/glowvm` at M5.
+- Analytics token: kept until it expires on Nov 16.
+- Heavy row: `json_roundtrip` carries 5×; `lustre_html` moved to the 3× fixed-overhead row.
+- The user wants the whole spike done in one continuous run (not spread over a week),
+  driven with /goal. Don't stop to schedule; keep going milestone by milestone.
 
 ## Next steps
 

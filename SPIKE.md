@@ -10,8 +10,8 @@ The spike passes only if every row below holds, measured on workerd (`wrangler d
 
 | Measure | How | Target vs glowvm | glowvm baseline (Phase 0, deployed) | glowc must hit |
 | --- | --- | --- | --- | --- |
-| CPU per request, trivial handler (`basic_get`) | p50 and p99 over 5k requests (cut from 10k for the Free plan's daily limit) | at least 3× lower | p50 4.13 ms, p99 13.94 ms | p50 ≤ 1.38 ms, p99 ≤ 4.65 ms |
-| CPU per request, heavy handler (`lustre_html` render, a JSON round trip) | p50 and p99 | at least 5× lower | `lustre_html`: p50 4.02 ms, p99 13.41 ms. JSON round trip: not measured yet | p50 ≤ 0.80 ms, p99 ≤ 2.68 ms |
+| CPU per request, fixed overhead (`basic_get`, `lustre_html`) | p50 and p99 over 5k requests (cut from 10k for the Free plan's daily limit) | at least 3× lower | `basic_get`: p50 4.13 ms, p99 13.94 ms. `lustre_html`: p50 4.02 ms, p99 13.41 ms | `basic_get`: p50 ≤ 1.38 ms, p99 ≤ 4.65 ms. `lustre_html`: p50 ≤ 1.34 ms, p99 ≤ 4.47 ms |
+| CPU per request, heavy handler (`json_roundtrip`: decode and re-encode 50 KB) | p50 and p99 | at least 5× lower | not measured yet (the fixture is new) | 5× below its glowvm baseline |
 | Isolate startup, including warm-up | workerd startup timing, first request after deploy | no worse | startup 22 / 21 ms; first request 81 / 68 ms server time, 5.6 / 4.7 ms CPU (`basic_get` / `lustre_html`, medians of 5; the fifth `lustre_html` CPU sample had no analytics row, so that one is a median of 4) | ≤ the same |
 | Worker bundle size | compressed upload size | no larger than glowvm.wasm (455 KB) + app.avm | 298.73 KiB / 316.50 KiB gzip (823.58 / 860.82 KiB raw) | ≤ the same |
 | Peak memory per request | wasm memory high-water mark | lower | 576 KiB / 640 KiB (9 / 10 pages, fresh instance per request) | lower |
@@ -19,7 +19,7 @@ The spike passes only if every row below holds, measured on workerd (`wrangler d
 | Tier 2 persistence | gen_server counter in a Durable Object | state survives DO eviction and a redeploy (via `code_change`) | — | — |
 | Tier 2 messaging | send to a process in another DO and get a reply | round trip measured and reported, no target yet | — | — |
 
-Phase 0 finding, for the user to decide (targets not changed): `lustre_html` is not a heavy handler today. Its CPU p50 (4.02 ms) is the same as `basic_get` (4.13 ms), and its body is 81 B, so both rows measure glowvm's fixed per-request boot, not rendering. That makes the "heavy" 5× target (≤ 0.80 ms) stricter than the trivial 3× one (≤ 1.38 ms) for the same work. Options: a heavier `lustre_html` page, or let `json_roundtrip` carry the heavy row. Also noted: glowvm's p99 (about 13.9 ms) is above the Free plan's nominal 10 ms CPU limit, yet none of the 30,000 measured requests failed.
+Phase 0 finding, decided 2026-11-09: `lustre_html` is not a heavy handler. Its CPU p50 (4.02 ms) is the same as `basic_get` (4.13 ms), and its body is 81 B, so both measure glowvm's fixed per-request boot, not rendering. `lustre_html` moved to the 3× fixed-overhead row, and `json_roundtrip` carries the 5× heavy row. Also noted: glowvm's p99 (about 13.9 ms) is above the Free plan's nominal 10 ms CPU limit, yet none of the 30,000 measured requests failed.
 
 No row is traded against another: a faster runtime that breaks a fixture fails the spike.
 
