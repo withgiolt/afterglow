@@ -13,6 +13,6 @@ for d in "$otp"/lib/stdlib-*/ebin "$otp"/lib/kernel-*/ebin "$otp"/lib/erts-*/ebi
 tmp=$(mktemp -d)
 target/release/glowc build --rt "$rt" "$@" "${libs[@]}" -o "$tmp/app.wasm"
 feat=(--enable-tail-call --enable-bulk-memory --enable-nontrapping-float-to-int --enable-sign-ext --enable-mutable-globals --enable-reference-types --enable-multivalue)
-wasm-merge "${feat[@]}" "$rt" glowrt "$tmp/app.wasm" app -o "$tmp/merged.wasm"
-if [[ "${GLOWC_NOOPT:-}" == 1 ]]; then cp "$tmp/merged.wasm" "$out"; else wasm-opt "${feat[@]}" -O3 "$tmp/merged.wasm" -o "$out"; fi
+wasm-merge "${feat[@]}" $([[ "${GLOWC_NAMES:-}" == 1 ]] && echo -g) "$rt" glowrt "$tmp/app.wasm" app -o "$tmp/merged.wasm"
+if [[ "${GLOWC_NOOPT:-}" == 1 ]]; then cp "$tmp/merged.wasm" "$out"; else wasm-opt "${feat[@]}" -O3 $([[ "${GLOWC_NAMES:-}" == 1 ]] && echo -g) "$tmp/merged.wasm" -o "$out"; fi
 rm -rf "$tmp"

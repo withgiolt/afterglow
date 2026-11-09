@@ -361,6 +361,29 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     data.passive(exports_blob.iter().copied());
     data.passive(lits_blob.iter().copied());
     module.section(&data);
+    // Names (kept only when the pipeline is asked to, e.g. for profiling).
+    let mut names = NameMap::new();
+    for (i, f) in rt_funcs.iter().enumerate() {
+        names.append(i as u32, &f.name);
+    }
+    names.append(f_alloc, "glowc_alloc");
+    names.append(f_apply3, "glowc_apply3");
+    names.append(f_apply2, "glowc_apply2");
+    names.append(f_init, "glowc_init");
+    names.append(f_main, "glowc_main");
+    for (k, &(m, fi)) in prog.functions.iter().enumerate() {
+        names.append(func_base + k as u32, &crate::program::mfa_str(&prog.mfa_of(m, fi)));
+    }
+    for (k, w) in wrappers.iter().enumerate() {
+        let n = match w {
+            Wrapper::Lambda(m, li) => format!("lambda {}#{}", prog.modules[*m].name(), li),
+            Wrapper::Export(mfa, _) => format!("fun {}", crate::program::mfa_str(mfa)),
+        };
+        names.append(wrapper_base + k as u32, &n);
+    }
+    let mut ns = NameSection::new();
+    ns.functions(&names);
+    module.section(&ns);
 
     let stats = format!(
         "{} functions from {} modules, {} wrappers ({} lambdas), {} atoms, {} literals ({} bytes)",

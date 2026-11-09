@@ -79,6 +79,7 @@ struct Fx<'e, 'a> {
     l_entry_sp: u32,
     l_pc: u32,
     l_caught: u32,
+    l_bs: u32, // 3 i64 temps for inline binary matching
     l_fr: u32, // float regs start
     // control
     labels: HashMap<u32, usize>, // label -> block index
@@ -200,7 +201,9 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
     let l_pc = l_entry_sp + 1;
     let l_caught = l_pc + 1;
     locals.push((3, ValType::I32));
-    let l_fr = l_caught + 1;
+    let l_bs = l_caught + 1;
+    locals.push((3, ValType::I64));
+    let l_fr = l_bs + 3;
     if nf > 0 {
         locals.push((nf, ValType::F64));
     }
@@ -217,6 +220,7 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
         l_entry_sp,
         l_pc,
         l_caught,
+        l_bs,
         l_fr,
         labels,
         nblocks,
@@ -1534,6 +1538,13 @@ impl<'f, 'e, 'a> Ext<'f, 'e, 'a> {
     }
     pub fn g_xr(&self) -> u32 {
         self.0.env.g_xr
+    }
+    pub fn bs(&self, i: u32) -> u32 {
+        self.0.l_bs + i
+    }
+    pub fn alloc_words(&mut self, words: u32) -> u32 {
+        self.0.alloc(words, 0);
+        self.0.l_tmpi
     }
 }
 

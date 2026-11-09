@@ -5,7 +5,7 @@
 
 use crate::codegen::{CgError, Ext};
 use beam_reader::{Instr, Operand};
-use wasm_encoder::{Instruction as I, MemArg};
+use wasm_encoder::{BlockType, Instruction as I, MemArg, ValType};
 
 const SCRATCH: u64 = 512 * 8;
 const F_LITTLE: i32 = 1;
@@ -120,44 +120,357 @@ fn call_test(x: &mut Ext, fail: u32, push: impl FnOnce(&mut Ext) -> Result<(), C
     x.test_jump(fail)
 }
 
+
+// ---------------------------------------------------------------------------
+// Inline binary matching. Match context: [hdr, bin term, small(pos)];
+// binary: [hdr, small(bits), small(byte base), small(bit offset)].
+// Locals: bs(0) = pos, bs(1) = end (bit size), bs(2) = bit address of bit 0;
+// tmpi(1) = context address.
+
+fn m64(off: u64) -> MemArg {
+    MemArg { offset: off, align: 3, memory_index: 0 }
+}
+fn m8(off: u64) -> MemArg {
+    MemArg { offset: off, align: 0, memory_index: 0 }
+}
+
+fn bs_prologue(x: &mut Ext, ctx: &Operand) -> Result<(), CgError> {
+    let (p, pos, end, base) = (x.tmpi(1), x.bs(0), x.bs(1), x.bs(2));
+    x.src(ctx)?;
+    x.ins(I::I32WrapI64);
+    x.ins(I::I32Const(2));
+    x.ins(I::I32Sub);
+    x.ins(I::LocalTee(p));
+    x.ins(I::I64Load(m64(16)));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64ShrS);
+    x.ins(I::LocalSet(pos));
+    // binary object address (term - 2), fields at +8, +16, +24
+    let b = x.tmpi(2);
+    x.ins(I::LocalGet(p));
+    x.ins(I::I64Load(m64(8)));
+    x.ins(I::I32WrapI64);
+    x.ins(I::I32Const(2));
+    x.ins(I::I32Sub);
+    x.ins(I::LocalTee(b));
+    x.ins(I::I64Load(m64(8)));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64ShrS);
+    x.ins(I::LocalSet(end));
+    x.ins(I::LocalGet(b));
+    x.ins(I::I64Load(m64(16)));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64ShrS);
+    x.ins(I::I64Const(3));
+    x.ins(I::I64Shl);
+    x.ins(I::LocalGet(b));
+    x.ins(I::I64Load(m64(24)));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64ShrS);
+    x.ins(I::I64Add);
+    x.ins(I::LocalSet(base));
+    Ok(())
+}
+
+/// Stores pos back into the context.
+fn bs_sync(x: &mut Ext) {
+    let (p, pos) = (x.tmpi(1), x.bs(0));
+    x.ins(I::LocalGet(p));
+    x.ins(I::LocalGet(pos));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64Shl);
+    x.ins(I::I64Const(0xF));
+    x.ins(I::I64Or);
+    x.ins(I::I64Store(m64(16)));
+}
+
+fn bs_reload(x: &mut Ext) {
+    let (p, pos) = (x.tmpi(1), x.bs(0));
+    x.ins(I::LocalGet(p));
+    x.ins(I::I64Load(m64(16)));
+    x.ins(I::I64Const(4));
+    x.ins(I::I64ShrS);
+    x.ins(I::LocalSet(pos));
+}
+
+fn bs_ctx_term(x: &mut Ext) {
+    let p = x.tmpi(1);
+    x.ins(I::LocalGet(p));
+    x.ins(I::I64ExtendI32U);
+    x.ins(I::I64Const(2));
+    x.ins(I::I64Add);
+}
+
+fn bs_advance(x: &mut Ext, n: u64) {
+    let pos = x.bs(0);
+    x.ins(I::LocalGet(pos));
+    x.ins(I::I64Const(n as i64));
+    x.ins(I::I64Add);
+    x.ins(I::LocalSet(pos));
+    bs_sync(x);
+}
+
+/// Pushes (end - pos) as i64.
+fn bs_remaining(x: &mut Ext) {
+    let (pos, end) = (x.bs(0), x.bs(1));
+    x.ins(I::LocalGet(end));
+    x.ins(I::LocalGet(pos));
+    x.ins(I::I64Sub);
+}
+
+/// Pushes the next n (1..=8) bits as an unsigned i64, without advancing.
+/// Reads two bytes; the second may lie past the binary but is inside linear memory
+/// and masked off.
+fn bs_peek_small(x: &mut Ext, n: u64) {
+    let (pos, base) = (x.bs(0), x.bs(2));
+    let a = x.tmpi(3);
+    x.ins(I::LocalGet(base));
+    x.ins(I::LocalGet(pos));
+    x.ins(I::I64Add);
+    x.ins(I::I32WrapI64);
+    x.ins(I::LocalTee(a));
+    x.ins(I::I32Const(3));
+    x.ins(I::I32ShrU);
+    x.ins(I::I32Load8U(m8(0)));
+    x.ins(I::I32Const(8));
+    x.ins(I::I32Shl);
+    x.ins(I::LocalGet(a));
+    x.ins(I::I32Const(3));
+    x.ins(I::I32ShrU);
+    x.ins(I::I32Load8U(m8(1)));
+    x.ins(I::I32Or);
+    // >> (16 - (a & 7) - n)
+    x.ins(I::I32Const(16 - n as i32));
+    x.ins(I::LocalGet(a));
+    x.ins(I::I32Const(7));
+    x.ins(I::I32And);
+    x.ins(I::I32Sub);
+    x.ins(I::I32ShrU);
+    x.ins(I::I32Const(((1u32 << n) - 1) as i32));
+    x.ins(I::I32And);
+    x.ins(I::I64ExtendI32U);
+}
+
+fn small_const(o: &Operand) -> Option<i64> {
+    match o.plain() {
+        Operand::I(v) => Some(*v),
+        Operand::U(v) => Some(*v as i64),
+        _ => None,
+    }
+}
+
+/// bs_match with inline fast paths; slow paths call glowrt with pos synced.
+fn bs_match(x: &mut Ext, fail: u32, ctx: &Operand, cmds: &[Operand]) -> Result<(), CgError> {
+    bs_prologue(x, ctx)?;
+    let mut i = 0;
+    while i < cmds.len() {
+        let Operand::Atom(name) = &cmds[i] else { return Err(CgError(format!("bad bs_match command {:?}", cmds[i]))) };
+        let name = x.atom_name(*name).to_string();
+        match name.as_str() {
+            "ensure_at_least" => {
+                let (size, unit) = (uval(&cmds[i + 1])?, uval(&cmds[i + 2])?);
+                bs_remaining(x);
+                x.ins(I::I64Const(size as i64));
+                x.ins(I::I64GeS);
+                x.test_jump(fail)?;
+                if unit > 1 {
+                    bs_remaining(x);
+                    x.ins(I::I64Const(size as i64));
+                    x.ins(I::I64Sub);
+                    x.ins(I::I64Const(unit as i64));
+                    x.ins(I::I64RemU);
+                    x.ins(I::I64Eqz);
+                    x.test_jump(fail)?;
+                }
+                i += 3;
+            }
+            "ensure_exactly" => {
+                let size = uval(&cmds[i + 1])?;
+                bs_remaining(x);
+                x.ins(I::I64Const(size as i64));
+                x.ins(I::I64Eq);
+                x.test_jump(fail)?;
+                i += 2;
+            }
+            "=:=" => {
+                let size = uval(&cmds[i + 2])?;
+                let value = cmds[i + 3].clone();
+                match small_const(&value) {
+                    Some(v) if size >= 1 && size <= 8 && v >= 0 => {
+                        bs_peek_small(x, size);
+                        x.ins(I::I64Const(v));
+                        x.ins(I::I64Eq);
+                        x.test_jump(fail)?;
+                        bs_advance(x, size);
+                    }
+                    _ => {
+                        call_test(x, fail, |x| {
+                            bs_ctx_term(x);
+                            x.ins(I::I64Const(size as i64));
+                            x.src(&value)
+                        }, "rt_bs_eq")?;
+                        bs_reload(x);
+                    }
+                }
+                i += 4;
+            }
+            "integer" => {
+                let fl = flags(x, &cmds[i + 2]);
+                let bits = uval(&cmds[i + 3])? * uval(&cmds[i + 4])?;
+                let dst = cmds[i + 5].clone();
+                if bits >= 1 && bits <= 8 && fl == 0 {
+                    x.dst(&dst, |x| {
+                        bs_peek_small(x, bits);
+                        x.ins(I::I64Const(4));
+                        x.ins(I::I64Shl);
+                        x.ins(I::I64Const(0xF));
+                        x.ins(I::I64Or);
+                        Ok(())
+                    })?;
+                    bs_advance(x, bits);
+                } else {
+                    x.dst(&dst, |x| {
+                        bs_ctx_term(x);
+                        x.ins(I::I64Const(bits as i64));
+                        x.ins(I::I32Const(fl));
+                        let f = x.rt("rt_bs_int");
+                        x.ins(I::Call(f));
+                        Ok(())
+                    })?;
+                    bs_reload(x);
+                }
+                i += 6;
+            }
+            "binary" => {
+                let bits = uval(&cmds[i + 3])? * uval(&cmds[i + 4])?;
+                let dst = cmds[i + 5].clone();
+                x.dst(&dst, |x| {
+                    bs_ctx_term(x);
+                    x.ins(I::I64Const(bits as i64));
+                    let f = x.rt("rt_bs_bin");
+                    x.ins(I::Call(f));
+                    Ok(())
+                })?;
+                bs_reload(x);
+                i += 6;
+            }
+            "get_tail" => {
+                let dst = cmds[i + 3].clone();
+                x.dst(&dst, |x| {
+                    bs_ctx_term(x);
+                    let f = x.rt("rt_bs_tail");
+                    x.ins(I::Call(f));
+                    Ok(())
+                })?;
+                bs_reload(x);
+                i += 4;
+            }
+            "skip" => {
+                let bits = uval(&cmds[i + 1])?;
+                bs_advance(x, bits);
+                i += 2;
+            }
+            other => return Err(CgError(format!("unsupported bs_match command {}", other))),
+        }
+    }
+    Ok(())
+}
+
+/// bs_start_match3/4: a context passes through, a binary gets a new context inline.
+fn bs_start(x: &mut Ext, fail: u32, src: &Operand, dst: &Operand) -> Result<(), CgError> {
+    let (t, h) = (x.tmp(0), x.tmp(1));
+    x.src(src)?;
+    x.ins(I::LocalTee(t));
+    x.ins(I::I64Const(3));
+    x.ins(I::I64And);
+    x.ins(I::I64Const(2));
+    x.ins(I::I64Eq);
+    x.ins(I::If(BlockType::Result(ValType::I64)));
+    {
+        // sub tag of the header
+        x.ins(I::LocalGet(t));
+        x.ins(I::I32WrapI64);
+        x.ins(I::I32Const(2));
+        x.ins(I::I32Sub);
+        x.ins(I::I64Load(m64(0)));
+        x.ins(I::I64Const(2));
+        x.ins(I::I64ShrU);
+        x.ins(I::I64Const(0xF));
+        x.ins(I::I64And);
+        x.ins(I::LocalTee(h));
+        x.ins(I::I64Const(9));
+        x.ins(I::I64Eq);
+        x.ins(I::If(BlockType::Result(ValType::I64)));
+        x.ins(I::LocalGet(t));
+        x.ins(I::Else);
+        x.ins(I::LocalGet(h));
+        x.ins(I::I64Const(7));
+        x.ins(I::I64Eq);
+        x.ins(I::If(BlockType::Result(ValType::I64)));
+        let p = x.alloc_words(3);
+        x.ins(I::LocalGet(p));
+        x.ins(I::I64Const((2 << 6) | (9 << 2)));
+        x.ins(I::I64Store(m64(0)));
+        x.ins(I::LocalGet(p));
+        x.ins(I::LocalGet(t));
+        x.ins(I::I64Store(m64(8)));
+        x.ins(I::LocalGet(p));
+        x.ins(I::I64Const(0xF));
+        x.ins(I::I64Store(m64(16)));
+        x.ins(I::LocalGet(p));
+        x.ins(I::I64ExtendI32U);
+        x.ins(I::I64Const(2));
+        x.ins(I::I64Or);
+        x.ins(I::Else);
+        x.ins(I::LocalGet(t));
+        x.ins(I::I32Const((fail == 0) as i32));
+        let f = x.rt("rt_bs_start");
+        x.ins(I::Call(f));
+        x.ins(I::End);
+        x.ins(I::End);
+    }
+    x.ins(I::Else);
+    x.ins(I::LocalGet(t));
+    x.ins(I::I32Const((fail == 0) as i32));
+    let f = x.rt("rt_bs_start");
+    x.ins(I::Call(f));
+    x.ins(I::End);
+    x.check_or_fail(fail)?;
+    let r = x.tmp(2);
+    x.ins(I::LocalSet(r));
+    x.dst(dst, |x| {
+        x.ins(I::LocalGet(r));
+        Ok(())
+    })
+}
+
 pub fn instr(mut xx: Ext, ins: &Instr) -> Result<(), CgError> {
     let x = &mut xx;
     let a = &ins.args;
     match ins.op {
         "bs_start_match3" => {
             // Fail Src Live Dst
-            let fail = label(&a[0]);
-            let src = a[1].clone();
-            call_term(x, fail, &a[3].clone(), |x| {
-                x.src(&src)?;
-                x.ins(I::I32Const((fail == 0) as i32));
-                Ok(())
-            }, "rt_bs_start")?;
+            bs_start(x, label(&a[0]), &a[1].clone(), &a[3].clone())?;
         }
         "bs_start_match4" => {
             // Fail(no_fail | resume | label) Live Src Dst
-            let fail = label(&a[0]);
-            let src = a[2].clone();
-            call_term(x, fail, &a[3].clone(), |x| {
-                x.src(&src)?;
-                x.ins(I::I32Const((fail == 0) as i32));
-                Ok(())
-            }, "rt_bs_start")?;
+            bs_start(x, label(&a[0]), &a[2].clone(), &a[3].clone())?;
         }
         "bs_get_position" => {
+            // the stored small(pos) is the result
             let ctx = a[0].clone();
             x.dst(&a[1].clone(), |x| {
                 x.src(&ctx)?;
-                let f = x.rt("rt_bs_get_position");
-                x.ins(I::Call(f));
+                x.ins(I::I32WrapI64);
+                x.ins(I::I64Load(m64(14)));
                 Ok(())
             })?;
         }
         "bs_set_position" => {
             x.src(&a[0])?;
+            x.ins(I::I32WrapI64);
             x.src(&a[1])?;
-            let f = x.rt("rt_bs_set_position");
-            x.ins(I::Call(f));
+            x.ins(I::I64Store(m64(14)));
         }
         "bs_get_tail" => {
             let ctx = a[0].clone();
@@ -188,87 +501,8 @@ pub fn instr(mut xx: Ext, ins: &Instr) -> Result<(), CgError> {
             let fail = label(&a[0]);
             let ctx = a[1].clone();
             let Operand::List(cmds) = &a[2] else { return Err(CgError("bad bs_match".into())) };
-            let mut i = 0;
-            while i < cmds.len() {
-                let Operand::Atom(name) = &cmds[i] else { return Err(CgError(format!("bad bs_match command {:?}", cmds[i]))) };
-                let name = x.atom_name(*name).to_string();
-                match name.as_str() {
-                    "ensure_at_least" => {
-                        let (size, unit) = (uval(&cmds[i + 1])?, uval(&cmds[i + 2])?);
-                        let c = ctx.clone();
-                        call_test(x, fail, |x| {
-                            x.src(&c)?;
-                            x.ins(I::I64Const(size as i64));
-                            x.ins(I::I64Const(unit as i64));
-                            Ok(())
-                        }, "rt_bs_ensure")?;
-                        i += 3;
-                    }
-                    "ensure_exactly" => {
-                        let size = uval(&cmds[i + 1])?;
-                        let c = ctx.clone();
-                        call_test(x, fail, |x| {
-                            x.src(&c)?;
-                            x.ins(I::I64Const(size as i64));
-                            Ok(())
-                        }, "rt_bs_ensure_exactly")?;
-                        i += 2;
-                    }
-                    "=:=" => {
-                        let size = uval(&cmds[i + 2])?;
-                        let value = cmds[i + 3].clone();
-                        let c = ctx.clone();
-                        call_test(x, fail, |x| {
-                            x.src(&c)?;
-                            x.ins(I::I64Const(size as i64));
-                            x.src(&value)?;
-                            Ok(())
-                        }, "rt_bs_eq")?;
-                        i += 4;
-                    }
-                    "integer" | "binary" => {
-                        let fl = flags(x, &cmds[i + 2]);
-                        let bits = uval(&cmds[i + 3])? * uval(&cmds[i + 4])?;
-                        let dst = cmds[i + 5].clone();
-                        let c = ctx.clone();
-                        let is_int = name == "integer";
-                        x.dst(&dst, |x| {
-                            x.src(&c)?;
-                            x.ins(I::I64Const(bits as i64));
-                            if is_int {
-                                x.ins(I::I32Const(fl));
-                                let f = x.rt("rt_bs_int");
-                                x.ins(I::Call(f));
-                            } else {
-                                let f = x.rt("rt_bs_bin");
-                                x.ins(I::Call(f));
-                            }
-                            Ok(())
-                        })?;
-                        i += 6;
-                    }
-                    "get_tail" => {
-                        let dst = cmds[i + 3].clone();
-                        let c = ctx.clone();
-                        x.dst(&dst, |x| {
-                            x.src(&c)?;
-                            let f = x.rt("rt_bs_tail");
-                            x.ins(I::Call(f));
-                            Ok(())
-                        })?;
-                        i += 4;
-                    }
-                    "skip" => {
-                        let bits = uval(&cmds[i + 1])?;
-                        x.src(&ctx)?;
-                        x.ins(I::I64Const(bits as i64));
-                        let f = x.rt("rt_bs_skip");
-                        x.ins(I::Call(f));
-                        i += 2;
-                    }
-                    other => return Err(CgError(format!("unsupported bs_match command {}", other))),
-                }
-            }
+            let cmds = cmds.clone();
+            bs_match(x, fail, &ctx, &cmds)?;
         }
         "bs_get_integer2" | "bs_get_binary2" | "bs_get_float2" => {
             // Fail Ctx Live Size Unit Flags Dst

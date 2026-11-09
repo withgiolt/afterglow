@@ -7,7 +7,7 @@
 //! exact.
 
 use crate::term::*;
-use std::alloc::{alloc_zeroed, dealloc, Layout};
+use std::alloc::{alloc as sys_alloc, alloc_zeroed, dealloc, Layout};
 
 #[repr(C)]
 pub struct State {
@@ -42,7 +42,9 @@ fn block_layout(words: usize) -> Layout {
 }
 
 unsafe fn new_block(words: usize) -> *mut u64 {
-    let p = alloc_zeroed(block_layout(words)) as *mut u64;
+    // Not zeroed here: blocks are zeroed when freed, and every heap word is written
+    // before it is read.
+    let p = sys_alloc(block_layout(words)) as *mut u64;
     if p.is_null() {
         panic!("out of memory allocating a heap block of {} words", words);
     }
@@ -259,7 +261,7 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
         blocks.iter().map(|b| (b.start as usize, b.start.add(b.words) as usize)).collect();
     from.sort();
     let old: Vec<Block> = core::mem::take(blocks);
-    let first = (LAST_LIVE * 3).max(MIN_BLOCK_WORDS);
+    let first = (LAST_LIVE * 4).max(32 * MIN_BLOCK_WORDS);
     let to = new_block(first);
     let mut gc = Gc { from, to: vec![ToBlock { start: to, end: to.add(first), hp: to }], bins: Vec::new() };
 
