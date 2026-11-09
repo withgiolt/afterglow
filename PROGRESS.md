@@ -114,7 +114,7 @@ Memory (local instrumented copy, bench/glowvm-mem): 589,824 B (basic_get) and
 655,360 B (lustre_html), the same on every request.
 Cold start (bench/coldstart.sh, 5 deploys each): startup median 22 / 21 ms, first
 request server time 81 / 68 ms, first-request CPU 5.6 / 4.7 ms (the 5th lustre sample
-was not yet in analytics). Each cold-start deploy made a new version, so the current
+had no analytics row; median of 4). Each cold-start deploy made a new version, so the current
 baseline versions are no longer 86dbb6fe / cf34b825; look up the latest before
 querying analytics again.
 
@@ -145,8 +145,10 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 Local machine:
 - [ ] Token file `~/.config/glowc-phase0/cf-analytics-token` (mode 600). Delete with the token.
 - [ ] Helium remote debugging was turned on by the user (chrome://inspect/#remote-debugging);
-      turn it off when done. Also `agent-browser --session task-5af08f2bded3 close`
-      to detach (it does not close Helium's own tabs), and close the API-tokens tab it opened.
+      the user turns it off.
+- [x] API-tokens tab closed and agent-browser detached (2026-11-09). Helium's own tabs untouched.
+- [x] No `wrangler tail` processes left running (checked with ps).
+- [ ] Temp files: `/tmp/glowc-tail.json`, `/tmp/glowc-tail.err`, `/tmp/bg*.log`, `/tmp/lh-*.log`.
 - [ ] `oha` 1.16.0 installed with Homebrew (`brew uninstall oha` if not wanted after the spike).
 - [ ] wrangler OAuth login for the user's account, stored in `~/Library/Preferences/.wrangler/config/default.toml`
       (the user ran `wrangler login`; `npx wrangler logout` revokes it, if wanted).
@@ -157,6 +159,8 @@ Local machine:
 In this repo:
 - [ ] `run-local.mjs` hangs if a worker fails to start (no fetch timeout). Fix or
       delete it; `probe.mjs` replaced it.
+- [ ] `bench/results/*.tail.json` and `phase0-core-deployed-tail.json` hold the client IP and
+      `cf` geo data. Strip or delete them before the repo ever gets a remote.
 - [ ] `build/` artifacts are committed on purpose (the exact bytes tested). Revisit
       if the repo gets a remote.
 
