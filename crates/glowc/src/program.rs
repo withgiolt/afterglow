@@ -23,6 +23,8 @@ pub enum Target {
 }
 
 pub struct Program {
+    /// modules whose exports all stay reachable (callback modules reached only through apply)
+    pub keep: Vec<String>,
     pub search: Vec<PathBuf>,
     /// Module names that must not come from a given directory (glowvm's AtomVM shims).
     pub skip: Vec<(String, String)>,
@@ -61,6 +63,7 @@ impl Program {
             atom_index: HashMap::new(),
             functions: Vec::new(),
             function_id: HashMap::new(),
+            keep: Vec::new(),
             targets: HashMap::new(),
             lit_index: HashMap::new(),
             literals: Vec::new(),
@@ -193,6 +196,18 @@ impl Program {
         match self.resolve(entry, &mut queue) {
             Target::Compiled(..) => {}
             _ => return Err(format!("entry {} not found", mfa_str(entry))),
+        }
+        for name in self.keep.clone() {
+            let Some(km) = self.load_module(&name) else { return Err(format!("--keep {}: module not found", name)) };
+            let ex: Vec<Mfa> = self.modules[km]
+                .exports
+                .iter()
+                .filter_map(|e| self.modules[km].functions.iter().find(|f| f.entry == e.label))
+                .map(|f| (name.clone(), self.modules[km].atom(f.name).to_string(), f.arity))
+                .collect();
+            for mfa in ex {
+                self.resolve(&mfa, &mut queue);
+            }
         }
         while let Some((m, fi)) = queue.pop_front() {
             let code = self.modules[m].functions[fi].code.clone();

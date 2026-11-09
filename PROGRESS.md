@@ -379,6 +379,18 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   (100,000 messages), tests/erl/p1e.erl (basic, links, monitors, timeouts, selective
   receive, registry). regress: 57/57. Smoke on workerd: 30/30.
 
+### P2: checkpoint and restore (in progress, not tested yet)
+
+- Done (builds, untested): glowc `--keep MOD`; glowrt node mode (`rt_node_mode`; heap,
+  arena and processes persist across turns, a new main process each turn), dirty
+  tracking, `rt_checkpoint` / `rt_restore` / `rt_restore_done` (ETF rows per process,
+  resume records with stack-top offsets), `glowc:node_gen_servers/0`,
+  `glowc:node_set_state/3`.
+- Next: ETF for local funs (NEW_FUN_EXT), `glowc_node.erl` (start/0 turn wrapper,
+  snapshot via sys:get_state, upgrade/3 via code_change + gen_server:enter_loop),
+  counter v1/v2 fixtures, a Node harness that simulates eviction and a redeploy, then
+  the Durable Object class and a deployed test. Rerun regress before committing more.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare

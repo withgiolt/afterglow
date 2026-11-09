@@ -89,11 +89,21 @@ pub unsafe extern "C" fn rt_stack_base() -> u32 {
 /// a buffer of `len` bytes for the host to write the request into.
 #[no_mangle]
 pub unsafe extern "C" fn rt_begin(len: u32) -> u32 {
-    mem::reset_heap();
-    (*core::ptr::addr_of_mut!(mem::ARENA)).reset();
-    roots::reset();
-    bifs::reset();
-    sched::reset();
+    if sched::node_mode() {
+        // Tier 2: heap, arena and processes persist across turns.
+        let p = roots::proc();
+        p.exc_class = term::NIL;
+        p.exc_reason = term::NIL;
+        p.exc_trace = term::NIL;
+        p.output = term::NIL;
+        sched::new_turn();
+    } else {
+        mem::reset_heap();
+        (*core::ptr::addr_of_mut!(mem::ARENA)).reset();
+        roots::reset();
+        bifs::reset();
+        sched::reset();
+    }
     let buf = mem::balloc(len as usize);
     roots::proc().input = build::bin_ref(buf, 0, len as u64 * 8);
     buf as usize as u32

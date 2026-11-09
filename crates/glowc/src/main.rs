@@ -10,7 +10,7 @@ use std::process::exit;
 
 fn usage() -> ! {
     eprintln!(
-        "usage:\n  glowc dump <file.beam>...\n  glowc build --rt glowrt.wasm --beams DIR [--beams DIR]... [--skip MOD@DIRPART]... --entry M:F/0 -o out.wasm"
+        "usage:\n  glowc dump <file.beam>...\n  glowc build --rt glowrt.wasm --beams DIR [--beams DIR]... [--skip MOD@DIRPART]... [--keep MOD]... --entry M:F/0 -o out.wasm"
     );
     exit(2);
 }
@@ -43,6 +43,7 @@ fn main() {
         }
         Some("build") => {
             let (mut rt, mut beams, mut skip, mut entry, mut out, mut verbose, mut list_ops) = (None, Vec::new(), Vec::new(), None, None, false, false);
+            let mut keep: Vec<String> = Vec::new();
             let mut i = 2;
             while i < args.len() {
                 let v = || args.get(i + 1).cloned().unwrap_or_else(|| usage());
@@ -55,6 +56,7 @@ fn main() {
                         skip.push((m.to_string(), d.to_string()));
                     }
                     "--entry" => entry = Some(parse_mfa(&v())),
+                    "--keep" => keep.push(v()),
                     "-o" => out = Some(v()),
                     "--list-ops" => {
                         list_ops = true;
@@ -79,6 +81,7 @@ fn main() {
             let runtime: HashMap<String, u32> = rt_funcs.iter().map(|f| (f.name.clone(), f.params.len() as u32)).collect();
             let mut prog = program::Program::new(beams, runtime);
             prog.skip = skip;
+            prog.keep = keep;
             if let Err(e) = prog.walk(&entry) {
                 eprintln!("glowc: {}", e);
                 exit(1);

@@ -55,6 +55,12 @@ pub struct P {
     deadline: Option<u64>,
     timed_out: bool,
     queued: bool,
+    /// changed since the last checkpoint (node mode)
+    dirty: bool,
+    /// gen_server-shaped: {Mod, State} from the last snapshot, for restarts across deploys
+    gs: Term,
+    /// restored from a checkpoint of another build without a state: exits code_upgrade
+    pending_kill: bool,
 }
 
 const SPAWN_STACK_WORDS: usize = 8 * 1024;
@@ -69,6 +75,12 @@ pub struct Sched {
     res: Rec,
     res_val: Term,
     main_result: Term,
+    main: usize,
+    /// tier 2: processes, heap and arena persist across turns
+    node: bool,
+    next_pid: u32,
+    dead: Vec<u32>,
+    ckpt: Vec<(u32, Vec<u8>)>,
 }
 
 static mut S: Sched = Sched {
@@ -81,6 +93,11 @@ static mut S: Sched = Sched {
     res: Rec { tidx: 0, ab: 0, entry_sp: 0, sp: 0 },
     res_val: NIL,
     main_result: 0,
+    main: 0,
+    node: false,
+    next_pid: 2,
+    dead: Vec::new(),
+    ckpt: Vec::new(),
 };
 
 fn s() -> &'static mut Sched {
@@ -108,6 +125,9 @@ fn new_proc(pid: u32, base: u32, top: u32, own: bool) -> P {
         deadline: None,
         timed_out: false,
         queued: false,
+        dirty: true,
+        gs: UNDEFINED,
+        pending_kill: false,
     }
 }
 
@@ -125,6 +145,51 @@ pub unsafe fn reset() {
     s.registered.clear();
     s.res_val = NIL;
     s.main_result = 0;
+    s.main = 0;
+    s.next_pid = 2;
+    s.dead.clear();
+    s.ckpt.clear();
+}
+
+/// Node mode, start of a turn: drop exited processes and start a new main process on
+/// the main stack. Everything else (processes, heap, arena) carries over.
+pub unsafe fn new_turn() {
+    let s = s();
+    if s.cur < s.procs.len() && s.procs[s.cur].status != Status::Exited {
+        s.procs[s.cur].pdict = roots::proc().pdict;
+    }
+    roots::proc().pdict = NIL;
+    s.procs.retain(|p| p.status != Status::Exited);
+    s.runq.clear();
+    for p in s.procs.iter_mut() {
+        p.queued = false;
+    }
+    let id = s.next_pid;
+    s.next_pid += 1;
+    let mut m = new_proc(id, mem::STACK_BASE, mem::STACK_TOP, false);
+    m.dirty = false;
+    s.procs.push(m);
+    s.main = s.procs.len() - 1;
+    s.cur = s.main;
+    s.res_val = NIL;
+    s.main_result = 0;
+    // processes made runnable by restore (upgrades) or still runnable
+    for i in 0..s.procs.len() {
+        if i != s.main && matches!(s.procs[i].status, Status::New | Status::Runnable) {
+            enqueue(i);
+        }
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn rt_node_mode() {
+    reset();
+    let s = s();
+    s.procs.clear();
+    s.node = true;
+}
+pub fn node_mode() -> bool {
+    s().node
 }
 
 unsafe fn free_stack(p: &P) {
@@ -168,6 +233,7 @@ pub unsafe fn for_each_root(f: &mut dyn FnMut(&mut Term)) {
         }
         f(&mut p.start_fun);
         f(&mut p.start_args);
+        f(&mut p.gs);
         for (r, _) in p.watched_by.iter_mut() {
             f(r);
         }
@@ -202,6 +268,7 @@ fn enqueue(i: usize) {
 unsafe fn deliver(i: usize, msg: Term) {
     let p = &mut s().procs[i];
     p.mailbox.push(msg);
+    p.dirty = true;
     if p.status == Status::Waiting {
         p.status = Status::Runnable;
         enqueue(i);
@@ -231,6 +298,9 @@ unsafe fn do_exit(i: usize, reason: Term) {
     let s = s();
     let me = s.procs[i].pid;
     s.procs[i].status = Status::Exited;
+    if s.node && i != s.main {
+        s.dead.push(me);
+    }
     s.procs[i].recs.clear();
     s.procs[i].mailbox.clear();
     free_stack(&s.procs[i]);
@@ -250,7 +320,7 @@ unsafe fn do_exit(i: usize, reason: Term) {
             exit_signal(j, me, reason);
         }
     }
-    if me == MAIN_PID && s.main_result == 0 {
+    if i == s.main && s.main_result == 0 {
         // main killed by a signal: report it as an exit exception
         exc::raise(EXIT, reason);
     }
@@ -303,19 +373,24 @@ unsafe fn rt_sched_(v: Term) -> i32 {
     } else {
         let i = s.cur;
         let me = s.procs[i].pid;
-        if me == MAIN_PID {
+        let _ = me;
+        if i == s.main {
             s.main_result = v;
-            // main is done: the request ends, like erl's -eval halting.
+            // main is done: the request ends, like erl's -eval halting. In node mode
+            // the other processes keep running until they all wait (end of the turn).
             if v != 0 {
                 s.procs[i].status = Status::Exited;
             }
-            return 0;
-        }
-        let reason = if v == 0 { exit_reason_from_exception() } else { NORMAL };
-        do_exit(i, reason);
-        if s.procs[0].status == Status::Exited {
-            s.main_result = 0;
-            return 0;
+            if !s.node || s.runq.is_empty() {
+                return 0;
+            }
+        } else {
+            let reason = if v == 0 { exit_reason_from_exception() } else { NORMAL };
+            do_exit(i, reason);
+            if s.procs[s.main].status == Status::Exited && !s.node {
+                s.main_result = 0;
+                return 0;
+            }
         }
     }
     // Save the dictionary of the process that stopped.
@@ -339,6 +414,10 @@ unsafe fn rt_sched_(v: Term) -> i32 {
             s.res_val = NIL;
             return 1;
         }
+        if s.procs[s.main].status == Status::Exited {
+            // node mode: main is done and every other process waits: end of the turn
+            return 0;
+        }
         // Nothing can run: fire the earliest receive timeout.
         let next = s
             .procs
@@ -358,7 +437,8 @@ unsafe fn rt_sched_(v: Term) -> i32 {
             }
             None => {
                 // Deadlock: main waits forever. erl would hang; report it.
-                switch_to(0);
+                let m = s.main;
+                switch_to(m);
                 exc::raise(ERROR, crate::atoms::intern("glowc_deadlock"));
                 s.main_result = 0;
                 return 0;
@@ -370,6 +450,7 @@ unsafe fn rt_sched_(v: Term) -> i32 {
 unsafe fn switch_to(i: usize) {
     let s = s();
     s.cur = i;
+    s.procs[i].dirty = true;
     roots::proc().pdict = s.procs[i].pdict;
 }
 
@@ -561,7 +642,8 @@ unsafe fn spawn_common(fun: Term, args: Term, link: bool, monitor: bool) -> Term
     let words = SPAWN_STACK_WORDS;
     let base = alloc_zeroed(Layout::from_size_align(words * 8, 8).unwrap()) as usize as u32;
     let top = base + (words * 8) as u32;
-    let id = s.procs.iter().map(|p| p.pid).max().unwrap_or(0).max(1) + 1;
+    let id = s.next_pid;
+    s.next_pid += 1;
     let mut p = new_proc(id, base, top, true);
     p.status = Status::New;
     p.start_fun = fun;
@@ -627,6 +709,7 @@ bif!("erlang:link/1", fn link1(p) {
     match find(other) {
         Some(j) => {
             if !s.procs[j].links.contains(&me) { s.procs[j].links.push(me); }
+            s.procs[j].dirty = true;
             let c = s.cur;
             if !s.procs[c].links.contains(&other) { s.procs[c].links.push(other); }
             TRUE
@@ -649,7 +732,7 @@ bif!("erlang:unlink/1", fn unlink1(p) {
     let other = pid_val(p);
     let c = s.cur;
     s.procs[c].links.retain(|&x| x != other);
-    if let Some(j) = find(other) { s.procs[j].links.retain(|&x| x != me); }
+    if let Some(j) = find(other) { s.procs[j].links.retain(|&x| x != me); s.procs[j].dirty = true; }
     TRUE
 });
 
@@ -659,7 +742,10 @@ unsafe fn monitor_proc(target: Term) -> Term {
     let r = crate::bifs::make_ref();
     let dest = if is_pid(target) { Some(find(pid_val(target))) } else { resolve_dest(target) };
     match dest {
-        Some(Some(j)) => s.procs[j].watched_by.push((r, me)),
+        Some(Some(j)) => {
+            s.procs[j].watched_by.push((r, me));
+            s.procs[j].dirty = true;
+        }
         _ => {
             let m = build::tuple(&[DOWN, r, PROCESS, target, NOPROC]);
             deliver(s.cur, m);
@@ -678,7 +764,9 @@ bif!("erlang:monitor/3", fn monitor3(t, p, _o) {
 unsafe fn demonitor_(r: Term, flush: bool) -> Term {
     let s = s();
     for p in s.procs.iter_mut() {
+        let n = p.watched_by.len();
         p.watched_by.retain(|&(x, _)| !crate::cmp::exact_eq(x, r));
+        if p.watched_by.len() != n { p.dirty = true; }
     }
     if flush {
         let c = s.cur;
@@ -738,10 +826,14 @@ bif!("erlang:register/2", fn register(n, p) {
         return exc::badarg();
     }
     s.registered.push((n, pid_val(p)));
+    if let Some(j) = find(pid_val(p)) { s.procs[j].dirty = true; }
     TRUE
 });
 bif!("erlang:unregister/1", fn unregister(n) {
     let s = s();
+    for &(x, q) in s.registered.iter() {
+        if x == n { if let Some(j) = find(q) { s.procs[j].dirty = true; } }
+    }
     let before = s.registered.len();
     s.registered.retain(|&(x, _)| x != n);
     if s.registered.len() == before { return exc::badarg(); }
@@ -783,3 +875,275 @@ bif!("erlang:process_info/2", fn process_info(p, item) {
     build::tuple(&[item, v])
 });
 bif!("erlang:yield/0", fn yield0() { TRUE });
+
+// --------------------------------------------------------------------------------
+// Tier 2 checkpoints (node mode)
+//
+// A checkpoint row per process: {glowc_proc, Pid, Status, Recs, Stack, Mailbox, Save,
+// Pdict, Links, WatchedBy, TrapExit, Names, StartFun, StartArgs, Gs}, as ETF. Stack is
+// the process's Y stack from its lowest frame to the top (words that are not terms,
+// such as zeroed slots and catch tags, as {'$glowc_raw', Word}); record sps are
+// offsets from the stack top. Resume records are only valid for the same build, so a
+// restore into another build restarts gen_server-shaped processes from Gs through
+// glowc_node:upgrade/3, and the rest exit with reason code_upgrade.
+
+const META_PID: u32 = u32::MAX;
+
+unsafe fn raw_word(w: u64) -> Term {
+    if w == 0 || (w & 0x3F) == 0x1B {
+        build::tuple(&[intern("$glowc_raw"), small(w as i64)])
+    } else {
+        w
+    }
+}
+
+unsafe fn unraw(t: Term) -> u64 {
+    if is_tuple(t) && tuple_arity(t) == 2 && tuple_get(t, 0) == intern("$glowc_raw") {
+        small_val(tuple_get(t, 1)) as u64
+    } else {
+        t
+    }
+}
+
+unsafe fn encode_proc(i: usize) -> Option<Vec<u8>> {
+    let s = s();
+    let p = &s.procs[i];
+    let top = p.stack_top;
+    let off = |x: u32| if x == 0 { 0 } else { (top - x) as i64 };
+    let recs: Vec<Term> = p
+        .recs
+        .iter()
+        .map(|r| build::tuple(&[small(r.tidx as i64), small(r.ab as i64), small(off(r.entry_sp)), small(off(r.sp))]))
+        .collect();
+    let lo = p.recs.iter().map(|r| r.sp).filter(|&x| x != 0).min().unwrap_or(top);
+    let mut words = Vec::new();
+    let mut y = lo as usize as *const u64;
+    while (y as usize) < top as usize {
+        words.push(raw_word(*y));
+        y = y.add(1);
+    }
+    let status = match p.status {
+        Status::Waiting => WAITING,
+        Status::New => intern("new"),
+        _ => RUNNABLE,
+    };
+    let names: Vec<Term> = s.registered.iter().filter(|&&(_, q)| q == p.pid).map(|&(n, _)| n).collect();
+    let links: Vec<Term> = p.links.iter().map(|&x| pid(x as u64)).collect();
+    let watched: Vec<Term> = p.watched_by.iter().map(|&(r, w)| build::tuple(&[r, pid(w as u64)])).collect();
+    let pdict = if i == s.cur { roots::proc().pdict } else { p.pdict };
+    let t = build::tuple(&[
+        intern("glowc_proc"),
+        pid(p.pid as u64),
+        status,
+        build::list(&recs),
+        build::list(&words),
+        build::list(&p.mailbox),
+        small(p.save as i64),
+        pdict,
+        build::list(&links),
+        build::list(&watched),
+        boolean(p.trap_exit),
+        build::list(&names),
+        p.start_fun,
+        p.start_args,
+        p.gs,
+    ]);
+    crate::etf::term_to_binary(t)
+}
+
+/// End of a turn: encodes every dirty process (and the node's counters). Returns the
+/// number of rows; read them with rt_ckpt_pid / rt_ckpt_blob, deleted pids with
+/// rt_dead_count / rt_dead_pid.
+#[no_mangle]
+pub unsafe extern "C" fn rt_checkpoint() -> u32 {
+    let s = s();
+    s.ckpt.clear();
+    for i in 0..s.procs.len() {
+        if i == s.main || s.procs[i].status == Status::Exited || !s.procs[i].dirty {
+            continue;
+        }
+        match encode_proc(i) {
+            Some(b) => {
+                s.procs[i].dirty = false;
+                let pid = s.procs[i].pid;
+                s.ckpt.push((pid, b));
+            }
+            None => crate::host_log(&format!("checkpoint: process <0.{}.0> holds a term ETF cannot encode", s.procs[i].pid)),
+        }
+    }
+    let meta = build::tuple(&[intern("glowc_meta"), small(s.next_pid as i64), small(roots::proc().refs as i64), small(s.clock as i64)]);
+    if let Some(b) = crate::etf::term_to_binary(meta) {
+        s.ckpt.push((META_PID, b));
+    }
+    s.ckpt.len() as u32
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ckpt_pid(i: u32) -> u32 {
+    s().ckpt[i as usize].0
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_ckpt_blob(i: u32) -> u64 {
+    let b = &s().ckpt[i as usize].1;
+    let p = mem::balloc(b.len());
+    core::ptr::copy_nonoverlapping(b.as_ptr(), p, b.len());
+    ((p as usize as u64) << 32) | b.len() as u64
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_dead_count() -> u32 {
+    s().dead.len() as u32
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_dead_pid(i: u32) -> u32 {
+    s().dead[i as usize]
+}
+#[no_mangle]
+pub unsafe extern "C" fn rt_checkpoint_done() {
+    let s = s();
+    s.ckpt.clear();
+    s.dead.clear();
+}
+
+static mut RESTORE_BUF: (u32, u32) = (0, 0);
+
+#[no_mangle]
+pub unsafe extern "C" fn rt_restore_buf(len: u32) -> u32 {
+    let p = mem::balloc(len as usize) as usize as u32;
+    RESTORE_BUF = (p, len);
+    p
+}
+
+/// Restores one row from rt_restore_buf. `upgrade` = the row comes from another build.
+/// Returns 0 ok, 1 not decodable.
+#[no_mangle]
+pub unsafe extern "C" fn rt_restore(upgrade: i32) -> i32 {
+    let (p, len) = RESTORE_BUF;
+    let bytes = core::slice::from_raw_parts(p as usize as *const u8, len as usize);
+    let Some(t) = crate::etf::binary_to_term(bytes, false) else { return 1 };
+    let s = s();
+    if is_tuple(t) && tuple_get(t, 0) == intern("glowc_meta") {
+        s.next_pid = s.next_pid.max(small_val(tuple_get(t, 1)) as u32);
+        let r = small_val(tuple_get(t, 2)) as u64;
+        if roots::proc().refs < r {
+            roots::proc().refs = r;
+        }
+        s.clock = s.clock.max(small_val(tuple_get(t, 3)) as u64);
+        return 0;
+    }
+    if !is_tuple(t) || tuple_arity(t) != 15 || tuple_get(t, 0) != intern("glowc_proc") {
+        return 1;
+    }
+    let f = |k: usize| tuple_get(t, k);
+    let id = pid_val(f(1));
+    let words = SPAWN_STACK_WORDS;
+    let base = alloc_zeroed(Layout::from_size_align(words * 8, 8).unwrap()) as usize as u32;
+    let top = base + (words * 8) as u32;
+    let mut np = new_proc(id, base, top, true);
+    np.dirty = false;
+    let at = |o: i64| if o == 0 { 0 } else { top - o as u32 };
+    let names = build::list_to_vec(f(11)).unwrap_or_default();
+    np.mailbox = build::list_to_vec(f(5)).unwrap_or_default();
+    np.save = small_val(f(6)) as usize;
+    np.pdict = f(7);
+    np.links = build::list_to_vec(f(8)).unwrap_or_default().iter().map(|&x| pid_val(x)).collect();
+    np.watched_by = build::list_to_vec(f(9))
+        .unwrap_or_default()
+        .iter()
+        .map(|&x| (tuple_get(x, 0), pid_val(tuple_get(x, 1))))
+        .collect();
+    np.trap_exit = f(10) == TRUE;
+    np.gs = f(14);
+    if upgrade != 0 {
+        if is_tuple(np.gs) && tuple_arity(np.gs) == 2 {
+            let name = names.first().copied().unwrap_or(UNDEFINED);
+            let up = crate::funs::export_fun(intern("glowc_node"), intern("upgrade"), 3).unwrap();
+            np.status = Status::New;
+            np.start_fun = up;
+            np.start_args = build::list(&[tuple_get(np.gs, 0), name, tuple_get(np.gs, 1)]);
+            np.pdict = NIL;
+            np.save = 0;
+            np.dirty = true;
+        } else {
+            np.status = Status::Waiting;
+            np.pending_kill = true;
+            for n in names {
+                s.registered.push((n, id));
+            }
+        }
+    } else {
+        let recs = build::list_to_vec(f(3)).unwrap_or_default();
+        np.recs = recs
+            .iter()
+            .map(|&r| Rec {
+                tidx: small_val(tuple_get(r, 0)) as u32,
+                ab: small_val(tuple_get(r, 1)) as u32,
+                entry_sp: at(small_val(tuple_get(r, 2))),
+                sp: at(small_val(tuple_get(r, 3))),
+            })
+            .collect();
+        let stack = build::list_to_vec(f(4)).unwrap_or_default();
+        let lo = top as usize - stack.len() * 8;
+        for (k, &w) in stack.iter().enumerate() {
+            *((lo + 8 * k) as *mut u64) = unraw(w);
+        }
+        let st = f(2);
+        np.status = if st == WAITING { Status::Waiting } else if st == intern("new") { Status::New } else { Status::Runnable };
+        np.start_fun = f(12);
+        np.start_args = f(13);
+        for n in names {
+            s.registered.push((n, id));
+        }
+    }
+    s.next_pid = s.next_pid.max(id + 1);
+    s.procs.push(np);
+    0
+}
+
+/// After every row is restored: processes that could not be carried into this build
+/// exit with code_upgrade (their links and monitors see it).
+#[no_mangle]
+pub unsafe extern "C" fn rt_restore_done() {
+    let s = s();
+    for i in 0..s.procs.len() {
+        if s.procs[i].pending_kill {
+            s.procs[i].pending_kill = false;
+            do_exit(i, intern("code_upgrade"));
+        }
+    }
+}
+
+fn intern(n: &str) -> Term {
+    crate::atoms::intern(n)
+}
+
+/// glowc:node_gen_servers/0: [{Pid, Mod}] for dirty processes started by proc_lib for a
+/// gen-style callback module ('$initial_call' = {Mod, init, 1}).
+bif!("glowc:node_gen_servers/0", fn node_gen_servers() {
+    let s = s();
+    let ic = intern("$initial_call");
+    let init = intern("init");
+    let mut out = Vec::new();
+    for (i, p) in s.procs.iter().enumerate() {
+        if i == s.main || p.status == Status::Exited || !p.dirty {
+            continue;
+        }
+        let mut d = p.pdict;
+        while is_list(d) {
+            let kv = head(d);
+            if tuple_get(kv, 0) == ic {
+                let v = tuple_get(kv, 1);
+                if is_tuple(v) && tuple_arity(v) == 3 && tuple_get(v, 1) == init {
+                    out.push(build::tuple(&[pid(p.pid as u64), tuple_get(v, 0)]));
+                }
+            }
+            d = tail(d);
+        }
+    }
+    build::list(&out)
+});
+bif!("glowc:node_set_state/3", fn node_set_state(p, m, st) {
+    if let Some(j) = find(pid_val(p)) {
+        let gs = build::tuple(&[m, st]);
+        s().procs[j].gs = gs;
+    }
+    OK
+});
