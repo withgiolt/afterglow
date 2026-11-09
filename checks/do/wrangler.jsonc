@@ -2,6 +2,7 @@
   "name": "glowc-phase0-do",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
+  "account_id": "00000000000000000000000000000000",
   "durable_objects": {
     "bindings": [
       { "name": "COUNTER", "class_name": "Counter" },

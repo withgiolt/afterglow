@@ -1,0 +1,29 @@
+{
+  "run": "glowvm-baseline-basic-get-r1",
+  "tailEvents": 66,
+  "outcomes": {
+    "ok": 66
+  },
+  "colos": [
+    "OTP"
+  ],
+  "cpuMs": {
+    "p50": 5,
+    "p90": 11,
+    "p99": 42,
+    "max": 42,
+    "mean": 6.182
+  },
+  "workerWallMs": {
+    "p50": 18,
+    "p99": 49
+  },
+  "clientLatencyMs": {
+    "p50": 20.9,
+    "p99": 67.9
+  },
+  "rps": 328.5,
+  "statusCodes": {
+    "200": 10000
+  }
+}

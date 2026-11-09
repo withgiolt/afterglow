@@ -33,7 +33,9 @@ function run(fn) {
 export default {
   async fetch(request) {
     const url = new URL(request.url);
-    const n = BigInt(url.searchParams.get("n") ?? "10000000");
+    // Capped: this probe is deployed on a public workers.dev URL.
+    let n = BigInt(url.searchParams.get("n") ?? "10000000");
+    if (n < 0n || n > 20_000_000n) n = 10_000_000n;
     let body;
     switch (url.pathname) {
       case "/tail":

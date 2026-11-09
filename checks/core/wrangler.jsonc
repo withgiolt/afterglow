@@ -2,5 +2,7 @@
   "name": "glowc-phase0-core",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
+  "account_id": "00000000000000000000000000000000",
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
 }

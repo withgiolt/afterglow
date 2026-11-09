@@ -1,0 +1,2508 @@
+{
+    "wallTime": 49,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892185,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e901d0e26cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 45,
+    "cpuTime": 42,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892180,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e901da0e408",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 18,
+    "cpuTime": 17,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892178,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e901f6cc9cb",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 2,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892215,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e905817ca1d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 2,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892227,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e904fc0c9cb",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 9,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892198,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e90198f0b2b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 5,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892237,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e907a82c9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 14,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892190,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e9009c1c9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 47,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892194,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e900bb7cd61",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 8,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892215,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e905a3ec9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 15,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892186,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e8fff76ca1d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 5,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892234,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e9059e20b2b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892232,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e906844ca1d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 2,
+    "cpuTime": 1,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892250,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e90887dca1d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 48,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892212,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e901cd6e594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 17,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892257,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e909cbdcd61",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 45,
+    "cpuTime": 10,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892210,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e901b2de4aa",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 39,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892206,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e9009d5e432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 21,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892248,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e908e2b26cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 22,
+    "cpuTime": 8,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892261,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e909a5be432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 27,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892263,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e907e0ee408",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 26,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244892272,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7e90ac2fe4aa",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 3,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244900999,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ec73d310b2b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 32,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244900964,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ec6fa4ae594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 6,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244901994,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ecd7bcdc9cb",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 28,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244901970,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ecd4d30e432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 3,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244902997,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ed3b892c9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 28,
+    "cpuTime": 10,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244902969,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ed38d8be594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244904003,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eda0fc00b2b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 22,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244903978,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ed9db8ee594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 6,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244904994,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ee0391cc9cb",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 25,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244904972,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ee00f8826cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244905997,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ee67a3fc9cb",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 33,
+    "cpuTime": 12,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244905964,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ee63fc1e432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 9,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244906992,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eeca8e5ca1d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 24,
+    "cpuTime": 15,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244906983,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eec9c92e408",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 8,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244907992,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ef2e8a1c9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 23,
+    "cpuTime": 10,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244907979,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ef2de6226cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 3,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244908996,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ef93e9d0b2b",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 25,
+    "cpuTime": 9,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244908979,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7ef91bc526cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 26,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244909971,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eff4fbee432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 3,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244910006,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eff8c07c9d9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 2,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244910011,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eff7b88317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 37,
+    "cpuTime": 8,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244909971,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7eff48f5e408",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244911995,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f0bffd56ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 41,
+    "cpuTime": 9,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244911959,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f0bba82e4a9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244913000,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f123a536ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 33,
+    "cpuTime": 11,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244912972,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f120b83cd61",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 26,
+    "cpuTime": 6,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244913972,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f1848a4e594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244914003,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f188c29317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244915003,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f1ece8d317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 49,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244914950,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f1e6fbde594",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 6,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244915997,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f24fa19317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 35,
+    "cpuTime": 9,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244915964,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f24ce4ce432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244917004,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f2b4c036ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 48,
+    "cpuTime": 13,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244916950,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f2ae9f5e465",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 41,
+    "cpuTime": 8,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244917957,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f313b16e4a9",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 8,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244918000,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f317dcd6ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244919001,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f37bea3317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 35,
+    "cpuTime": 11,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244918970,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f378a09e432",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 5,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244919997,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f3dfa9d6ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 27,
+    "cpuTime": 4,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244919970,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f3dcd50e4aa",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 4,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244920998,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f443d206ce1",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 36,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244920966,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f440b4126cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 5,
+    "cpuTime": 3,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244921999,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f4a7e1e317d",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 33,
+    "cpuTime": 7,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "86dbb6fe-c926-490e-9de8-8036d8746f17"
+    },
+    "scriptName": "glowvm-baseline-basic-get",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244921966,
+    "event": {
+        "request": {
+            "url": "https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev/",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7f4a4a5626cf",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowvm-baseline-basic-get.SUBDOMAIN.workers.dev",
+                "user-agent": "oha/1.16.0",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/1.1"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}

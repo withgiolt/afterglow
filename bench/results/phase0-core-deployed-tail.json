@@ -1,0 +1,342 @@
+{
+    "wallTime": 9,
+    "cpuTime": 9,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244750918,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/env",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1d2c9ac9d3",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 5,
+    "cpuTime": 5,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244750995,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/features",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1d9a39e5aa",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751062,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/i64",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1e1d4bc9dd",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751132,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/bump",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1e7e16c9c7",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751235,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/bump",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1efd4de42f",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 1,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751302,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/bump",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1f9b2de45a",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 16,
+    "cpuTime": 15,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751361,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/tail?n=10000000",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b1ffb45e4ab",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 0,
+    "cpuTime": 0,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751451,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/plaincall?n=1000",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b207d2bca21",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
+{
+    "wallTime": 2,
+    "cpuTime": 2,
+    "truncated": false,
+    "executionModel": "stateless",
+    "outcome": "ok",
+    "scriptVersion": {
+        "id": "8806c380-7c1c-48dd-a948-bf04f9bbc043"
+    },
+    "scriptName": "glowc-phase0-core",
+    "diagnosticsChannelEvents": [],
+    "exceptions": [],
+    "logs": [],
+    "eventTimestamp": 1794244751539,
+    "event": {
+        "request": {
+            "url": "https://glowc-phase0-core.SUBDOMAIN.workers.dev/plaincall?n=10000000",
+            "method": "GET",
+            "headers": {
+                "accept": "*/*",
+                "accept-encoding": "gzip, br",
+                "cf-ray": "a57e7b20ed0ae4b0",
+                "cf-visitor": "{\"scheme\":\"https\"}",
+                "connection": "Keep-Alive",
+                "host": "glowc-phase0-core.SUBDOMAIN.workers.dev",
+                "user-agent": "curl/8.7.1",
+                "x-forwarded-proto": "https"
+            },
+            "cf": {
+                "colo": "OTP",
+                "httpProtocol": "HTTP/2"
+            }
+        },
+        "response": {
+            "status": 200
+        }
+    }
+}
