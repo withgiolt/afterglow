@@ -170,7 +170,7 @@ In this repo:
 - Analytics token: kept until it expires on Nov 16.
 - Heavy row: `json_roundtrip` carries 5×; `lustre_html` moved to the 3× fixed-overhead row.
 - The user wants the whole spike done in one continuous run (not spread over a week),
-  driven with /goal. Don't stop to schedule; keep going milestone by milestone.
+  driven with /goal. The goal text is in GOAL.md. Keep going milestone by milestone.
 
 ## Next steps
 
