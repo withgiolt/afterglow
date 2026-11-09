@@ -210,6 +210,28 @@ In this repo:
 - No processes/receive in tier 1 (receive paths only on error branches); Phase 2 work.
 - Test host: Node 26 (V8, tail calls on by default). wasmtime not installed, not needed.
 
+### json_roundtrip fixture (new) and its glowvm baseline
+
+- `fixtures/app/src/json_roundtrip.gleam`: 335 records, 50,136 bytes of JSON decoded into
+  typed records with gleam_json 3.1.0 and encoded again. Under real erl (`tools/erl-run.sh
+  json_roundtrip`) the response is 200 and byte-identical to the input.
+- glowvm runs it correctly but takes about 2.3 s per request under local `wrangler dev`
+  (2475, 2327, 2342, 2289, 2290 ms). Deployed on Free (10 ms CPU limit) it will be killed,
+  so there is no deployed glowvm number for the heavy row.
+- Decision (made autonomously to keep the run going; flag in the final report): the heavy
+  row compares both runtimes locally under the same workerd (`wrangler dev`, pure compute,
+  wall ≈ CPU), same machine, same method. glowc is also deployed to show it fits the limit.
+  One deployed glowvm attempt records the failure mode.
+
+### Request budget
+
+- 2026-11-09 used about 47k Worker requests on Giolt (over the 40k cap): no more deployed
+  load today (UTC).
+- M5 as written is 3 runs × 6k × 3 fixtures × 2 runtimes = 108k. Plan: reuse the Phase 0
+  glowvm numbers for basic_get and lustre_html (same method, deployed 2026-11-09), so M5
+  deploys only glowc for those (2 × 18k = 36k in one UTC day), and json_roundtrip is
+  compared locally. Analytics token expires 2026-11-16.
+
 ## Next steps
 
 1. M1: beam-reader (chunks, compact terms, opcode table from beam_opcodes), glowc

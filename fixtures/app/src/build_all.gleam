@@ -33,9 +33,10 @@ const modules = [
   "stdlib_io",
   "stdlib_bytes_tree",
   "stdlib_dynamic",
+  "json_roundtrip",
 ]
 
-const runtime_dir = "../../priv"
+const runtime_dir = "../../../glowvm/priv"
 
 const runtime_files = ["glowvm.wasm", "index.js", "index.min.js"]
 

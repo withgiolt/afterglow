@@ -4,3 +4,4 @@ fixtures/app/build/
 target/
 *.dist/
 out/
+fixtures/app/dist/
