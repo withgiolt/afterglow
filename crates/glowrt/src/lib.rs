@@ -155,6 +155,12 @@ pub unsafe extern "C" fn rt_debug(t: Term) -> Term {
 extern "C" {
     fn log(ptr: u32, len: u32);
     fn random_bytes(ptr: u32, len: u32);
+    fn now_us() -> f64;
+}
+
+/// Wall clock in microseconds (Date.now() in a Worker: frozen during compute).
+pub fn host_now_us() -> f64 {
+    unsafe { now_us() }
 }
 
 pub fn host_log(s: &str) {

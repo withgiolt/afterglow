@@ -534,10 +534,75 @@ unsafe fn phash(t: Term) -> u64 {
 }
 bif!("erlang:display/1", fn display(t) { crate::host_log(&crate::fmt::show(t)); TRUE });
 bif!("os:getenv/1", fn getenv(_n) { FALSE });
-bif!("os:system_time/1", fn os_system_time(_u) { small(0) });
-bif!("erlang:system_time/1", fn system_time1(_u) { small(0) });
-bif!("erlang:monotonic_time/0", fn monotonic0() { small(0) });
-bif!("erlang:monotonic_time/1", fn monotonic1(_u) { small(0) });
+/// Time in `unit` from a nanosecond count. None for a bad unit.
+unsafe fn in_unit(ns: i128, unit: Term) -> Option<Term> {
+    let per_sec: i128 = if is_small(unit) && small_val(unit) > 0 {
+        small_val(unit) as i128
+    } else if is_atom(unit) {
+        match atoms::name(unit) {
+            "second" | "seconds" => 1,
+            "millisecond" | "milli_seconds" => 1_000,
+            "microsecond" | "micro_seconds" => 1_000_000,
+            "nanosecond" | "nano_seconds" | "native" | "perf_counter" => 1_000_000_000,
+            _ => return None,
+        }
+    } else {
+        return None;
+    };
+    let v = (ns * per_sec).div_euclid(1_000_000_000);
+    Some(build::int(v as i64))
+}
+fn now_ns() -> i128 {
+    (crate::host_now_us() * 1000.0) as i128
+}
+bif!("os:system_time/0", fn os_system_time0() { build::int(now_ns() as i64) });
+bif!("os:system_time/1", fn os_system_time(u) { in_unit(now_ns(), u).unwrap_or_else(|| badarg()) });
+bif!("erlang:system_time/0", fn system_time0() { build::int(now_ns() as i64) });
+bif!("erlang:system_time/1", fn system_time1(u) { in_unit(now_ns(), u).unwrap_or_else(|| badarg()) });
+bif!("erlang:monotonic_time/0", fn monotonic0() { build::int(now_ns() as i64) });
+bif!("erlang:monotonic_time/1", fn monotonic1(u) { in_unit(now_ns(), u).unwrap_or_else(|| badarg()) });
+bif!("erlang:time_offset/0", fn time_offset0() { small(0) });
+bif!("erlang:time_offset/1", fn time_offset1(_u) { small(0) });
+bif!("os:timestamp/0", fn os_timestamp() {
+    let us = (now_ns() / 1000) as i64;
+    build::tuple(&[small(us / 1_000_000_000_000), small(us / 1_000_000 % 1_000_000), small(us % 1_000_000)])
+});
+bif!("erlang:timestamp/0", fn erlang_timestamp() { os_timestamp() });
+bif!("erlang:convert_time_unit/3", fn convert_time_unit(t, from, to) {
+    let Some(v) = crate::num::to_i64(t) else { return badarg() };
+    let ns = match in_unit_inv(v as i128, from) { Some(x) => x, None => return badarg() };
+    in_unit(ns, to).unwrap_or_else(|| badarg())
+});
+unsafe fn in_unit_inv(v: i128, unit: Term) -> Option<i128> {
+    let per_sec: i128 = if is_small(unit) && small_val(unit) > 0 {
+        small_val(unit) as i128
+    } else if is_atom(unit) {
+        match atoms::name(unit) {
+            "second" | "seconds" => 1,
+            "millisecond" | "milli_seconds" => 1_000,
+            "microsecond" | "micro_seconds" => 1_000_000,
+            "nanosecond" | "nano_seconds" | "native" | "perf_counter" => 1_000_000_000,
+            _ => return None,
+        }
+    } else {
+        return None;
+    };
+    Some((v * 1_000_000_000).div_euclid(per_sec))
+}
+
+bif!("erlang:fun_info/2", fn fun_info2(f, item) {
+    if !is_fun(f) || !is_atom(item) { return badarg(); }
+    let ext = crate::funs::is_external(f);
+    let v = match item {
+        ARITY => small(crate::funs::fun_arity(f) as i64),
+        MODULE => crate::funs::fun_module(f),
+        NAME => if ext { crate::funs::fun_name(f) } else { atoms::intern("-anonymous-") },
+        ENV => build::list(&crate::funs::fun_free(f)),
+        TYPE => if ext { EXTERNAL } else { LOCAL },
+        _ => return badarg(),
+    };
+    build::tuple(&[item, v])
+});
 bif!("erlang:module_loaded/1", fn module_loaded(_m) { TRUE });
 bif!("erlang:function_exported/3", fn function_exported(m, f, a) {
     if !is_small(a) { return badarg(); }
@@ -547,9 +612,28 @@ bif!("erlang:function_exported/3", fn function_exported(m, f, a) {
 // host_io overrides: the request comes in as the "stdin" binary, the framed
 // response goes out as "stdout".
 bif!("host_io:read_stdin/0", fn read_stdin() { proc().input });
+unsafe fn append_output(b: Term) {
+    let p = proc();
+    if !is_binary_obj(p.output) {
+        p.output = b;
+        return;
+    }
+    let mut w = crate::bits::Writer::new();
+    w.push_bin(&bin_of(p.output), bin_of(p.output).bits);
+    w.push_bin(&bin_of(b), bin_of(b).bits);
+    p.output = w.finish();
+}
 bif!("host_io:write_stdout/1", fn write_stdout(b) {
     if !is_binary(b) { return badarg(); }
-    proc().output = b;
+    append_output(b);
+    OK
+});
+// io:put_chars to standard_io appends to stdout like erl does; standard_error is dropped.
+bif!("io:put_chars/1", fn io_put_chars1(cs) { io_put_chars2(atoms::intern("standard_io"), cs) });
+bif!("io:put_chars/2", fn io_put_chars2(dev, cs) {
+    let b = crate::binmod::c2b(cs, UNICODE);
+    if !is_binary(b) { return badarg(); }
+    if dev != atoms::intern("standard_error") { append_output(b); }
     OK
 });
 
@@ -568,4 +652,56 @@ pub fn debug_enabled() -> bool {
 #[no_mangle]
 pub unsafe extern "C" fn rt_set_debug(on: i32) {
     DEBUG = on != 0;
+}
+
+bif!("erlang:md5/1", fn md5(data) {
+    use md5::{Digest, Md5};
+    let mut w = crate::bits::Writer::new();
+    if !crate::bits::iolist(data, &mut w, false) { return badarg(); }
+    let d = Md5::digest(&w.buf);
+    build::binary(&d)
+});
+
+// math: floats in, floats out; a non-finite result is badarith, like ERTS.
+unsafe fn math1(a: Term, f: fn(f64) -> f64) -> Term {
+    let Some(x) = num::to_f64(a) else { return badarg() };
+    let r = f(x);
+    if r.is_finite() { build::float(r) } else { error(BADARITH) }
+}
+unsafe fn math2(a: Term, b: Term, f: fn(f64, f64) -> f64) -> Term {
+    let (Some(x), Some(y)) = (num::to_f64(a), num::to_f64(b)) else { return badarg() };
+    let r = f(x, y);
+    if r.is_finite() { build::float(r) } else { error(BADARITH) }
+}
+bif!("math:floor/1", fn m_floor(a) { math1(a, f64::floor) });
+bif!("math:ceil/1", fn m_ceil(a) { math1(a, f64::ceil) });
+bif!("math:sqrt/1", fn m_sqrt(a) { math1(a, f64::sqrt) });
+bif!("math:exp/1", fn m_exp(a) { math1(a, f64::exp) });
+bif!("math:log/1", fn m_log(a) { math1(a, f64::ln) });
+bif!("math:log2/1", fn m_log2(a) { math1(a, f64::log2) });
+bif!("math:log10/1", fn m_log10(a) { math1(a, f64::log10) });
+bif!("math:sin/1", fn m_sin(a) { math1(a, f64::sin) });
+bif!("math:cos/1", fn m_cos(a) { math1(a, f64::cos) });
+bif!("math:tan/1", fn m_tan(a) { math1(a, f64::tan) });
+bif!("math:asin/1", fn m_asin(a) { math1(a, f64::asin) });
+bif!("math:acos/1", fn m_acos(a) { math1(a, f64::acos) });
+bif!("math:atan/1", fn m_atan(a) { math1(a, f64::atan) });
+bif!("math:sinh/1", fn m_sinh(a) { math1(a, f64::sinh) });
+bif!("math:cosh/1", fn m_cosh(a) { math1(a, f64::cosh) });
+bif!("math:tanh/1", fn m_tanh(a) { math1(a, f64::tanh) });
+bif!("math:asinh/1", fn m_asinh(a) { math1(a, f64::asinh) });
+bif!("math:acosh/1", fn m_acosh(a) { math1(a, f64::acosh) });
+bif!("math:atanh/1", fn m_atanh(a) { math1(a, f64::atanh) });
+bif!("math:pow/2", fn m_pow(a, b) { math2(a, b, f64::powf) });
+bif!("math:atan2/2", fn m_atan2(a, b) { math2(a, b, f64::atan2) });
+bif!("math:fmod/2", fn m_fmod(a, b) { math2(a, b, |x, y| x % y) });
+bif!("math:erf/1", fn m_erf(a) { math1(a, erf) });
+bif!("math:erfc/1", fn m_erfc(a) { math1(a, |x| 1.0 - erf(x)) });
+fn erf(x: f64) -> f64 {
+    // Abramowitz-Stegun 7.1.26 is too coarse; use a series/continued fraction split.
+    let t = 1.0 / (1.0 + 0.5 * x.abs());
+    let y = 1.0 - t * (-x * x - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418
+        + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587
+        + t * (-0.82215223 + t * 0.17087277))))))))).exp();
+    if x >= 0.0 { y } else { -y }
 }

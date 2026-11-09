@@ -13,6 +13,7 @@ const dec = new TextDecoder();
 const host = {
   log: (p, n) => process.stderr.write('[log] ' + dec.decode(new Uint8Array(mem.buffer, p, n)) + '\n'),
   random_bytes: (p, n) => randomFillSync(new Uint8Array(mem.buffer, p, n)),
+  now_us: () => Date.now() * 1000,
 };
 const t0 = performance.now();
 const { instance } = await WebAssembly.instantiate(bytes, { host });

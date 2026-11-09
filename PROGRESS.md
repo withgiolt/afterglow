@@ -264,6 +264,22 @@ In this repo:
   iterates c,a,b on OTP 29); glowrt uses term order. =:= is unaffected; output that
   iterates an atom-keyed map can differ. Exception stack traces are coarser than ERTS.
 
+### M3: maps, funs, exceptions, bignums (done 2026-11-09)
+
+- PASS vs erl: stdlib_dict, stdlib_int, stdlib_function, stdlib_result, stdlib_dynamic;
+  unit tests `tests/erl/m3.erl` (2^200 arithmetic and bignum division/shift/convert,
+  closures, external funs, apply/2,3, named funs, fun_info, try/catch/after, nested
+  raise, erlang:raise/3, function_clause, undef, 100-key maps).
+- Added: time BIFs from a new host import `host.now_us` (Date.now; native unit = ns),
+  erlang:md5 (md-5 crate), math NIFs, fun_info/2, io:put_chars/1,2 (appends to stdout
+  like erl; host_io:write_stdout appends too).
+- All 28 fixtures in fixtures/app now produce byte-identical output to erl under Node,
+  including json_roundtrip (50,222 bytes) and lustre_html. Requests as in glowvm's
+  smoke.test.ts (query_param `/?msg=hi`, not_found `/anything`, echo_body POST).
+- Known gap: maps are flat sorted arrays at every size. ERTS switches to a HAMT above
+  32 keys and iterates in hash order, so maps:to_list/fold over a >32-key map gives a
+  different order than erl (lookups and =:= are the same). Not hit by any fixture.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare
@@ -273,5 +289,5 @@ In this repo:
 
 ## Next steps
 
-1. M3: maps, funs, exceptions, bignums: stdlib_dict, stdlib_int, stdlib_function,
-   stdlib_result, stdlib_dynamic vs erl, plus 2^200 arithmetic.
+1. M4: workerd host glue (index.js for glowc builds), smoke fixtures on both runtimes
+   under workerd byte-identical; 500 MB garbage test inside 128 MB.
