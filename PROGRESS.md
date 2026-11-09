@@ -133,6 +133,7 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [x] deleted 2026-11-09: `glowc-phase0-do` (https://glowc-phase0-do.SUBDOMAIN.workers.dev), DO classes Counter + Caller with SQLite data.
 - [x] deleted 2026-11-09: `glowvm-baseline-basic-get` (https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev), observability on.
 - [x] deleted 2026-11-09: `glowvm-baseline-lustre-html` (https://glowvm-baseline-lustre-html.SUBDOMAIN.workers.dev), observability on.
+- [x] `glowc-m5-basic-get`: created 2026-11-09 22:35 UTC (6 versions), deleted 22:39 UTC.
 - [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
       `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
       (https://<name>.SUBDOMAIN.workers.dev), observability on.
@@ -356,6 +357,13 @@ In this repo:
   account was at 50,338 requests that day (47,153 from spike Workers), so 2026-11-09
   ends near 86k, over the goal's 40k cap but under Free's 100k. json_roundtrip waits
   for 2026-11-10 UTC so the day stays under 100k.
+- 2026-11-09 22:35 UTC run aborted: from the first request, every glowc-m5-basic-get
+  response was `404`, body `error code: 1042` (5 cold-start requests, 1 check, 1,000
+  warm-up, then stopped; about 1,006 requests). A redeploy with `"workers_dev": true`
+  gave the same. Production Workers on workers.dev (`gote`, `giolt-next`) returned the
+  same 404/1042 at 22:38 UTC: account-wide, not glowc. Cause unknown (not verified).
+  glowc-m5-basic-get deleted 22:39 UTC; lustre_html never deployed. No deployed load
+  until the user has looked at the account.
 - Schedule (40k/day), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request

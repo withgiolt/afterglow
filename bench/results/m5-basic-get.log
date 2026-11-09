@@ -1,0 +1,23 @@
+== glowc-m5-basic-get 2026-11-09T22:35:11Z
+1,fc77e72c-c89d-4196-b77e-fe4cace595c9,6,18.7,68.7,404
+2,f4cbeead-3dd2-426c-9685-a99cddfa4fd7,7,17.1,41.0,404
+3,91ad77fb-2bb4-479a-bd23-2a57870f0c24,6,22.5,144.1,404
+4,737b9751-f343-4e32-b25d-b5be23616061,5,17.4,48.0,404
+5,0e589971-317c-4da0-807d-6e011effb9ce,5,17.3,44.7,404
+1,2c1,2
+< HTTP/2 200 
+< content-type: text/plain
+---
+> HTTP/2 404 
+> content-type: text/plain; charset=UTF-8
+3a4,7
+> cache-control: private, max-age=0, no-store, no-cache, must-revalidate, post-check=0, pre-check=0
+> expires: Thu, 01 Jan 1970 00:00:01 GMT
+> referrer-policy: same-origin
+> x-frame-options: SAMEORIGIN
+deployed correctness: DIFFERS from bench/results/glowvm-basic-get
+-- run 1 2026-11-09T22:36:39Z
+deleting glowc-m5-basic-get
+────────────────────
+Successfully deleted glowc-m5-basic-get
+bench/m5.sh: line 16:  8343 Terminated: 15          bench/measure.sh "$name" "r$r" "$version"
