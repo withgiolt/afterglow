@@ -13,4 +13,4 @@ sleep 5
 oha -n 5000 -c 10 -q 25 --no-tui --output-format json "$url" > "$out.oha.json"
 node -e 'const r=JSON.parse(require("fs").readFileSync(process.argv[1]));console.log("status", JSON.stringify(r.statusCodeDistribution), "errors", JSON.stringify(r.errorDistribution))' "$out.oha.json"
 sleep 90 # analytics ingestion delay
-node bench/analytics.mjs "$out" "$version"
+node bench/analytics.mjs "$out" "$version" || echo "analytics failed: requery later with node bench/analytics.mjs $out $version"

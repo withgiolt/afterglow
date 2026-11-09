@@ -315,11 +315,17 @@ In this repo:
 ### M5: benchmark gate (in progress)
 
 - Size pass (ccd46bb): only literals used by reachable code are emitted, Y stack 16K
-  words, Rust shadow stack 64 KiB, smaller GC blocks. `wrangler deploy --dry-run`:
-  basic_get 497.54 KiB / gzip 180.97 KiB (glowvm 298.73 KiB gzip); app.wasm gzip
-  lustre_html 184 KiB, json_roundtrip 202 KiB (glowvm 316.50 KiB). Size row: pass.
-- Memory: Wasm memory after a request, basic_get and lustre_html 512 KiB (8 pages) vs
-  glowvm 576 / 640 KiB. json_roundtrip about 5 MB. Memory row: pass.
+  words, Rust shadow stack 64 KiB, smaller GC blocks. sizes below. Size row: pass.
+- Memory, per-isolate high-water over 5,000 requests through one reused instance under
+  `wrangler dev` (out/memprobe): basic_get 512 KiB, lustre_html 512 KiB (first request =
+  max) vs glowvm 576 / 640 KiB. Memory row (its stated fixtures): pass.
+  json_roundtrip: glowc 4,992 KiB vs glowvm 1,280 KiB (bench/glowvm-mem/json_roundtrip,
+  same probe). glowc is 3.9× higher here: the 2 MiB nursery from the profiling pass
+  (live sets are at most 24K words). A nursery sweep (out of tree) bottomed out at about
+  2.5 MiB and cost up to 2× time (2 blocks: 6.29 ms vs 3.01 ms median under Node), so the
+  measured build keeps 2 MiB. Flag in the verdict.
+- Upload sizes, `wrangler deploy --dry-run` gzip: glowc 180.97 / 187.50 / 205.73 KiB,
+  glowvm 298.73 / 316.50 / 308.37 KiB (basic_get / lustre_html / json_roundtrip).
 - Profiling pass (112c2df): GC nursery sized from the live set, inline bs_match fast
   paths, name sections behind GLOWC_NAMES=1, `tools/profile.mjs`. json_roundtrip under
   Node: median 5.6 ms -> 3.4 ms, GC share 32% -> about 7%.
