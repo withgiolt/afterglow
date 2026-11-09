@@ -387,6 +387,29 @@ In this repo:
   is 4.91 ms, not the 4.7 ms (n=4) in SPIKE.md. `coldstart.sh` now waits 60 s
   (COLD_WAIT). `coldcpu.mjs` keeps only versions with exactly one request. 2026-11-09
   23:50 UTC: new 10-sample series for glowc and glowvm, both fixtures, side by side.
+- Cold-start results, side by side, 10 deploys per Worker, 60 s wait (`*-cold10.csv`,
+  `*-cold10.cpu.json`). The tenth sample of each served the following load run, so it
+  is excluded. One glowc lustre_html sample had no request on its version. Medians:
+
+  | | startup | first-request server time | first-request CPU |
+  | --- | --- | --- | --- |
+  | basic_get glowc | 6.5 ms | 32.8 ms | 2.06 ms (n=9) |
+  | basic_get glowvm | 20 ms | 44.7 ms | 3.68 ms (n=9) |
+  | lustre_html glowc | 6.5 ms | 32.5 ms | 3.09 ms (n=8) |
+  | lustre_html glowvm | 21.5 ms | 55.4 ms | 5.91 ms (n=9) |
+
+  Startup row: PASS on all three measures for both fixtures.
+- **Incident, 2026-11-09 23:47 UTC: the account went over Free's 100k requests for
+  the day.** `m5.sh <dir> 0` was meant to run no load. On macOS, `seq 1 0` prints 1 and
+  0, so all four cold-series Workers started a 6k-request run (1k warm-up + 5k) at
+  once. I saw it at 23:51 and killed the runs. All four Workers were deleted (their
+  hostnames answer 1042). By analytics, 2026-11-09 ended at about 110,000 requests: the
+  goal allows 40k, and the earlier override at the user's request had planned about
+  87k. Production checked at 23:52: giolt.com 200, dash.giolt.com 307,
+  gote.giolt.app 200. Fixed: m5.sh counts with an arithmetic loop. The three completed
+  runs are kept as `*-sbs1` (one side-by-side run): basic_get glowc 0.412 / 2.259 vs
+  glowvm 3.294 / 6.485 ms p50 / p99 (8.0× / 2.9×), lustre_html glowc 0.570 / 2.769.
+  The glowvm lustre_html run was cut short and has no result.
 - First-request cost, local: with the flag warm-up (glowvm's contract, which glowc
   keeps), the first real request runs handler code V8 has not compiled yet. Under Node
   that costs about 0.9 ms more than later requests; a warm-up through the real handler
