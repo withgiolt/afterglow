@@ -43,7 +43,7 @@ pub fn compare(a: Term, b: Term) -> Ordering {
 }
 
 /// Order used for map keys and exact equality (`=:=`): every integer comes before
-/// every float.
+/// every float, and -0.0 comes before 0.0 (OTP 27 and later).
 pub fn map_key_cmp(a: Term, b: Term) -> Ordering {
     unsafe { cmp(a, b, true) }
 }
@@ -64,7 +64,12 @@ unsafe fn cmp(a: Term, b: Term, exact: bool) -> Ordering {
             let fa = is_float(a);
             let fb = is_float(b);
             if fa && fb {
-                return float_val(a).partial_cmp(&float_val(b)).unwrap_or(Ordering::Equal);
+                // Erlang floats are never NaN; total_cmp only adds -0.0 < 0.0.
+                return if exact {
+                    float_val(a).total_cmp(&float_val(b))
+                } else {
+                    float_val(a).partial_cmp(&float_val(b)).unwrap_or(Ordering::Equal)
+                };
             }
             if !fa && !fb {
                 return num::to_big(a).unwrap().cmp(&num::to_big(b).unwrap());
