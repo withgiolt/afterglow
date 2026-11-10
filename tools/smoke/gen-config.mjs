@@ -3,12 +3,13 @@
 // fixtures/app/dist). glowc: out/workers/<fixture>. Ports: glowvm 9400+i, glowc 9500+i.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 const [out, ...fixtures] = process.argv.slice(2);
-const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const glowvmDist = (f) => fs.existsSync(path.join(root, '../glowvm/fixtures/app/dist', f))
   ? path.join(root, '../glowvm/fixtures/app/dist', f) : path.join(root, 'fixtures/app/dist', f);
 const ident = (s) => s.replace(/[^a-zA-Z0-9]+(.)/g, (_, c) => c.toUpperCase());
-const rel = (p) => path.relative(path.dirname(path.resolve(out)), p);
+const rel = (p) => path.relative(path.dirname(path.resolve(out)), p).split(path.sep).join('/');
 let services = [], sockets = [], workers = [];
 fixtures.forEach((f, i) => {
   const bindings = f === 'env_get' ? '[ (name = "SECRET_KEY", text = "secret") ]' : '[]';
