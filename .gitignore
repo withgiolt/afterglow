@@ -5,3 +5,4 @@ target/
 *.dist/
 out/
 fixtures/app/dist/
+erl_crash.dump
