@@ -1071,8 +1071,8 @@ bif!("erlang:processes/0", fn processes() {
     build::list(&v)
 });
 
-/// erlang:system_info/1 for the items apps and OTP libraries ask about. afterglow_runtime runs one
-/// scheduler on one thread; limits are ERTS's defaults.
+// erlang:system_info/1 for the items apps and OTP libraries ask about. afterglow_runtime runs one
+// scheduler on one thread; limits are ERTS's defaults.
 bif!("erlang:system_info/1", fn system_info(item) {
     let chars = |s: &str| { let v: Vec<Term> = s.chars().map(|c| small(c as i64)).collect(); build::list(&v) };
     let name = if is_atom(item) { crate::fmt::show(item) } else { String::new() };
@@ -1390,8 +1390,8 @@ fn intern(n: &str) -> Term {
     crate::atoms::intern(n)
 }
 
-/// afterglow_runtime:node_gen_servers/0: [{Pid, Mod}] for dirty processes started by proc_lib for a
-/// gen-style callback module ('$initial_call' = {Mod, init, 1}).
+// afterglow_runtime:node_gen_servers/0: [{Pid, Mod}] for dirty processes started by proc_lib for a
+// gen-style callback module ('$initial_call' = {Mod, init, 1}).
 bif!("afterglow_runtime:node_gen_servers/0", fn node_gen_servers() {
     let s = s();
     let ic = intern("$initial_call");
@@ -1504,7 +1504,7 @@ pub unsafe extern "C" fn rt_take_crash() -> i32 {
     c as i32
 }
 
-/// afterglow_runtime:node_deliver(Dest, Msg): a message from another node.
+// afterglow_runtime:node_deliver(Dest, Msg): a message from another node.
 bif!("afterglow_runtime:node_deliver/2", fn node_deliver(d, m) {
     let s = s();
     if is_tuple(m) && tuple_arity(m) == 3 && tuple_get(m, 0) == intern("$afterglow_monitor") {
@@ -1528,7 +1528,7 @@ bif!("afterglow_runtime:node_deliver/2", fn node_deliver(d, m) {
     OK
 });
 
-/// afterglow_runtime:node_noconnection(Node): delivery to Node failed.
+// afterglow_runtime:node_noconnection(Node): delivery to Node failed.
 bif!("afterglow_runtime:node_noconnection/1", fn node_noconnection(n) {
     let s = s();
     let mons = core::mem::take(&mut s.remote_mons);
@@ -1544,7 +1544,7 @@ bif!("afterglow_runtime:node_noconnection/1", fn node_noconnection(n) {
     OK
 });
 
-/// afterglow_runtime:node_crash(): the host throws after this turn (tests: a failing node).
+// afterglow_runtime:node_crash(): the host throws after this turn (tests: a failing node).
 bif!("afterglow_runtime:node_crash/0", fn node_crash() { s().crash = true; OK });
 
 bif!("erlang:node/0", fn node0() { s().node_name });
@@ -1621,7 +1621,7 @@ pub unsafe extern "C" fn rt_next_timer() -> f64 {
     s().timers.iter().map(|t| t.1).min().map_or(-1.0, |x| x as f64)
 }
 
-/// afterglow_runtime:node_fire_timers(): fire every due timer (the alarm's turn). Returns the count.
+// afterglow_runtime:node_fire_timers(): fire every due timer (the alarm's turn). Returns the count.
 bif!("afterglow_runtime:node_fire_timers/0", fn node_fire_timers() { small(fire_due(now_ms()) as i64) });
 
 // --------------------------------------------------------------------------------

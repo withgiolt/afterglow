@@ -688,7 +688,7 @@ unsafe fn utf8_at(ctx: Term) -> Option<(u32, u64)> {
         0xF0..=0xF4 => (4, b0 & 0x07),
         _ => return None,
     };
-    if rem < 8 * len as u64 {
+    if rem < 8 * len {
         return None;
     }
     let mut c = init;
@@ -703,7 +703,7 @@ unsafe fn utf8_at(ctx: Term) -> Option<(u32, u64)> {
     if c < min || c > 0x10FFFF || (0xD800..=0xDFFF).contains(&c) {
         return None;
     }
-    Some((c, 8 * len as u64))
+    Some((c, 8 * len))
 }
 
 unsafe fn utf_at(ctx: Term, kind: i32, flags: i32) -> Option<(u32, u64)> {

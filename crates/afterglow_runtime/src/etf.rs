@@ -339,7 +339,7 @@ impl<'a> Decoder<'a> {
                 if node == atoms::NONODE || node == crate::sched::node_name() {
                     Some(pid(id as u64))
                 } else {
-                    Some(remote_pid(atom_index(node) as u32, id as u32))
+                    Some(remote_pid(atom_index(node), id as u32))
                 }
             }
             NEWER_REF => {

@@ -298,7 +298,7 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
     if crate::bifs::debug_enabled() {
         crate::host_log(&format!(
             "gc #{}: used {} words, live {} words in {} blocks, live x {}, stack {} words, arena {} KiB{}",
-            STATS_GCS,
+            { STATS_GCS },
             used,
             live_words,
             gc.to.len(),

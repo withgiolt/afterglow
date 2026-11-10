@@ -196,9 +196,9 @@ bif!("maps:merge/2", fn maps_merge(a, b) {
 });
 bif!("maps:new/0", fn maps_new() { build::map_sorted(&[]) });
 
-/// erts_internal:map_next/3 (Iter, Map, Acc), behind maps:next/1, to_list/1, fold/3.
-/// Like ERTS on flatmaps: with Acc = `iterator` it returns the whole chain eagerly,
-/// {K1, V1, {K2, V2, ... none}}; otherwise [{K, V}, ... | Acc].
+// erts_internal:map_next/3 (Iter, Map, Acc), behind maps:next/1, to_list/1, fold/3.
+// Like ERTS on flatmaps: with Acc = `iterator` it returns the whole chain eagerly,
+// {K1, V1, {K2, V2, ... none}}; otherwise [{K, V}, ... | Acc].
 bif!("erts_internal:map_next/3", fn map_next(it, m, acc) {
     if !is_map(m) || !is_small(it) { return badarg(); }
     let i = small_val(it) as usize;

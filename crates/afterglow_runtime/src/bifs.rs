@@ -814,8 +814,8 @@ bif!("erlang:fun_to_list/1", fn fun_to_list(f) { str_list(&crate::fmt::show(f)) 
 // ERTS's default printable range (erl +pc latin1)
 bif!("io:printable_range/0", fn printable_range() { atoms::intern("latin1") });
 
-/// string:list_to_float/1 (the NIF behind string:to_float/1): the longest prefix that
-/// is an Erlang float, as {Float, Rest}, or {error, no_float}.
+// string:list_to_float/1 (the NIF behind string:to_float/1): the longest prefix that
+// is an Erlang float, as {Float, Rest}, or {error, no_float}.
 bif!("string:list_to_float/1", fn string_list_to_float(l) {
     let mut chars = String::new();
     let mut x = l;

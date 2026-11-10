@@ -472,7 +472,7 @@ pub fn literal_exports(etf: &[u8]) -> Vec<Mfa> {
     while i < etf.len() {
         if etf[i] == 113 {
             let mut j = i + 1;
-            let mut read_atom = |j: &mut usize| -> Option<String> {
+            let read_atom = |j: &mut usize| -> Option<String> {
                 match etf.get(*j)? {
                     119 | 115 => {
                         let n = *etf.get(*j + 1)? as usize;

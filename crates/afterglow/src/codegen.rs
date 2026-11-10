@@ -153,8 +153,6 @@ struct Fx<'e, 'a> {
     env: &'e Env<'a>,
     m: usize,
     f: Function,
-    nparams: u32,
-    nx: u32,
     // local indices
     l_tmp: u32,  // 4 i64 temps
     l_tmpi: u32, // 4 i32 temps
@@ -178,13 +176,6 @@ struct Fx<'e, 'a> {
     tidx: Option<u32>,
     /// the call being compiled may suspend: its result check comes after the resume label
     defer_check: bool,
-}
-
-fn x_index(o: &Operand) -> Option<u32> {
-    match o.plain() {
-        Operand::X(i) => Some(*i),
-        _ => None,
-    }
 }
 
 /// Highest X register / float register mentioned.
@@ -335,8 +326,6 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
         env,
         m,
         f,
-        nparams,
-        nx,
         l_tmp,
         l_tmpi,
         l_entry_sp,
@@ -357,7 +346,6 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
         tidx,
         defer_check: false,
     };
-
 
     // Prologue. A resumable function entered by the scheduler (g_res = block + 1)
     // restores its entry sp and x0 and jumps to the resume block.
@@ -1768,9 +1756,6 @@ impl<'f, 'e, 'a> Ext<'f, 'e, 'a> {
     pub fn test_jump(&mut self, fail: u32) -> Result<(), CgError> {
         self.0.test_jump(fail)
     }
-    pub fn br_if_label(&mut self, l: u32) -> Result<(), CgError> {
-        self.0.br_if_label(l)
-    }
     pub fn tmp(&self, i: u32) -> u32 {
         self.0.l_tmp + i
     }
@@ -1780,9 +1765,6 @@ impl<'f, 'e, 'a> Ext<'f, 'e, 'a> {
     pub fn atom(&self, name: &str) -> i64 {
         atom(self.0.env.prog.atom_index[name])
     }
-    pub fn global_atom(&self, local: u32) -> i64 {
-        atom(self.0.env.prog.global_atom(self.0.m, local))
-    }
     pub fn strings(&self) -> &[u8] {
         &self.0.env.prog.modules[self.0.m].strings
     }
@@ -1791,15 +1773,6 @@ impl<'f, 'e, 'a> Ext<'f, 'e, 'a> {
     }
     pub fn literal(&mut self, gi: u32) {
         self.0.literal(gi)
-    }
-    pub fn gc_check(&mut self, live: u32) {
-        self.0.gc_check(live)
-    }
-    pub fn nx(&self) -> u32 {
-        self.0.nx
-    }
-    pub fn nparams(&self) -> u32 {
-        self.0.nparams
     }
     pub fn atom_name(&self, local: u32) -> &str {
         self.0.env.prog.modules[self.0.m].atom(local)

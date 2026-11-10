@@ -281,8 +281,8 @@ unsafe fn enc_of(t: Term) -> Option<Enc> {
 }
 
 enum Stop {
-    Error(Term),      // rest of the input starting at the bad element
-    Incomplete(Term), // rest starting at the truncated sequence
+    Error,
+    Incomplete,
 }
 
 /// Walks chardata, pushing code points. On failure returns how it stopped and what
@@ -321,9 +321,8 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
                                 out.extend(core::str::from_utf8_unchecked(&b[i..i + good]).chars().map(|c| c as u32));
                                 let at = i + good;
                                 let rest = sub(t, at, b.len() - at);
-                                let stop = if e.error_len().is_none() { Stop::Incomplete(rest) } else { Stop::Error(rest) };
-                                let r = rest_of(&stack, rest);
-                                return Err((match stop { Stop::Incomplete(_) => Stop::Incomplete(r), Stop::Error(_) => Stop::Error(r) }, r));
+                                let stop = if e.error_len().is_none() { Stop::Incomplete } else { Stop::Error };
+                                return Err((stop, rest_of(&stack, rest)));
                             }
                         }
                     }
@@ -337,7 +336,7 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
                 let ok = c >= 0 && c <= 0x10FFFF && !(0xD800..=0xDFFF).contains(&c) && (enc == Enc::Utf8 || c <= 255);
                 if !ok {
                     let r = rest_of(&stack, t);
-                    return Err((Stop::Error(r), r));
+                    return Err((Stop::Error, r));
                 }
                 out.push(c as u32);
                 stack.push(tl);
@@ -346,7 +345,7 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
                 stack.push(h);
             }
         } else {
-            return Err((Stop::Error(NON_VALUE), NON_VALUE)); // not chardata: badarg
+            return Err((Stop::Error, NON_VALUE)); // not chardata: badarg
         }
     }
     Ok(())
@@ -374,7 +373,7 @@ bif!("unicode:characters_to_binary/2", fn c2b(data, inenc) {
         Err((_, NON_VALUE)) => badarg(),
         Err((stop, rest)) => {
             let done = build::binary(&utf8_bytes(&cps));
-            let tag = match stop { Stop::Error(_) => ERROR, Stop::Incomplete(_) => INCOMPLETE };
+            let tag = match stop { Stop::Error => ERROR, Stop::Incomplete => INCOMPLETE };
             build::tuple(&[tag, done, rest])
         }
     }
@@ -392,7 +391,7 @@ bif!("unicode:characters_to_list/2", fn c2l(data, inenc) {
         Err((_, NON_VALUE)) => badarg(),
         Err((stop, rest)) => {
             let done = mk(&cps);
-            let tag = match stop { Stop::Error(_) => ERROR, Stop::Incomplete(_) => INCOMPLETE };
+            let tag = match stop { Stop::Error => ERROR, Stop::Incomplete => INCOMPLETE };
             build::tuple(&[tag, done, rest])
         }
     }
