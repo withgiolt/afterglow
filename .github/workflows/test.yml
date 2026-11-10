@@ -21,6 +21,10 @@ jobs:
           otp-version: "28"
           gleam-version: "1.18"
           rebar3-version: "3.27"
+      # tools/do/p5-test.mjs uses Node's global WebSocket (Node 22 and later).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
       - uses: oven-sh/setup-bun@v2
       - uses: extractions/setup-just@v4
       # tools/env.sh finds Binaryen under ~/.local/opt.
