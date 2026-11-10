@@ -3,7 +3,12 @@
 # Usage: tools/do/deployed.sh p2|p3|p4|p5      Requests: tens per check.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
-dev() { grep -q workers_dev "$1/wrangler.jsonc" || sed -i '' 's/  "compatibility_date"/  "workers_dev": true,\n  "compatibility_date"/' "$1/wrangler.jsonc"; }
+# No `sed -i`: GNU and BSD sed disagree on its argument.
+dev() {
+  local c=$1/wrangler.jsonc
+  grep -q workers_dev "$c" && return
+  sed 's/  "compatibility_date"/  "workers_dev": true, "compatibility_date"/' "$c" >"$c.tmp" && mv "$c.tmp" "$c"
+}
 deploy() { dev "$1"; (cd "$1" && npx wrangler deploy 2>&1) | grep -E 'Startup|Version ID|Uploaded' ; }
 ready() { # a new workers.dev hostname answers 1042 for a few minutes
   for i in $(seq 1 60); do
