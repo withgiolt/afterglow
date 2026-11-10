@@ -1,8 +1,0 @@
-{
-  "name": "afterglow-phase0-tail",
-  "main": "worker.js",
-  "compatibility_date": "2026-11-01",
-  "workers_dev": true,
-  "durable_objects": { "bindings": [{ "name": "STORE", "class_name": "Store" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Store"] }]
-}
