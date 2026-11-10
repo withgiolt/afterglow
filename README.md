@@ -34,6 +34,9 @@ The tests need Erlang/OTP, Rust, Binaryen and Bun. Build the fixture app with
 - `tools/regress.sh`, which compares afterglow's output with real `erl`
 - `tools/smoke/run.sh`, which runs the fixture Workers on workerd
 - `bun test tests/smoke.test.ts`, after `tools/smoke/build.sh`
+- `tools/do/test.sh`, which runs the Durable Object Workers on workerd
+
+`just test-all` runs all of them.
 
 On Windows, run them from Git Bash after `source tools/env.sh`.
 

@@ -30,8 +30,12 @@ test-smoke *fixtures:
     tools/smoke/build.sh {{ fixtures }}
     bun test tests/smoke.test.ts
 
-# Everything: difftests, workerd, smoke.
-test-all: build-fixtures test test-workers test-smoke
+# The P3-P5 Durable Object Workers on local workerd, e.g. just test-do p4.
+test-do *tests:
+    tools/do/test.sh {{ tests }}
+
+# Everything: difftests, workerd, smoke, Durable Objects.
+test-all: build-fixtures test test-workers test-smoke test-do
 
 # Compare a built Gleam project with erl, e.g. just difftest-project DIR app GET /
 difftest-project dir module method="GET" path="/" *body:

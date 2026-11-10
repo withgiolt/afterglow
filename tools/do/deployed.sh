@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Deployed checks for P2-P5 (each Worker deleted after its check, also on failure).
 # Usage: tools/do/deployed.sh p2|p3|p4|p5      Requests: tens per check.
+# p3-p5 deploy out/do-pN, which tools/do/test.sh builds. p2 deploys out/do-v1 and
+# out/do-v2, built by build-do.sh from tests/erl/p2v1 and p2v2.
 set -uo pipefail
 cd "$(dirname "$0")/../.."
 # No `sed -i`: GNU and BSD sed disagree on its argument.
