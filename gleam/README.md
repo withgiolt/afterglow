@@ -6,7 +6,7 @@ bytecode to WebAssembly ahead of time and links it with a small Rust runtime.
 afterglow is experimental, so expect breaking changes.
 
 You don't add this package yourself. `giolt build` uses it for projects with
-`target = "erlang"`, and needs Gleam and Erlang/OTP installed. Your entry module
+`target = "erlang"`, and needs Gleam, Erlang/OTP and rebar3 installed. Your entry module
 exports `handle`:
 
 ```gleam
