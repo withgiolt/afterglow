@@ -41,6 +41,14 @@ test-all: build-fixtures test test-workers test-smoke test-do
 difftest-project dir module method="GET" path="/" *body:
     MSYS_NO_PATHCONV=1 tools/difftest-project.sh {{ dir }} {{ module }} {{ method }} {{ path }} {{ body }}
 
+# A Worker (app.wasm + index.js) for MODULE:start/0 of a built Gleam project.
+build-project dir module out *args:
+    tools/build-project.sh {{ dir }} {{ module }} {{ out }} {{ args }}
+
+# Self-time profile of app.wasm on one ETF request (a .req in out/difftest-req); AFTERGLOW_NAMES=1 builds keep names.
+profile wasm req runs="300":
+    node tools/profile.mjs {{ wasm }} {{ req }} {{ runs }}
+
 # One request through a built Worker: `just fetch-worker out/workers/basic_get /`.
 fetch-worker dir *args:
     MSYS_NO_PATHCONV=1 bun tools/fetch-worker.ts {{ dir }} {{ args }}
