@@ -157,7 +157,7 @@
       <li>No preemption by reduction count. No links across DOs, only monitors, and remote monitors aren't checkpointed. Receive timeouts in a DO run on virtual time.</li>
       <li>Deployed, a chain of sends between DOs stops at about 10 hops (Cloudflare's request depth limit), so past 8 hops glowc relays sends through the DO alarm.</li>
       <li>json_roundtrip's p99 is over Free's nominal 10 ms CPU, with no failures.</li>
-      <li>P4 deployed: the 60 s timer fired at 60,002 ms after eviction. The Cron Trigger delivered only 1 tick in 10 minutes on an every-minute schedule.</li>
+      <li>P4 deployed: the 60 s timer fired on time (60,002 ms, no requests in between), read back from a restored instance; only the local test forces eviction before 60 s. The Cron Trigger delivered only 1 tick in 10 minutes on an every-minute schedule.</li>
     </ul>
   </div>
 

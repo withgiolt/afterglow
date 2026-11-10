@@ -582,6 +582,13 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   instance ({"restored":3}), so the alarm woke the evicted DO on time. PASS for the P4
   test. Cron: 1 tick ({tick, "* * * * *"}) in 600 s, where about 10 were due. Delivery
   works, but deployed cron ran far less often than its schedule; not explained.
+  No requests reached the DO during the wait, but eviction before the 60 s mark
+  is shown only by the local test, which forces the dispose.
+- Builds: deployed P2 and P5 ran the `tools/do/node.js` from before the hop relay
+  (1317de8). P3's passing run and the P4 rerun ran the relay version. The baked-in
+  BUILD hash covers only app.wasm, so it doesn't tell them apart. After the deployed runs,
+  the relay also keeps the alarm at "now" while any send is queued, not just one
+  queued in that turn (otherwise a pending timer could push it out); local P2-P5 pass.
 - P5: two WebSocket clients, 30 s idle between messages, room state restored
   ({"restored":2}). PASS.
 

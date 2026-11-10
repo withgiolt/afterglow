@@ -113,10 +113,11 @@ export class GlowNode extends DurableObject {
     this.flush(x);
     this.sendWs(x);
     // one alarm for the earliest erlang timer, or now if sends are queued
+    // (any queued send, from this turn or an earlier one, keeps the alarm at now)
     let next = x.rt_next_timer();
-    if (this.queued) { next = Date.now(); this.queued = false; }
+    if (this.queued || this.pendingQueue()) { next = Date.now(); this.queued = false; }
     if (next >= 0) this.ctx.storage.setAlarm(next);
-    else if (!this.pendingQueue()) this.ctx.storage.deleteAlarm();
+    else this.ctx.storage.deleteAlarm();
     return { status, body, headers: {
       "x-glowc-boot": fresh ? JSON.stringify(this.bootInfo) : "warm",
       "x-glowc-rows": String(n), "x-glowc-row-bytes": String(bytesWritten),

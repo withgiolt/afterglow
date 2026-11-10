@@ -38,7 +38,7 @@ No row is traded against another: a faster runtime that breaks a fixture fails t
 | Tier 2 persistence | P2 deployed: {v1,1} {v1,2}, then after 180 s idle {v1,3} restored from SQLite. After a redeploy to v2, {v2,4} through `code_change`, then {v2,4} {v2,5}. Rows are about 470 B | pass |
 | Tier 2 messaging | P3 deployed: 200 round trips at 72.8 ms each, and 4 round trips at 77 ms each. Local workerd: 1.5 ms. The monitor fires `noconnection` | measured |
 
-Phase 2 (P1–P5) was built while M5 waited for the request budget; the goal makes it conditional on M5, which passed afterwards. Deployed, P2, P3 and P5 pass. P4's 60 s timer fired at 60,002 ms after the DO was evicted. The Cron Trigger delivered `{tick, Cron}`, but only once in 600 s against a schedule of every minute. Deviations from this doc:
+Phase 2 (P1–P5) was built while M5 waited for the request budget; the goal makes it conditional on M5, which passed afterwards. Deployed, P2, P3 and P5 pass. P4's 60 s timer fired on time (60,002 ms after arming, with no requests in between), read back from a restored instance. Only the local test forces eviction before the 60 s are up. The Cron Trigger delivered `{tick, Cron}`, but only once in 600 s against a schedule of every minute. Deviations from this doc:
 - no preemption by reduction count (P1);
 - no links across DOs, only monitors, and remote monitors aren't checkpointed (P3);
 - receive timeouts in a DO use virtual time;
