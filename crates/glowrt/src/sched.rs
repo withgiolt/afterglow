@@ -972,10 +972,12 @@ bif!("erlang:registered/0", fn registered() {
     let v: Vec<Term> = s().registered.iter().map(|&(n, _)| n).collect();
     build::list(&v)
 });
-bif!("erlang:process_info/2", fn process_info(p, item) {
-    if !is_pid(p) { return exc::badarg(); }
-    let Some(j) = find(pid_val(p)) else { return UNDEFINED };
+/// One process_info item as {Item, Value}; None for an item glowrt doesn't know.
+/// Sizes and counters (heap_size, reductions, ...) have no glowrt equivalent and
+/// report 0; proc_lib and logger only print them in crash reports.
+unsafe fn info_item(j: usize, item: Term) -> Option<Term> {
     let pr = &s().procs[j];
+    let pdict = || if j == s().cur { roots::proc().pdict } else { pr.pdict };
     let v = if item == MESSAGE_QUEUE_LEN {
         small(pr.mailbox.len() as i64)
     } else if item == TRAP_EXIT {
@@ -988,14 +990,152 @@ bif!("erlang:process_info/2", fn process_info(p, item) {
     } else if item == REGISTERED_NAME {
         match s().registered.iter().find(|&&(_, q)| q == pr.pid) {
             Some(&(n, _)) => n,
-            None => return NIL,
+            None => NIL,
         }
     } else if item == DICTIONARY {
-        if j == s().cur { roots::proc().pdict } else { pr.pdict }
+        pdict()
+    } else if item == intern("messages") {
+        build::list(&pr.mailbox)
+    } else if item == intern("monitors") || item == intern("monitored_by") || item == intern("current_stacktrace")
+        || item == intern("garbage_collection")
+    {
+        NIL
+    } else if item == intern("heap_size") || item == intern("stack_size") || item == intern("total_heap_size")
+        || item == intern("reductions") || item == intern("memory")
+    {
+        small(0)
+    } else if item == intern("initial_call") || item == intern("current_function") {
+        build::tuple(&[intern("erlang"), intern("apply"), small(2)])
+    } else if item == intern("group_leader") {
+        pid(MAIN_PID as u64)
+    } else if item == intern("priority") {
+        intern("normal")
+    } else if item == intern("error_handler") {
+        intern("error_handler")
+    } else if is_tuple(item) && tuple_arity(item) == 2 && tuple_get(item, 0) == DICTIONARY {
+        // {dictionary, Key} (OTP 26+): the value or undefined
+        let key = tuple_get(item, 1);
+        let mut x = pdict();
+        let mut found = UNDEFINED;
+        while is_list(x) {
+            let kv = head(x);
+            if crate::cmp::exact_eq(tuple_get(kv, 0), key) { found = tuple_get(kv, 1); break; }
+            x = tail(x);
+        }
+        found
     } else {
-        return UNDEFINED;
+        return None;
     };
-    build::tuple(&[item, v])
+    Some(build::tuple(&[item, v]))
+}
+
+bif!("erlang:process_info/2", fn process_info(p, item) {
+    if !is_pid(p) { return exc::badarg(); }
+    let Some(j) = find(pid_val(p)) else { return UNDEFINED };
+    if is_list(item) || item == NIL {
+        // the list form: [{Item, Value}] in the order asked
+        let Some(items) = build::list_to_vec(item) else { return exc::badarg() };
+        let mut out = Vec::with_capacity(items.len());
+        for it in items {
+            match info_item(j, it) {
+                Some(t) => out.push(t),
+                None => return exc::badarg(),
+            }
+        }
+        return build::list(&out);
+    }
+    match info_item(j, item) {
+        // registered_name alone answers [] when the process has no name
+        Some(t) if item == REGISTERED_NAME && tuple_get(t, 1) == NIL => NIL,
+        Some(t) => t,
+        None => UNDEFINED,
+    }
+});
+bif!("erlang:process_info/1", fn process_info1(p) {
+    if !is_pid(p) { return exc::badarg(); }
+    let Some(j) = find(pid_val(p)) else { return UNDEFINED };
+    let items = ["registered_name", "current_function", "initial_call", "status", "message_queue_len",
+        "links", "dictionary", "trap_exit", "error_handler", "priority", "group_leader",
+        "total_heap_size", "heap_size", "stack_size", "reductions", "garbage_collection"];
+    let mut out = Vec::new();
+    for it in items {
+        let t = info_item(j, intern(it)).unwrap();
+        // process_info/1 leaves registered_name out for a process without a name
+        if it == "registered_name" && tuple_get(t, 1) == NIL { continue; }
+        out.push(t);
+    }
+    build::list(&out)
+});
+bif!("erlang:processes/0", fn processes() {
+    let v: Vec<Term> = s().procs.iter().filter(|p| p.status != Status::Exited).map(|p| pid(p.pid as u64)).collect();
+    build::list(&v)
+});
+
+/// erlang:system_info/1 for the items apps and OTP libraries ask about. glowrt runs one
+/// scheduler on one thread; limits are ERTS's defaults.
+bif!("erlang:system_info/1", fn system_info(item) {
+    let chars = |s: &str| { let v: Vec<Term> = s.chars().map(|c| small(c as i64)).collect(); build::list(&v) };
+    let name = if is_atom(item) { crate::fmt::show(item) } else { String::new() };
+    match name.as_str() {
+        "process_count" => small(s().procs.iter().filter(|p| p.status != Status::Exited).count() as i64),
+        "atom_count" => small(crate::atoms::table().names.len() as i64),
+        "port_count" | "dirty_cpu_schedulers" | "dirty_cpu_schedulers_online" | "dirty_io_schedulers"
+        | "thread_pool_size" | "ets_count" => small(0),
+        "schedulers" | "schedulers_online" | "logical_processors" | "logical_processors_available"
+        | "logical_processors_online" | "cpu_quota" => small(1),
+        "process_limit" => small(262_144),
+        "atom_limit" => small(1_048_576),
+        "port_limit" => small(65_536),
+        "ets_limit" => small(8_192),
+        "wordsize" => small(8),
+        "otp_release" => chars("29"),
+        "version" => chars("17.1.1"),
+        "machine" => chars("BEAM"),
+        "system_architecture" => chars("wasm32-unknown-unknown"),
+        "system_version" => chars("Erlang/OTP 29 [glowrt] [wasm32]\n"),
+        "threads" | "smp_support" | "kernel_poll" => FALSE,
+        "multi_scheduling" => intern("disabled"),
+        "build_type" => intern("opt"),
+        "emu_flavor" => intern("emu"),
+        "emu_type" => intern("opt"),
+        "c_compiler_used" => build::tuple(&[UNDEFINED, UNDEFINED]),
+        "debug_compiled" => FALSE,
+        "heap_type" => intern("private"),
+        "scheduler_id" => small(1),
+        "start_time" => crate::bifs::monotonic0(),
+        "os_monotonic_time_source" | "os_system_time_source" => NIL,
+        "time_correction" => TRUE,
+        "time_warp_mode" => intern("no_time_warp"),
+        _ => {
+            if is_tuple(item) && tuple_arity(item) == 2 && crate::fmt::show(tuple_get(item, 0)) == "wordsize" {
+                return small(8);
+            }
+            exc::badarg()
+        }
+    }
+});
+
+/// erlang:statistics/1. glowrt counts no reductions or context switches; runtime and
+/// wall clock are both wall time since the instance started.
+static mut STAT_START_US: f64 = -1.0;
+static mut STAT_LAST: [f64; 2] = [-1.0, -1.0];
+bif!("erlang:statistics/1", fn statistics(item) {
+    let now = crate::host_now_us();
+    if STAT_START_US < 0.0 { STAT_START_US = now; }
+    let since = |k: usize| {
+        let last = if STAT_LAST[k] < 0.0 { STAT_START_US } else { STAT_LAST[k] };
+        STAT_LAST[k] = now;
+        build::tuple(&[small(((now - STAT_START_US) / 1000.0) as i64), small(((now - last) / 1000.0) as i64)])
+    };
+    match crate::fmt::show(item).as_str() {
+        "runtime" => since(0),
+        "wall_clock" => since(1),
+        "reductions" | "exact_reductions" | "context_switches" => build::tuple(&[small(0), small(0)]),
+        "garbage_collection" => build::tuple(&[small(0), small(0), small(0)]),
+        "run_queue" | "total_run_queue_lengths" | "total_active_tasks" => small(0),
+        "io" => build::tuple(&[build::tuple(&[intern("input"), small(0)]), build::tuple(&[intern("output"), small(0)])]),
+        _ => exc::badarg(),
+    }
 });
 bif!("erlang:yield/0", fn yield0() { TRUE });
 

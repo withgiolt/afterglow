@@ -1,7 +1,7 @@
 //! Whole-program view: finds .beam files, walks reachability from the entry, and
 //! numbers atoms, literals, functions and fun-table entries globally.
 
-use beam_reader::{Module, Operand};
+use beam_reader::{Instr, Module, Operand};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::path::PathBuf;
 
@@ -120,6 +120,16 @@ impl Program {
         None
     }
 
+    /// Whether a .beam for `name` is available, without loading it.
+    pub fn has_module(&self, name: &str) -> bool {
+        self.module_index.contains_key(name)
+            || !self.missing_modules.contains(name)
+                && self.search.iter().any(|dir| {
+                    !self.skip.iter().any(|(m, d)| m == name && dir.to_string_lossy().contains(d.as_str()))
+                        && dir.join(format!("{}.beam", name)).exists()
+                })
+    }
+
     pub fn find_function(&self, m: usize, f: &str, a: u32) -> Option<usize> {
         let module = &self.modules[m];
         module.functions.iter().position(|func| module.atom(func.name) == f && func.arity == a)
@@ -197,42 +207,123 @@ impl Program {
             Target::Compiled(..) => {}
             _ => return Err(format!("entry {} not found", mfa_str(entry))),
         }
+        let mut kept: HashSet<String> = HashSet::new();
         for name in self.keep.clone() {
-            let Some(km) = self.load_module(&name) else { return Err(format!("--keep {}: module not found", name)) };
-            let ex: Vec<Mfa> = self.modules[km]
-                .exports
-                .iter()
-                .filter_map(|e| self.modules[km].functions.iter().find(|f| f.entry == e.label))
-                .map(|f| (name.clone(), self.modules[km].atom(f.name).to_string(), f.arity))
-                .collect();
-            for mfa in ex {
-                self.resolve(&mfa, &mut queue);
+            if !self.keep_exports(&name, &mut kept, &mut queue) {
+                return Err(format!("--keep {}: module not found", name));
             }
         }
+        // OTP calls into these through apply (sys and proc_lib callbacks, gen:init_it,
+        // gen_server's own callbacks in supervisor): once reached, keep all exports.
+        const OTP_DYNAMIC: [&str; 5] = ["gen", "gen_server", "gen_statem", "gen_event", "supervisor"];
+        let mut pending: Vec<String> = Vec::new();
+        loop {
+            self.drain(&mut queue, &mut pending);
+            for &(m, _) in &self.functions {
+                let n = self.modules[m].name();
+                if OTP_DYNAMIC.contains(&n) && !kept.contains(n) {
+                    pending.push(n.to_string());
+                }
+            }
+            let mut added = false;
+            for name in std::mem::take(&mut pending) {
+                if !kept.contains(&name) && self.keep_exports(&name, &mut kept, &mut queue) {
+                    added = true;
+                }
+            }
+            if !added {
+                break;
+            }
+        }
+        self.number_literals();
+        Ok(())
+    }
+
+    /// Resolves every export of module `name` (once). False if there is no such module.
+    fn keep_exports(&mut self, name: &str, kept: &mut HashSet<String>, queue: &mut VecDeque<(usize, usize)>) -> bool {
+        let Some(km) = self.load_module(name) else { return false };
+        kept.insert(name.to_string());
+        let ex: Vec<Mfa> = self.modules[km]
+            .exports
+            .iter()
+            .filter_map(|e| self.modules[km].functions.iter().find(|f| f.entry == e.label))
+            .map(|f| (name.to_string(), self.modules[km].atom(f.name).to_string(), f.arity))
+            .collect();
+        for mfa in ex {
+            self.resolve(&mfa, queue);
+        }
+        true
+    }
+
+    /// The atoms moved into x0 and x1 in the dozen instructions before `code[k]`.
+    fn atoms_moved_before(&self, m: usize, code: &[Instr], k: usize) -> [Option<String>; 2] {
+        let mut mf: [Option<String>; 2] = [None, None];
+        for prev in code[..k].iter().rev().take(12) {
+            if prev.op == "label" || prev.op.starts_with("call") {
+                break;
+            }
+            if prev.op == "move" {
+                if let (Operand::Atom(a), Operand::X(x)) = (prev.args[0].plain(), prev.args[1].plain()) {
+                    if *x < 2 && mf[*x as usize].is_none() && *a > 0 {
+                        mf[*x as usize] = Some(self.modules[m].atom(*a).to_string());
+                    }
+                }
+            }
+        }
+        mf
+    }
+
+    /// The module-name-shaped string literal moved into x0 just before `code[k]`.
+    fn literal_moved_to_x0(&self, m: usize, code: &[Instr], k: usize) -> Option<String> {
+        for prev in code[..k].iter().rev().take(12) {
+            if prev.op == "label" || prev.op.starts_with("call") {
+                break;
+            }
+            if prev.op == "move" {
+                if let (Operand::Literal(i), Operand::X(0)) = (prev.args[0].plain(), prev.args[1].plain()) {
+                    return literal_module_name(&self.modules[m].literals[*i as usize]);
+                }
+            }
+        }
+        None
+    }
+
+    fn drain(&mut self, queue: &mut VecDeque<(usize, usize)>, pending: &mut Vec<String>) {
         while let Some((m, fi)) = queue.pop_front() {
             let code = self.modules[m].functions[fi].code.clone();
             for (k, ins) in code.iter().enumerate() {
                 for mfa in self.call_targets(m, ins) {
-                    self.resolve(&mfa, &mut queue);
-                    // spawn(M, F, A) / apply(M, F, A) with M and F moved in as atoms
-                    // just before: keep every exported M:F reachable.
+                    self.resolve(&mfa, queue);
+                    // spawn(M, F, A) / apply(M, F, A) / proc_lib:start_link(M, F, A, ...)
+                    // with M and F moved in as atoms just before: keep every exported M:F.
                     let dynamic = mfa.0 == "erlang" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link" | "spawn_monitor" | "apply")
                         || mfa.0 == "erlang" && mfa.2 == 4 && mfa.1 == "spawn_opt"
-                        || mfa.0 == "proc_lib" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link");
-                    if dynamic {
-                        let mut mf: [Option<String>; 2] = [None, None];
-                        for prev in code[..k].iter().rev().take(12) {
-                            if prev.op == "label" || prev.op.starts_with("call") {
-                                break;
-                            }
-                            if prev.op == "move" {
-                                if let (Operand::Atom(a), Operand::X(x)) = (prev.args[0].plain(), prev.args[1].plain()) {
-                                    if *x < 2 && mf[*x as usize].is_none() && *a > 0 {
-                                        mf[*x as usize] = Some(self.modules[m].atom(*a).to_string());
-                                    }
-                                }
+                        || mfa.0 == "proc_lib" && mfa.2 == 3 && matches!(mfa.1.as_str(), "spawn" | "spawn_link")
+                        || mfa.0 == "proc_lib" && (3..=5).contains(&mfa.2)
+                            && matches!(mfa.1.as_str(), "start" | "start_link" | "start_monitor" | "spawn_opt");
+                    // gen_server:start_link(Mod, ...) / supervisor:start_link({local, N}, Mod, Args):
+                    // the callback module is called through apply; keep all of it.
+                    let behaviour_start = matches!(mfa.0.as_str(), "gen_server" | "gen_statem" | "gen_event" | "supervisor")
+                        && matches!(mfa.1.as_str(), "start" | "start_link" | "start_monitor");
+                    // binary_to_atom("gleam@otp@static_supervisor") on a literal naming a
+                    // module (Gleam's atom.create), later handed to OTP as a callback
+                    // module: keep that module's exports.
+                    let makes_atom = mfa.0 == "erlang"
+                        && matches!(mfa.1.as_str(), "binary_to_atom" | "binary_to_existing_atom" | "list_to_atom" | "list_to_existing_atom");
+                    if makes_atom {
+                        if let Some(name) = self.literal_moved_to_x0(m, &code, k) {
+                            if self.has_module(&name) {
+                                pending.push(name);
                             }
                         }
+                    }
+                    if behaviour_start {
+                        for name in self.atoms_moved_before(m, &code, k).into_iter().flatten() {
+                            pending.push(name);
+                        }
+                    }
+                    if dynamic {
+                        let mf = self.atoms_moved_before(m, &code, k);
                         if let [Some(mn), Some(fname)] = mf {
                             if let Some(tm) = self.load_module(&mn) {
                                 let ex: Vec<(String, u32)> = self.modules[tm]
@@ -245,7 +336,7 @@ impl Program {
                                     })
                                     .collect();
                                 for (name, a) in ex {
-                                    self.resolve(&(mn.clone(), name, a), &mut queue);
+                                    self.resolve(&(mn.clone(), name, a), queue);
                                 }
                             }
                         } else {
@@ -257,7 +348,7 @@ impl Program {
                     "call" | "call_only" | "call_last" => {
                         if let Some(Operand::Label(l)) = ins.args.get(1) {
                             if let Some(t) = self.function_by_label(m, *l) {
-                                self.enqueue(m, t, &mut queue);
+                                self.enqueue(m, t, queue);
                             }
                         }
                     }
@@ -265,7 +356,7 @@ impl Program {
                         if let Some(Operand::U(li)) = ins.args.first() {
                             let lam = self.modules[m].lambdas[*li as usize].clone();
                             if let Some(t) = self.function_by_label(m, lam.label) {
-                                self.enqueue(m, t, &mut queue);
+                                self.enqueue(m, t, queue);
                             }
                             let n = self.lambdas.len() as u32;
                             self.lambdas.entry((m, *li as u32)).or_insert(n);
@@ -278,14 +369,12 @@ impl Program {
                     if let Operand::Literal(i) = op.plain() {
                         let lit = self.modules[m].literals[*i as usize].clone();
                         for mfa in literal_exports(&lit) {
-                            self.resolve(&mfa, &mut queue);
+                            self.resolve(&mfa, queue);
                         }
                     }
                 }
             }
         }
-        self.number_literals();
-        Ok(())
     }
 
     /// Numbers only the literals that reachable functions mention.
@@ -355,6 +444,23 @@ impl Program {
     pub fn global_atom(&self, m: usize, local: u32) -> u32 {
         self.atom_index[self.modules[m].atom(local)]
     }
+}
+
+/// The text of a literal that is a single binary shaped like a module name
+/// ([a-z][a-zA-Z0-9_@]*), e.g. Gleam's "gleam@otp@static_supervisor".
+pub fn literal_module_name(etf: &[u8]) -> Option<String> {
+    let b = if etf.first() == Some(&131) { &etf[1..] } else { etf };
+    if b.first() != Some(&109) || b.len() < 5 {
+        return None;
+    }
+    let n = u32::from_be_bytes([b[1], b[2], b[3], b[4]]) as usize;
+    let s = std::str::from_utf8(b.get(5..5 + n)?).ok()?;
+    if b.len() != 5 + n || n > 255 || !s.starts_with(|c: char| c.is_ascii_lowercase())
+        || !s.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '@')
+    {
+        return None;
+    }
+    Some(s.to_string())
 }
 
 /// Finds EXPORT_EXT (fun M:F/A) inside an ETF literal.

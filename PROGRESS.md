@@ -593,6 +593,43 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 - P5: two WebSocket clients, 30 s idle between messages, room state restored
   ({"restored":2}). PASS.
 
+## Real-app test: gote (2026-11-10, Windows)
+
+- Toolchain now also runs on Windows (Git Bash): `source tools/env.sh` (Erlang erts bin,
+  Binaryen 133), rebar3 3.28.0 in ~/.local/bin, `.gitattributes` keeps LF. Gleam's
+  Erlang-target builds need symlinks: without Developer Mode, the first build of a
+  project runs elevated through `tools/gleam-elevated.ps1` (one UAC prompt); later
+  builds work unelevated.
+- glowvm's own test suite (`scripts/smoke.test.ts`) ported unchanged to
+  `tests/smoke.test.ts`, run against glowc Workers: 29/29.
+- The giolt dashboard can't be tested: it is a JavaScript-target app (plinth, node_pg,
+  glen, gleam_fetch), so there is no BEAM code to compile.
+- gote (local branch `afterglow-stress` in ../scratch/gote, not pushed): glowvm dep moved
+  to 7190ebc (gote pinned 03136a0, which still used the JSON request protocol), and
+  `/stress` added: 40 checks, one Erlang/OTP feature each, compared with real erl by
+  `tools/difftest-project.sh`. Original routes work on workerd (home, /status.json,
+  worker_sum 108). Stress: 34/40 identical to erl. Remaining gaps:
+  - not implemented: ETS, crypto hash/hmac (crypto:hash/mac NIFs; Wisp signed cookies
+    and sessions use HMAC-SHA256, so apps using them crash), regexp (re NIFs);
+  - erlang:phash2 uses glowrt's own hash, not ERTS's;
+  - small atom-keyed maps iterate in a different order (known);
+  - deep_recursion_100k: stack overflow traps the instance (502, next request fine).
+- Fixed on the way: process_info/2 list form and more items; crash reports from
+  proc_lib (logger:macro_log, error_logger depth/limit_term overrides print one line to
+  the host log); reachability for OTP behaviours (proc_lib:start*, gen_server/
+  supervisor start with a literal callback module, binary_to_atom on a literal module
+  name, gen/gen_server/gen_statem/gen_event/supervisor kept whole once reached);
+  init:get_arguments/0 (erl_features asks on the first atom printed: every ~p/~w of an
+  atom failed); float short format (2500.0 -> "2.5e3", ERTS's shorter-form rule);
+  new BIFs: get_keys, pid/ref/fun_to_list, system_info/1, processes/0,
+  process_info/1, statistics/1, localtime/universaltime/date/time,
+  io:printable_range/0, string:list_to_float/1. glowc-build.sh takes the newest OTP lib
+  when several are installed.
+- Sizes (gzip): basic_get 214 KB, lustre_html 220 KB, json_roundtrip 237 KB, stress gote
+  572 KB.
+- Tests are faster: regress runs in parallel without wasm-opt (62 tests, ~60 s instead of
+  ~195 s); the depth test stays optimised; smoke builds in parallel with -O3.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare

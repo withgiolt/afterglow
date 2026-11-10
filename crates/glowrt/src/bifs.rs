@@ -412,16 +412,28 @@ bif!("erts_internal:list_to_integer/2", fn ei_list_to_integer(l, base) {
 });
 
 /// Erlang's shortest round-trip float formatting (float_to_binary(F, [short])).
+/// ERTS takes the shortest round-trip digits and prints them in decimal or scientific
+/// form, whichever is shorter; decimal on a tie: 2500.0 -> "2.5e3", 100.0 -> "100.0",
+/// 1.0e-5 -> "1.0e-5", 0.0012 -> "0.0012".
 pub fn float_short(f: f64) -> String {
-    let s = format!("{:?}", f);
-    // Rust prints 1e20 as "1e20" and 0.1 as "0.1"; Erlang short gives "1.0e20".
-    if let Some(pos) = s.find('e') {
-        let (m, e) = s.split_at(pos);
-        let m = if m.contains('.') { m.to_string() } else { format!("{}.0", m) };
-        format!("{}{}", m, e)
+    let s = format!("{:e}", f.abs()); // shortest digits: "2.5e3", "1e15", "1.5e-7"
+    let (m, e) = s.split_at(s.find('e').unwrap());
+    let exp: i64 = e[1..].parse().unwrap();
+    let digits: String = m.chars().filter(|c| *c != '.').collect();
+    let sign = if f.is_sign_negative() { "-" } else { "" };
+    let frac = if digits.len() > 1 { &digits[1..] } else { "0" };
+    let sci = format!("{}{}.{}e{}", sign, &digits[..1], frac, exp);
+    let dec = if exp >= 0 {
+        let int_len = exp as usize + 1;
+        if digits.len() > int_len {
+            format!("{}{}.{}", sign, &digits[..int_len], &digits[int_len..])
+        } else {
+            format!("{}{}{}.0", sign, digits, "0".repeat(int_len - digits.len()))
+        }
     } else {
-        s
-    }
+        format!("{}0.{}{}", sign, "0".repeat((-exp - 1) as usize), digits)
+    };
+    if sci.len() < dec.len() { sci } else { dec }
 }
 
 /// `float_to_list(F)` / `float_to_binary(F)` default: 20 significant digits, scientific.
@@ -530,6 +542,29 @@ unsafe fn phash(t: Term) -> u64 {
     h & 0xFFFF_FFFF
 }
 bif!("erlang:display/1", fn display(t) { crate::host_log(&crate::fmt::show(t)); TRUE });
+
+// Logging. glowrt has no logger backend (OTP's needs ETS and the application env), so
+// the ?LOG_* macros (logger:macro_log, e.g. proc_lib's crash reports when a spawned
+// process dies) print one line to the host log instead: "[Level] What", cut at 2 KB.
+fn log_line(level: Term, what: Term, args: Option<Term>) -> Term {
+    let mut s = format!("[{}] {}", crate::fmt::show(level), crate::fmt::show(what));
+    if let Some(a) = args { s.push(' '); s.push_str(&crate::fmt::show(a)); }
+    if s.len() > 2048 {
+        let mut cut = 2048;
+        while !s.is_char_boundary(cut) { cut -= 1; }
+        s.truncate(cut);
+        s.push_str(" ...");
+    }
+    crate::host_log(&s);
+    atoms::intern("ok")
+}
+bif!("logger:macro_log/3", fn macro_log3(_loc, level, what) { log_line(level, what, None) });
+bif!("logger:macro_log/4", fn macro_log4(_loc, level, what, _meta) { log_line(level, what, None) });
+bif!("logger:macro_log/5", fn macro_log5(_loc, level, fmt, args, _meta) { log_line(level, fmt, Some(args)) });
+bif!("error_logger:get_format_depth/0", fn format_depth() { atoms::intern("unlimited") });
+// limit_term calls get_format_depth locally, which no override reaches; unlimited depth
+// means the term comes back unchanged.
+bif!("error_logger:limit_term/1", fn limit_term(t) { t });
 // Environment: the host fills ENV_BUF with "K=V\0" entries (rt_env_buf + rt_env_set).
 static mut ENV_BUF: Vec<u8> = Vec::new();
 static mut ENV_VARS: Vec<(String, String)> = Vec::new();
@@ -753,3 +788,87 @@ fn erf(x: f64) -> f64 {
         + t * (-0.82215223 + t * 0.17087277))))))))).exp();
     if x >= 0.0 { y } else { -y }
 }
+
+// ---------------------------------------------------------------------------
+// Process dictionary keys, term-to-text, io, time of day
+
+bif!("erlang:get_keys/0", fn get_keys0() {
+    let v: Vec<Term> = build::list_to_vec(proc().pdict).unwrap_or_default().iter().map(|&kv| tuple_get(kv, 0)).collect();
+    build::list(&v)
+});
+bif!("erlang:get_keys/1", fn get_keys1(val) {
+    let v: Vec<Term> = build::list_to_vec(proc().pdict)
+        .unwrap_or_default()
+        .iter()
+        .filter(|&&kv| cmp::exact_eq(tuple_get(kv, 1), val))
+        .map(|&kv| tuple_get(kv, 0))
+        .collect();
+    build::list(&v)
+});
+bif!("erlang:pid_to_list/1", fn pid_to_list(p) {
+    if !is_pid(p) { return badarg(); }
+    str_list(&crate::fmt::show(p))
+});
+bif!("erlang:ref_to_list/1", fn ref_to_list(r) { str_list(&crate::fmt::show(r)) });
+bif!("erlang:fun_to_list/1", fn fun_to_list(f) { str_list(&crate::fmt::show(f)) });
+// ERTS's default printable range (erl +pc latin1)
+bif!("io:printable_range/0", fn printable_range() { atoms::intern("latin1") });
+
+/// string:list_to_float/1 (the NIF behind string:to_float/1): the longest prefix that
+/// is an Erlang float, as {Float, Rest}, or {error, no_float}.
+bif!("string:list_to_float/1", fn string_list_to_float(l) {
+    let mut chars = String::new();
+    let mut x = l;
+    while is_list(x) && chars.len() < 400 {
+        let h = head(x);
+        if !is_small(h) || !(0..128).contains(&small_val(h)) { break; }
+        chars.push(small_val(h) as u8 as char);
+        x = tail(x);
+    }
+    // try prefixes from longest to shortest
+    for n in (3..=chars.len()).rev() {
+        if let Some(f) = parse_erlang_float(&chars[..n]) {
+            let mut rest = l;
+            for _ in 0..n { rest = tail(rest); }
+            return build::tuple(&[build::float(f), rest]);
+        }
+    }
+    build::tuple(&[ERROR, atoms::intern("no_float")])
+});
+
+/// {{Y, M, D}, {H, Mi, S}} in UTC for seconds since the epoch. Workers run on UTC, so
+/// local time is universal time.
+unsafe fn datetime(secs: i64) -> Term {
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    // days to civil date (Howard Hinnant's algorithm)
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = yoe + era * 400 + if m <= 2 { 1 } else { 0 };
+    build::tuple(&[
+        build::tuple(&[small(y), small(m), small(d)]),
+        build::tuple(&[small(rem / 3600), small(rem / 60 % 60), small(rem % 60)]),
+    ])
+}
+bif!("erlang:universaltime/0", fn universaltime() { datetime((now_ns() / 1_000_000_000) as i64) });
+bif!("erlang:localtime/0", fn localtime() { universaltime() });
+bif!("erlang:universaltime_to_localtime/1", fn ut_to_lt(dt) { dt });
+bif!("erlang:localtime_to_universaltime/1", fn lt_to_ut(dt) { dt });
+bif!("erlang:localtime_to_universaltime/2", fn lt_to_ut2(dt, _dst) { dt });
+bif!("erlang:posixtime_to_universaltime/1", fn posix_to_ut(s) {
+    match crate::num::to_i64(s) { Some(v) => datetime(v), None => badarg() }
+});
+bif!("erlang:date/0", fn date0() { tuple_get(universaltime(), 0) });
+bif!("erlang:time/0", fn time0() { tuple_get(universaltime(), 1) });
+
+// init: a Worker has no command line, so no emulator flags or plain arguments.
+// (erl_features asks for 'enable-feature' flags the first time an atom is printed.)
+bif!("init:get_arguments/0", fn init_get_arguments() { NIL });
+bif!("init:get_argument/1", fn init_get_argument(_f) { ERROR });
+bif!("init:get_plain_arguments/0", fn init_get_plain_arguments() { NIL });
