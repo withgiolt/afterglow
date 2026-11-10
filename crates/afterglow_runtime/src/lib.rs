@@ -143,6 +143,23 @@ pub unsafe extern "C" fn rt_exception_text() -> u64 {
     pack_bytes(s.as_bytes())
 }
 
+/// "M:F/A" when the current exception is error:undef, the function nobody provides
+/// (rt_undef puts it first in the stacktrace); 0 for any other exception.
+#[no_mangle]
+pub unsafe extern "C" fn rt_missing_function() -> u64 {
+    let p = roots::proc();
+    if p.exc_class != atoms::ERROR || p.exc_reason != atoms::UNDEF {
+        return 0;
+    }
+    let frames = exc::rt_build_stacktrace(p.exc_trace);
+    let Some(first) = build::list_to_vec(frames).and_then(|v| v.first().copied()) else { return 0 };
+    if !is_tuple(first) || tuple_arity(first) != 4 || !is_small(tuple_get(first, 2)) {
+        return 0;
+    }
+    let s = format!("{}:{}/{}", fmt::show(tuple_get(first, 0)), fmt::show(tuple_get(first, 1)), small_val(tuple_get(first, 2)));
+    pack_bytes(s.as_bytes())
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn rt_stats_gcs() -> u64 {
     mem::gc_count()

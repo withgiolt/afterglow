@@ -1,0 +1,90 @@
+name: Release
+
+# Builds the compiler for every platform the giolt CLI runs on, packs it with the
+# runtime into the Hex package (tools/package.sh) and, for a v* tag, publishes it.
+# Pull requests run everything but the publish, so the cross builds stay checked.
+
+on:
+  push:
+    tags:
+      - "v*"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compiler:
+    strategy:
+      matrix:
+        include:
+          - { os: ubuntu-24.04, target: x86_64-unknown-linux-musl, platform: linux-x64, musl: true }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl, platform: linux-arm64, musl: true }
+          - { os: macos-15, target: x86_64-apple-darwin, platform: darwin-x64 }
+          - { os: macos-15, target: aarch64-apple-darwin, platform: darwin-arm64 }
+          - { os: windows-2025, target: x86_64-pc-windows-msvc, platform: win32-x64, exe: .exe }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - if: matrix.musl
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - run: rustup target add ${{ matrix.target }}
+      - run: cargo build --release -p afterglow --target ${{ matrix.target }}
+      # Every target builds on a runner that can execute it; this proves the binary
+      # starts there (static linking on Linux, no missing libraries anywhere).
+      - name: Run the compiler
+        run: target/${{ matrix.target }}/release/afterglow${{ matrix.exe }} dump
+      - shell: bash
+        run: |
+          mkdir -p bin
+          cp target/${{ matrix.target }}/release/afterglow${{ matrix.exe }} bin/afterglow-${{ matrix.platform }}${{ matrix.exe }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: afterglow-${{ matrix.platform }}
+          path: bin/
+
+  package:
+    needs: compiler
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: bin
+          pattern: afterglow-*
+          merge-multiple: true
+      - run: rustup target add wasm32-unknown-unknown
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28"
+          gleam-version: "1.18"
+          rebar3-version: "3.27"
+      - run: tools/package.sh bin
+      - run: gleam export hex-tarball
+        working-directory: gleam
+      - uses: actions/upload-artifact@v4
+        with:
+          name: priv
+          path: gleam/priv/
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: priv
+          path: gleam/priv
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28"
+          gleam-version: "1.18"
+          rebar3-version: "3.27"
+      - name: Check the tag matches the package version
+        run: grep -qx "version = \"${GITHUB_REF_NAME#v}\"" gleam/gleam.toml
+      # Gleam asks for this confirmation before publishing a 0.x version.
+      - run: printf 'I am not using semantic versioning\n' | gleam publish --yes
+        working-directory: gleam
+        env:
+          HEXPM_API_KEY: ${{ secrets.HEXPM_API_KEY }}

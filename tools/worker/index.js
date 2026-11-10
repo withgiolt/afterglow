@@ -44,6 +44,12 @@ function run(requestEtf, env) {
     const r = x.main();
     if (r === 0n) {
       console.error("uncaught exception: " + decoder.decode(unpack(x.rt_exception_text())));
+      const missing = decoder.decode(unpack(x.rt_missing_function()));
+      if (missing) {
+        const error = `afterglow does not implement ${missing}`;
+        console.error(error);
+        return { error, status: 500 };
+      }
       return { error: "runtime error" };
     }
     return parseOutput(unpack(x.rt_output()).slice());
@@ -218,8 +224,8 @@ export default {
       }
       const result = run(encodeRequest(request.method, url.pathname + url.search, headers, body), vars);
       if (result.error) {
-        return new Response(JSON.stringify(result), {
-          status: 502,
+        return new Response(JSON.stringify({ error: result.error }), {
+          status: result.status ?? 502,
           headers: { "content-type": "application/json" },
         });
       }

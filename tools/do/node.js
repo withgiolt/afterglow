@@ -92,7 +92,11 @@ export class AfterglowNode extends DurableObject {
     new Uint8Array(this.mem.buffer, b, input.length).set(input);
     const r = x.main();
     let status = 200, body;
-    if (r === 0n) { status = 500; body = dec.decode(this.unpack(x.rt_exception_text())); }
+    if (r === 0n) {
+      status = 500;
+      const missing = dec.decode(this.unpack(x.rt_missing_function()));
+      body = missing ? `afterglow does not implement ${missing}` : dec.decode(this.unpack(x.rt_exception_text()));
+    }
     else body = this.unpack(x.rt_output());
     if (x.rt_take_crash()) {
       // a failing node: drop the instance without checkpointing this turn

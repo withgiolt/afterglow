@@ -29,7 +29,7 @@ for f in m1_gleam:fib_test m1_gleam:sum_test; do
 done
 eb=fixtures/app/build/dev/erlang; gb=(); for d in $eb/*/ebin; do gb+=(--beams "$d"); done
 for f in p1:actor_test p1:pingpong_test; do add tools/difftest.sh "$f/0" "${gb[@]}"; done
-for m in $(ls fixtures/app/src | sed -n 's/\.gleam$//p' | grep -v "fixture_check\|m1_gleam\|gc_churn\|^p1$"); do
+for m in $(ls fixtures/app/src | sed -n 's/\.gleam$//p' | grep -v "fixture_check\|missing_function\|m1_gleam\|gc_churn\|^p1$"); do
   case $m in query_param) a=(GET "/?msg=hi");; not_found) a=(GET /anything);; echo_body) a=(POST / "hello body");; *) a=(GET /);; esac
   add tools/difftest-req.sh "$m" "${a[@]}"
 done
