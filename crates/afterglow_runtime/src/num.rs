@@ -96,7 +96,7 @@ pub unsafe fn add_fast(a: Term, b: Term) -> Term {
 
 pub unsafe fn fdiv(a: Term, b: Term) -> Term {
     match (to_f64(a), to_f64(b)) {
-        (Some(_), Some(y)) if y == 0.0 => exc::error(crate::atoms::BADARITH),
+        (Some(_), Some(0.0)) => exc::error(crate::atoms::BADARITH),
         (Some(x), Some(y)) if is_number(a) && is_number(b) => float_result(x / y),
         _ => exc::error(crate::atoms::BADARITH),
     }

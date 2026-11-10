@@ -65,3 +65,4 @@ One file per kind of code that shows how this repo does it. Copy its shape when 
 
 | Rule | Enforced by |
 |---|---|
+| No clippy warnings | `cargo clippy --all-targets -- -D warnings` in .github/workflows/test.yml |

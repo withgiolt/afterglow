@@ -34,7 +34,7 @@ pub struct Encoder {
 }
 
 impl Encoder {
-    pub unsafe fn term(&mut self, t: Term) -> Result<(), ()> {
+    pub unsafe fn term(&mut self, t: Term) -> Option<()> {
         let o = &mut self.out;
         if is_small(t) {
             let v = small_val(t);
@@ -47,7 +47,7 @@ impl Encoder {
             } else {
                 self.bignum(t)?;
             }
-            return Ok(());
+            return Some(());
         }
         if is_atom(t) {
             let name = atoms::name(t).as_bytes();
@@ -59,11 +59,11 @@ impl Encoder {
                 o.extend_from_slice(&(name.len() as u16).to_be_bytes());
             }
             o.extend_from_slice(name);
-            return Ok(());
+            return Some(());
         }
         if t == NIL {
             o.push(NIL_EXT);
-            return Ok(());
+            return Some(());
         }
         if is_list(t) {
             // A proper list of bytes up to 65535 long is a STRING_EXT.
@@ -86,7 +86,7 @@ impl Encoder {
                     self.out.push(small_val(head(l)) as u8);
                     l = tail(l);
                 }
-                return Ok(());
+                return Some(());
             }
             o.push(LIST);
             o.extend_from_slice(&(n as u32).to_be_bytes());
@@ -105,7 +105,7 @@ impl Encoder {
             self.out.extend_from_slice(&id.to_be_bytes());
             self.out.extend_from_slice(&0u32.to_be_bytes());
             self.out.extend_from_slice(&0u32.to_be_bytes());
-            return Ok(());
+            return Some(());
         }
         match boxed_sub(t) {
             Some(SUB_TUPLE) => {
@@ -120,12 +120,12 @@ impl Encoder {
                 for i in 0..n {
                     self.term(tuple_get(t, i))?;
                 }
-                Ok(())
+                Some(())
             }
             Some(SUB_FLOAT) => {
                 o.push(NEW_FLOAT);
                 o.extend_from_slice(&float_val(t).to_bits().to_be_bytes());
-                Ok(())
+                Some(())
             }
             Some(SUB_POS_BIG) | Some(SUB_NEG_BIG) => self.bignum(t),
             Some(SUB_BIN) => {
@@ -140,7 +140,7 @@ impl Encoder {
                     o.push((b.bits % 8) as u8);
                 }
                 self.out.extend_from_slice(&bytes);
-                Ok(())
+                Some(())
             }
             Some(SUB_MAP) => {
                 let n = build::map_size(t);
@@ -150,7 +150,7 @@ impl Encoder {
                     self.term(build::map_key(t, i))?;
                     self.term(build::map_val(t, i))?;
                 }
-                Ok(())
+                Some(())
             }
             Some(SUB_REF) => {
                 o.push(NEWER_REF);
@@ -161,7 +161,7 @@ impl Encoder {
                 self.out.extend_from_slice(&((id & 0x3FFFF) as u32).to_be_bytes());
                 self.out.extend_from_slice(&((id >> 18) as u32).to_be_bytes());
                 self.out.extend_from_slice(&0u32.to_be_bytes());
-                Ok(())
+                Some(())
             }
             Some(SUB_FUN) => {
                 let name = *ptr(t).add(4);
@@ -171,15 +171,15 @@ impl Encoder {
                     self.term(name)?;
                     self.term(*ptr(t).add(2))
                 } else {
-                    Err(())
+                    None
                 }
             }
-            _ => Err(()),
+            _ => None,
         }
     }
 
-    unsafe fn bignum(&mut self, t: Term) -> Result<(), ()> {
-        let b = num::to_big(t).ok_or(())?;
+    unsafe fn bignum(&mut self, t: Term) -> Option<()> {
+        let b = num::to_big(t)?;
         let (sign, bytes) = b.to_bytes_le();
         let o = &mut self.out;
         if bytes.len() < 256 {
@@ -191,13 +191,13 @@ impl Encoder {
         }
         o.push(if sign == Sign::Minus { 1 } else { 0 });
         o.extend_from_slice(&bytes);
-        Ok(())
+        Some(())
     }
 }
 
 pub unsafe fn term_to_binary(t: Term) -> Option<Vec<u8>> {
     let mut e = Encoder { out: vec![131] };
-    e.term(t).ok()?;
+    e.term(t)?;
     Some(e.out)
 }
 

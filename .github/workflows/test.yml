@@ -15,6 +15,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+          components: clippy
       - uses: Swatinem/rust-cache@v2
       - uses: erlef/setup-beam@v1
         with:
@@ -34,5 +35,6 @@ jobs:
           mkdir -p ~/.local/opt
           curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz \
             | tar -xz -C ~/.local/opt
+      - run: cargo clippy --all-targets -- -D warnings
       - run: bun install --frozen-lockfile
       - run: just test-all

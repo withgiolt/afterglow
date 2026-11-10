@@ -229,9 +229,8 @@ impl Gc {
             }
             let np = fresh.alloc((re - rs).max(1));
             core::ptr::copy_nonoverlapping(rs as *const u8, np, re - rs);
-            for k in i..j {
-                let o = spans[k].2;
-                *o.add(2) = small((np as usize + (spans[k].0 - rs)) as i64);
+            for &(start, _, o) in &spans[i..j] {
+                *o.add(2) = small((np as usize + (start - rs)) as i64);
             }
             i = j;
         }
@@ -266,8 +265,8 @@ pub unsafe extern "C" fn rt_gc(live: u32, sp: u32) {
     let mut gc = Gc { from, to: vec![ToBlock { start: to, end: to.add(first), hp: to }], bins: Vec::new() };
 
     let xregs = &mut *core::ptr::addr_of_mut!(XREGS);
-    for i in 0..live as usize {
-        xregs[i] = gc.copy(xregs[i]);
+    for x in &mut xregs[..live as usize] {
+        *x = gc.copy(*x);
     }
     let mut y = sp as usize as *mut u64;
     let top = crate::sched::current_stack_top() as usize as *mut u64;

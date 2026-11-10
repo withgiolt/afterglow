@@ -391,13 +391,13 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
         resume.instruction(&I::LocalGet(1));
         let targets: Vec<u32> = (0..=max_resume_arity as u32).collect();
         resume.instruction(&I::BrTable(targets.into(), max_resume_arity as u32));
-        for k in 0..=max_resume_arity {
+        for (k, &type_index) in arity_types[..=max_resume_arity].iter().enumerate() {
             resume.instruction(&I::End);
             for _ in 0..k {
                 resume.instruction(&I::I64Const(0));
             }
             resume.instruction(&I::LocalGet(0));
-            resume.instruction(&I::ReturnCallIndirect { type_index: arity_types[k], table_index: 0 });
+            resume.instruction(&I::ReturnCallIndirect { type_index, table_index: 0 });
         }
         resume.instruction(&I::End);
     }
