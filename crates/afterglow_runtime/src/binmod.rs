@@ -285,23 +285,37 @@ enum Stop {
     Incomplete,
 }
 
+/// The start of a UTF-8 sequence at the end of a binary. Like ERTS, the next binary
+/// may finish it: [<<226>>, <<130, 172>>] is "€".
+struct Partial {
+    /// The unfinished sequence as a binary. Like ERTS, bytes carried over from an
+    /// earlier binary are merged into one binary.
+    bin: Term,
+    /// Its bytes, plus any that later binaries added without finishing it.
+    bytes: Vec<u8>,
+    /// What remains when the input ends before the sequence is finished.
+    rest: Term,
+}
+
+/// The failing element followed by everything pending, as ERTS builds it:
+/// [[Cur | Innermost] | ...] with the most recently pushed tail innermost.
+unsafe fn rest_of(stack: &[Term], cur: Term) -> Term {
+    let mut r = cur;
+    for &pending in stack.iter().rev() {
+        if pending != NIL {
+            r = build::cons(r, pending);
+        }
+    }
+    r
+}
+
 /// Walks chardata, pushing code points. On failure returns how it stopped and what
 /// remains (the failing element, followed by the rest of the input).
 unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)> {
     // Explicit stack of pending tails.
     let mut stack: Vec<Term> = vec![t];
+    let mut partial: Option<Partial> = None;
     while let Some(t) = stack.pop() {
-        let rest_of = |stack: &Vec<Term>, cur: Term| -> Term {
-            // The failing element followed by everything pending, as ERTS builds it:
-            // [[Cur | Innermost] | ...] with the most recently pushed tail innermost.
-            let mut r = cur;
-            for &pending in stack.iter().rev() {
-                if pending != NIL {
-                    r = build::cons(r, pending);
-                }
-            }
-            r
-        };
         if t == NIL {
             continue;
         }
@@ -310,21 +324,33 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
             match enc {
                 Enc::Latin1 => out.extend(b.iter().map(|&c| c as u32)),
                 Enc::Utf8 => {
-                    let mut i = 0;
-                    while i < b.len() {
-                        match core::str::from_utf8(&b[i..]) {
-                            Ok(s) => {
-                                out.extend(s.chars().map(|c| c as u32));
-                                i = b.len();
+                    let carried = partial.take();
+                    let joined;
+                    let buf: &[u8] = match &carried {
+                        Some(p) => {
+                            joined = [p.bytes.as_slice(), b].concat();
+                            &joined
+                        }
+                        None => b,
+                    };
+                    let skip = carried.as_ref().map_or(0, |p| p.bytes.len());
+                    match core::str::from_utf8(buf) {
+                        Ok(s) => out.extend(s.chars().map(|c| c as u32)),
+                        Err(e) => {
+                            let at = e.valid_up_to();
+                            out.extend(core::str::from_utf8_unchecked(&buf[..at]).chars().map(|c| c as u32));
+                            // The bad or unfinished sequence, from where it starts: in
+                            // bytes carried over (merged with this binary), or in this one.
+                            let from = if at < skip {
+                                build::binary(&buf[at..])
+                            } else {
+                                sub(t, at - skip, b.len() - (at - skip))
+                            };
+                            let rest = rest_of(&stack, from);
+                            if e.error_len().is_some() {
+                                return Err((Stop::Error, rest));
                             }
-                            Err(e) => {
-                                let good = e.valid_up_to();
-                                out.extend(core::str::from_utf8_unchecked(&b[i..i + good]).chars().map(|c| c as u32));
-                                let at = i + good;
-                                let rest = sub(t, at, b.len() - at);
-                                let stop = if e.error_len().is_none() { Stop::Incomplete } else { Stop::Error };
-                                return Err((stop, rest_of(&stack, rest)));
-                            }
+                            partial = Some(Partial { bin: from, bytes: buf[at..].to_vec(), rest });
                         }
                     }
                 }
@@ -333,11 +359,13 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
             let h = head(t);
             let tl = tail(t);
             if is_small(h) {
+                if let Some(p) = &partial {
+                    return Err((Stop::Error, rest_of(&stack, build::list(&[p.bin, t]))));
+                }
                 let c = small_val(h);
                 let ok = (0..=0x10FFFF).contains(&c) && !(0xD800..=0xDFFF).contains(&c) && (enc == Enc::Utf8 || c <= 255);
                 if !ok {
-                    let r = rest_of(&stack, t);
-                    return Err((Stop::Error, r));
+                    return Err((Stop::Error, rest_of(&stack, t)));
                 }
                 out.push(c as u32);
                 stack.push(tl);
@@ -349,7 +377,10 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
             return Err((Stop::Error, NON_VALUE)); // not chardata: badarg
         }
     }
-    Ok(())
+    match partial {
+        Some(p) => Err((Stop::Incomplete, p.rest)),
+        None => Ok(()),
+    }
 }
 
 fn utf8_bytes(cps: &[u32]) -> Vec<u8> {
