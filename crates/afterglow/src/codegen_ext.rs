@@ -296,7 +296,7 @@ fn bs_match(x: &mut Ext, fail: u32, ctx: &Operand, cmds: &[Operand]) -> Result<(
                 let size = uval(&cmds[i + 2])?;
                 let value = cmds[i + 3].clone();
                 match small_const(&value) {
-                    Some(v) if size >= 1 && size <= 8 && v >= 0 => {
+                    Some(v) if (1..=8).contains(&size) && v >= 0 => {
                         bs_peek_small(x, size);
                         x.ins(I::I64Const(v));
                         x.ins(I::I64Eq);
@@ -318,7 +318,7 @@ fn bs_match(x: &mut Ext, fail: u32, ctx: &Operand, cmds: &[Operand]) -> Result<(
                 let fl = flags(x, &cmds[i + 2]);
                 let bits = uval(&cmds[i + 3])? * uval(&cmds[i + 4])?;
                 let dst = cmds[i + 5].clone();
-                if bits >= 1 && bits <= 8 && fl == 0 {
+                if (1..=8).contains(&bits) && fl == 0 {
                     x.dst(&dst, |x| {
                         bs_peek_small(x, bits);
                         x.ins(I::I64Const(4));
@@ -537,7 +537,7 @@ pub fn instr(mut xx: Ext, ins: &Instr) -> Result<(), CgError> {
         "bs_match_string" => {
             // Fail Ctx Bits Offset
             let (ctx, bits, off) = (a[1].clone(), uval(&a[2])?, uval(&a[3])? as usize);
-            let bytes = x.strings()[off..off + ((bits + 7) / 8) as usize].to_vec();
+            let bytes = x.strings()[off..off + bits.div_ceil(8) as usize].to_vec();
             let li = x.add_literal(binary_etf(&bytes));
             call_test(x, label(&a[0]), |x| {
                 x.src(&ctx)?;

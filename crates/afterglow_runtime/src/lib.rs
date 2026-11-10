@@ -5,6 +5,11 @@
 //! export list as its override table: an MFA exported here is called instead of
 //! compiling that function from its .beam.
 
+// Nearly every function here is unsafe for the same reasons: it reads terms from raw
+// heap pointers, and it assumes the single thread that a Worker instance runs on. A
+// `# Safety` section on each of the 500 functions would repeat that sentence.
+#![allow(clippy::missing_safety_doc)]
+
 pub mod atoms;
 pub mod bifs;
 pub mod build;
@@ -31,6 +36,7 @@ static mut LITERALS: Vec<Term> = Vec::new();
 /// - atoms: names separated by NUL (fixed atoms first, then the compiler's)
 /// - exports: u32 LE quadruples (module atom, function atom, arity, table index)
 /// - literals: (u32 LE length, ETF bytes) repeated
+///
 /// Returns the address of the literal table (one term per literal).
 #[no_mangle]
 pub unsafe extern "C" fn rt_init(

@@ -206,7 +206,7 @@ impl Bin {
         self.bits / 8
     }
     pub fn is_byte_aligned(&self) -> bool {
-        self.bitoff == 0 && self.bits % 8 == 0
+        self.bitoff == 0 && self.bits.is_multiple_of(8)
     }
     /// The whole binary as a byte slice. Only valid when byte aligned.
     pub unsafe fn slice(&self) -> &'static [u8] {
@@ -220,16 +220,16 @@ impl Bin {
     /// Copies the content into a byte vector; a trailing partial byte is left-aligned.
     pub unsafe fn to_vec(&self) -> Vec<u8> {
         if self.bitoff == 0 {
-            let n = ((self.bits + 7) / 8) as usize;
+            let n = self.bits.div_ceil(8) as usize;
             let mut v = core::slice::from_raw_parts(self.base, n).to_vec();
-            if self.bits % 8 != 0 {
+            if !self.bits.is_multiple_of(8) {
                 let keep = (self.bits % 8) as u32;
                 let last = v.len() - 1;
                 v[last] &= 0xFFu8 << (8 - keep);
             }
             v
         } else {
-            let mut out = vec![0u8; ((self.bits + 7) / 8) as usize];
+            let mut out = vec![0u8; self.bits.div_ceil(8) as usize];
             for i in 0..self.bits {
                 if self.bit(i) == 1 {
                     out[(i / 8) as usize] |= 0x80 >> (i % 8);

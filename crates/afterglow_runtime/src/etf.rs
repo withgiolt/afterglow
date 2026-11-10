@@ -131,7 +131,7 @@ impl Encoder {
             Some(SUB_BIN) => {
                 let b = bin_of(t);
                 let bytes = b.to_vec();
-                if b.bits % 8 == 0 {
+                if b.bits.is_multiple_of(8) {
                     o.push(BINARY);
                     o.extend_from_slice(&(bytes.len() as u32).to_be_bytes());
                 } else {

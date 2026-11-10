@@ -130,7 +130,7 @@ pub fn build(prog: &Program, rt_funcs: &[RtFunc], entry: &Mfa) -> Result<Output,
     // Table: lambda wrappers, then export wrappers.
     let mut lambda_table: HashMap<(usize, u32), u32> = HashMap::new();
     let mut wrappers: Vec<Wrapper> = Vec::new();
-    for (&(m, li), _) in &prog.lambdas {
+    for &(m, li) in prog.lambdas.keys() {
         lambda_table.insert((m, li), wrappers.len() as u32);
         wrappers.push(Wrapper::Lambda(m, li));
     }

@@ -77,7 +77,7 @@ unsafe fn write(s: &mut String, t: Term, depth: usize) {
                 let b = bin_of(t);
                 let v = b.to_vec();
                 s.push_str("<<");
-                if b.bits % 8 == 0 && v.iter().all(|c| (32..127).contains(c)) {
+                if b.bits.is_multiple_of(8) && v.iter().all(|c| (32..127).contains(c)) {
                     s.push('"');
                     s.push_str(&String::from_utf8_lossy(&v[..v.len().min(400)]));
                     s.push('"');

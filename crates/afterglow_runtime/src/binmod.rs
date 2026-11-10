@@ -176,7 +176,7 @@ unsafe fn split_impl(s: Term, p: Term, o: Term) -> Term {
     if op.trim_all {
         parts.retain(|&t| bin_of(t).bits != 0);
     } else if op.trim {
-        while parts.len() > 0 && bin_of(*parts.last().unwrap()).bits == 0 {
+        while !parts.is_empty() && bin_of(*parts.last().unwrap()).bits == 0 {
             parts.pop();
         }
     }
@@ -333,7 +333,7 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
             let tl = tail(t);
             if is_small(h) {
                 let c = small_val(h);
-                let ok = c >= 0 && c <= 0x10FFFF && !(0xD800..=0xDFFF).contains(&c) && (enc == Enc::Utf8 || c <= 255);
+                let ok = (0..=0x10FFFF).contains(&c) && !(0xD800..=0xDFFF).contains(&c) && (enc == Enc::Utf8 || c <= 255);
                 if !ok {
                     let r = rest_of(&stack, t);
                     return Err((Stop::Error, r));

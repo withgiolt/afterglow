@@ -22,13 +22,19 @@ pub struct Writer {
     pub bits: u64,
 }
 
+impl Default for Writer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Writer {
     pub fn new() -> Self {
         Writer { buf: Vec::new(), bits: 0 }
     }
     #[inline]
     pub fn push_byte(&mut self, b: u8) {
-        if self.bits % 8 == 0 {
+        if self.bits.is_multiple_of(8) {
             self.buf.push(b);
         } else {
             let sh = (self.bits % 8) as u32;
@@ -39,7 +45,7 @@ impl Writer {
         self.bits += 8;
     }
     pub fn push_bit(&mut self, bit: u8) {
-        if self.bits % 8 == 0 {
+        if self.bits.is_multiple_of(8) {
             self.buf.push(0);
         }
         if bit != 0 {
@@ -49,7 +55,7 @@ impl Writer {
         self.bits += 1;
     }
     pub fn push_bytes(&mut self, bytes: &[u8]) {
-        if self.bits % 8 == 0 {
+        if self.bits.is_multiple_of(8) {
             self.buf.extend_from_slice(bytes);
             self.bits += 8 * bytes.len() as u64;
         } else {
@@ -63,7 +69,7 @@ impl Writer {
         // be holds at least ceil(n/8) bytes; the value is right-aligned.
         let total = be.len() as u64 * 8;
         let start = total - n;
-        if start % 8 == 0 {
+        if start.is_multiple_of(8) {
             self.push_bytes(&be[(start / 8) as usize..]);
             return;
         }
@@ -72,7 +78,7 @@ impl Writer {
         }
     }
     pub unsafe fn push_bin(&mut self, b: &Bin, bits: u64) {
-        if b.bitoff == 0 && bits % 8 == 0 {
+        if b.bitoff == 0 && bits.is_multiple_of(8) {
             self.push_bytes(core::slice::from_raw_parts(b.base, (bits / 8) as usize));
         } else {
             let full = bits / 8;
@@ -95,7 +101,7 @@ impl Writer {
 
 /// Integer `v` as `n` bits, two's complement, big- or little-endian.
 pub fn int_bits(v: &BigInt, n: u64, little: bool) -> Vec<u8> {
-    let nbytes = ((n + 7) / 8) as usize;
+    let nbytes = n.div_ceil(8) as usize;
     let mut le = v.to_signed_bytes_le();
     let fill = if v.sign() == Sign::Minus { 0xFF } else { 0 };
     le.resize(nbytes.max(le.len()), fill);
@@ -103,12 +109,12 @@ pub fn int_bits(v: &BigInt, n: u64, little: bool) -> Vec<u8> {
     if little {
         // Little-endian of a non-multiple-of-8 size: ERTS writes the low bytes first and
         // the last partial byte holds the top bits.
-        if n % 8 == 0 {
+        if n.is_multiple_of(8) {
             return le; // caller pushes as whole bytes
         }
     }
     let mut be: Vec<u8> = le.into_iter().rev().collect();
-    if n % 8 != 0 {
+    if !n.is_multiple_of(8) {
         let extra = 8 - (n % 8) as u32;
         be[0] &= 0xFFu8 >> extra;
     }
@@ -189,10 +195,10 @@ unsafe fn create(s: &[u64]) -> Option<Term> {
         }
         let b = bin_of(v);
         let unit = s[1].max(1);
-        if b.bits % unit != 0 {
+        if !b.bits.is_multiple_of(unit) {
             return None;
         }
-        if b.bitoff == 0 && b.bits % 8 == 0 {
+        if b.bitoff == 0 && b.bits.is_multiple_of(8) {
             in_place = Some((b.base, b.bits));
         } else {
             w.push_bin(&b, b.bits);
@@ -228,7 +234,7 @@ unsafe fn create(s: &[u64]) -> Option<Term> {
                     let le = {
                         let mut le = val.to_signed_bytes_le();
                         let fill = if val.sign() == Sign::Minus { 0xFF } else { 0 };
-                        le.resize(((n + 7) / 8) as usize, fill);
+                        le.resize(n.div_ceil(8) as usize, fill);
                         le
                     };
                     let full = (n / 8) as usize;
@@ -246,7 +252,7 @@ unsafe fn create(s: &[u64]) -> Option<Term> {
                 let b = bin_of(v);
                 let bits = match seg_size(size).ok()? {
                     None => {
-                        if b.bits % unit.max(1) != 0 {
+                        if !b.bits.is_multiple_of(unit.max(1)) {
                             return None;
                         }
                         b.bits
@@ -308,7 +314,7 @@ unsafe fn create(s: &[u64]) -> Option<Term> {
         let old = (bits / 8) as usize;
         let add = w.buf.len();
         let arena = &mut *core::ptr::addr_of_mut!(ARENA);
-        if w.bits % 8 == 0 && arena.try_extend(base, old, old + add) {
+        if w.bits.is_multiple_of(8) && arena.try_extend(base, old, old + add) {
             crate::mem::ARENA_SINCE_GC += add;
             if crate::mem::ARENA_SINCE_GC >= 8 << 20 {
                 crate::mem::STATE.gc_pending = 1;
@@ -429,7 +435,7 @@ pub unsafe extern "C" fn rt_bs_test_unit(ctx: Term, unit: i64) -> i32 {
 /// Reads `n` ≤ 64 bits big-endian at the current position, without advancing.
 unsafe fn peek_u64(b: &Bin, pos: u64, n: u64) -> u64 {
     let abs = b.bitoff + pos;
-    if abs % 8 == 0 && n % 8 == 0 {
+    if abs.is_multiple_of(8) && n.is_multiple_of(8) {
         let p = b.base.add((abs / 8) as usize);
         let mut v = 0u64;
         for i in 0..(n / 8) as usize {
@@ -446,7 +452,7 @@ unsafe fn peek_u64(b: &Bin, pos: u64, n: u64) -> u64 {
 
 /// Reads `n` bits as bytes (big-endian, right-aligned in the result).
 unsafe fn peek_bytes(b: &Bin, pos: u64, n: u64) -> Vec<u8> {
-    let nbytes = ((n + 7) / 8) as usize;
+    let nbytes = n.div_ceil(8) as usize;
     let mut out = vec![0u8; nbytes];
     let lead = nbytes as u64 * 8 - n;
     for i in 0..n {
@@ -571,7 +577,7 @@ pub unsafe extern "C" fn rt_bs_set_position(ctx: Term, pos: Term) {
 unsafe fn size_bits(ctx: Term, size: Term, unit: i64) -> Option<u64> {
     if size == ALL {
         let r = remaining(ctx);
-        if unit > 1 && r % unit as u64 != 0 {
+        if unit > 1 && !r.is_multiple_of(unit as u64) {
             return None;
         }
         return Some(r);
@@ -659,7 +665,7 @@ pub unsafe extern "C" fn rt_bs_match_string(ctx: Term, bits: i64, lit: Term) -> 
     let pos = ctx_pos(ctx);
     let l = bin_of(lit);
     let abs = b.bitoff + pos;
-    let ok = if abs % 8 == 0 && bits % 8 == 0 {
+    let ok = if abs.is_multiple_of(8) && bits.is_multiple_of(8) {
         let a = core::slice::from_raw_parts(b.base.add((abs / 8) as usize), (bits / 8) as usize);
         a == &l.slice()[..(bits / 8) as usize]
     } else {
@@ -787,9 +793,9 @@ macro_rules! bif {
 }
 
 bif!("erlang:byte_size/1", fn byte_size(b) {
-    if boxed_sub(b) == Some(SUB_MATCH) { return small(((remaining(b) + 7) / 8) as i64); }
+    if boxed_sub(b) == Some(SUB_MATCH) { return small(remaining(b).div_ceil(8) as i64); }
     if !is_bitstring(b) { return badarg(); }
-    small(((bin_of(b).bits + 7) / 8) as i64)
+    small(bin_of(b).bits.div_ceil(8) as i64)
 });
 bif!("erlang:bit_size/1", fn bit_size(b) {
     if boxed_sub(b) == Some(SUB_MATCH) { return small(remaining(b) as i64); }
@@ -841,7 +847,7 @@ bif!("erlang:bitstring_to_list/1", fn bitstring_to_list(b) {
     let full = bin.bits / 8;
     let v = bin.to_vec();
     let items: Vec<Term> = v[..full as usize].iter().map(|&c| small(c as i64)).collect();
-    if bin.bits % 8 == 0 {
+    if bin.bits.is_multiple_of(8) {
         return build::list(&items);
     }
     let rest = build::bitstring(&v[full as usize..], bin.bits % 8);
@@ -857,7 +863,7 @@ pub unsafe fn iolist(t: Term, w: &mut Writer, allow_bits: bool) -> bool {
         }
         if is_bitstring(t) {
             let b = bin_of(t);
-            if !allow_bits && b.bits % 8 != 0 {
+            if !allow_bits && !b.bits.is_multiple_of(8) {
                 return false;
             }
             w.push_bin(&b, b.bits);
@@ -885,11 +891,10 @@ pub unsafe fn iolist(t: Term, w: &mut Writer, allow_bits: bool) -> bool {
 /// The bytes of a binary or iolist (None if it is neither, or not byte-aligned).
 pub unsafe fn iolist_bytes(t: Term) -> Option<Vec<u8>> {
     let mut w = Writer::new();
-    if is_binary(t) || is_list(t) || t == NIL {
-        if iolist(t, &mut w, false) && w.bits % 8 == 0 {
+    if (is_binary(t) || is_list(t) || t == NIL)
+        && iolist(t, &mut w, false) && w.bits.is_multiple_of(8) {
             return Some(w.buf);
         }
-    }
     None
 }
 

@@ -22,7 +22,7 @@ pub fn atom(i: u32) -> i64 {
     ((i as i64) << 6) | 0x0B
 }
 pub fn fits_small(v: i64) -> bool {
-    v >= -(1 << 59) && v < (1 << 59)
+    (-(1 << 59)..(1 << 59)).contains(&v)
 }
 
 fn mem64(offset: u64) -> MemArg {
@@ -69,7 +69,7 @@ fn has_wait(code: &[Instr]) -> bool {
 fn call_may_suspend(prog: &Program, m: usize, ins: &Instr, may: &HashSet<(usize, usize)>, ind: bool) -> bool {
     match ins.op {
         "call" | "call_last" | "call_only" => match ins.args.get(1) {
-            Some(Operand::Label(l)) => prog.function_by_label(m, *l).map_or(false, |fi| may.contains(&(m, fi))),
+            Some(Operand::Label(l)) => prog.function_by_label(m, *l).is_some_and(|fi| may.contains(&(m, fi))),
             _ => false,
         },
         "call_ext" | "call_ext_last" | "call_ext_only" => match ins.args.get(1) {
@@ -294,7 +294,7 @@ pub fn compile_function(env: &Env, m: usize, fi: usize) -> Result<Function, CgEr
     let handler_state = handler_analysis(&body, &labels, nblocks, &block_of_instr);
     for (b, st) in handler_state.iter().enumerate() {
         if let Some(hs) = st {
-            if hs.iter().any(|h| labels.get(h).map_or(false, |&hb| hb <= b)) {
+            if hs.iter().any(|h| labels.get(h).is_some_and(|&hb| hb <= b)) {
                 dispatch = true;
             }
         }

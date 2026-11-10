@@ -213,7 +213,7 @@ impl Gc {
             let base = small_val(*o.add(2)) as usize;
             let bitoff = small_val(*o.add(3)) as u64;
             if arena.contains(base) {
-                let len = ((bitoff + bits + 7) / 8) as usize;
+                let len = (bitoff + bits).div_ceil(8) as usize;
                 spans.push((base, base + len, o));
             }
         }

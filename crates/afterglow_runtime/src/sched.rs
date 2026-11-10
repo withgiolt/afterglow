@@ -480,7 +480,7 @@ unsafe fn rt_sched_(v: Term) -> i32 {
         if !s.node {
             let rt = s.procs.iter().filter(|p| p.status == Status::Waiting).filter_map(|p| p.deadline).min();
             if let Some(at) = s.timers.iter().map(|t| t.1).min() {
-                if rt.map_or(true, |d| at <= d) {
+                if rt.is_none_or(|d| at <= d) {
                     s.clock = s.clock.max(at);
                     fire_due(s.clock);
                     continue;

@@ -18,7 +18,7 @@ fn exports() -> &'static mut FxMap<(u32, u32, u32), i32> {
 /// Blob of little-endian u32 quadruples: module atom, function atom, arity, table index.
 pub fn load(blob: &[u8]) {
     let e = exports();
-    for q in blob.chunks_exact(16) {
+    for q in blob.as_chunks::<16>().0 {
         let w = |i: usize| u32::from_le_bytes([q[i], q[i + 1], q[i + 2], q[i + 3]]);
         e.insert((w(0), w(4), w(8)), w(12) as i32);
     }
