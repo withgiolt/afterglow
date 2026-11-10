@@ -1,5 +1,5 @@
 name = "afterglow"
-version = "0.1.0"
+version = "0.1.1"
 internal_modules = ["afterglow/internal", "afterglow/internal/*"]
 description = "Run Gleam apps compiled ahead of time to WebAssembly"
 licences = ["GPL-3.0-or-later"]
