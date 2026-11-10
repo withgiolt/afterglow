@@ -5,6 +5,5 @@
   "main": "index.js",
   "workers_dev": true,
   "compatibility_date": "2025-08-06",
-  "account_id": "00000000000000000000000000000000",
   "observability": { "enabled": true, "head_sampling_rate": 1 }
 }

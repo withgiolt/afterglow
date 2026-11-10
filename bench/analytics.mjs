@@ -6,6 +6,7 @@
 // Token: ~/.config/glowc-phase0/cf-analytics-token (Account Analytics: Read).
 import fs from "node:fs";
 import os from "node:os";
+if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error("set CLOUDFLARE_ACCOUNT_ID");
 
 const [base, version] = process.argv.slice(2);
 const token = fs.readFileSync(`${os.homedir()}/.config/glowc-phase0/cf-analytics-token`, "utf8").trim();
@@ -23,7 +24,7 @@ const query = `query($a:String!,$v:String!,$s:Time!,$e:Time!){viewer{accounts(fi
 const res = await fetch("https://api.cloudflare.com/client/v4/graphql", {
   method: "POST",
   headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-  body: JSON.stringify({ query, variables: { a: "00000000000000000000000000000000", v: version, s: start, e: end } }),
+  body: JSON.stringify({ query, variables: { a: process.env.CLOUDFLARE_ACCOUNT_ID, v: version, s: start, e: end } }),
 });
 const j = await res.json();
 if (j.errors) throw new Error(JSON.stringify(j.errors));

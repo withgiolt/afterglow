@@ -5,11 +5,13 @@
 # rate-limited to 25 req/s so wrangler tail does not sample (it kept 66 of 10,000 at ~330 req/s)
 # while `wrangler tail --format json` records per-invocation cpuTime/wallTime.
 set -euo pipefail
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CF_WORKERS_SUBDOMAIN:-}" ]]; then
+  echo "set CLOUDFLARE_ACCOUNT_ID and CF_WORKERS_SUBDOMAIN (<name>.<subdomain>.workers.dev)" >&2; exit 1
+fi
 cd "$(dirname "$0")/.."
 name=$1 label=$2
-url="https://$name.SUBDOMAIN.workers.dev/"
+url="https://$name.$CF_WORKERS_SUBDOMAIN.workers.dev/"
 out=bench/results/$name-$label
-export CLOUDFLARE_ACCOUNT_ID=00000000000000000000000000000000
 
 oha -n 1000 -c 10 --no-tui --output-format json "$url" > "$out.warm.oha.json"
 

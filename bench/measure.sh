@@ -4,9 +4,12 @@
 # 1,000 warm-up requests at c=10, then 5,000 measured at c=10, 25 req/s; then
 # bench/analytics.mjs over the measured window only.
 set -euo pipefail
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CF_WORKERS_SUBDOMAIN:-}" ]]; then
+  echo "set CLOUDFLARE_ACCOUNT_ID and CF_WORKERS_SUBDOMAIN (<name>.<subdomain>.workers.dev)" >&2; exit 1
+fi
 cd "$(dirname "$0")/.."
 name=$1 label=$2 version=$3 path=${4:-/}
-url="https://$name.SUBDOMAIN.workers.dev$path"
+url="https://$name.$CF_WORKERS_SUBDOMAIN.workers.dev$path"
 out=bench/results/$name-$label
 oha -n 1000 -c 10 --no-tui --output-format json "$url" > "$out.warm.oha.json"
 sleep 5

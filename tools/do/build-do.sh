@@ -15,7 +15,6 @@ cat > "$out/wrangler.jsonc" <<J
   "name": "$name",
   "main": "index.js",
   "compatibility_date": "2025-08-06",
-  "account_id": "00000000000000000000000000000000",
   "durable_objects": { "bindings": [{ "name": "NODE", "class_name": "GlowNode" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GlowNode"] }],
   "observability": { "enabled": true, "head_sampling_rate": 1 }

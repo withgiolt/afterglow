@@ -3,6 +3,7 @@
 // Usage: node bench/coldcpu.mjs bench/results/<name>-coldstart.csv
 import fs from "node:fs";
 import os from "node:os";
+if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error("set CLOUDFLARE_ACCOUNT_ID");
 const [csv] = process.argv.slice(2);
 const token = fs.readFileSync(`${os.homedir()}/.config/glowc-phase0/cf-analytics-token`, "utf8").trim();
 const rows = fs.readFileSync(csv, "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
@@ -16,7 +17,7 @@ for (const [sample, version, startup, server, total, status] of rows) {
   const res = await fetch("https://api.cloudflare.com/client/v4/graphql", {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    body: JSON.stringify({ query, variables: { a: "00000000000000000000000000000000", v: version, s: start, e: end } }),
+    body: JSON.stringify({ query, variables: { a: process.env.CLOUDFLARE_ACCOUNT_ID, v: version, s: start, e: end } }),
   });
   const j = await res.json();
   if (j.errors) throw new Error(JSON.stringify(j.errors));
