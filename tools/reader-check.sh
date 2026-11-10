@@ -6,7 +6,8 @@ cd "$(dirname "$0")/.."
 OTP=$(erl -noshell -eval 'io:format("~s",[code:root_dir()]),halt().')
 BEAMS=$(ls $OTP/lib/stdlib-*/ebin/*.beam $OTP/lib/erts-*/ebin/erlang.beam $OTP/lib/kernel-*/ebin/{file,os,code}.beam $OTP/lib/crypto-*/ebin/crypto.beam; \
   ls fixtures/app/build/dev/erlang/*/ebin/*.beam)
-target/debug/afterglow dump $BEAMS | sort > /tmp/rust-dump.txt
+cargo build -q --release -p afterglow
+target/release/afterglow dump $BEAMS | sort > /tmp/rust-dump.txt
 BEAMS="$BEAMS" erl -noshell -eval '
 [begin
   {beam_file, M, _, _, _, Code} = beam_disasm:file(B),
