@@ -67,12 +67,13 @@ fn handle_request(_req: wisp.Request) -> wisp.Response {
       "bit_array.compare(hello, world)",
       bit_array.compare(ba, bit_array.from_string("world")) == Lt,
     ),
+    #(
+      "bit_array.starts_with(hello, he)",
+      bit_array.starts_with(ba, bit_array.from_string("he")),
+    ),
+    #(
+      "bit_array.starts_with(hello, lo)",
+      !bit_array.starts_with(ba, bit_array.from_string("lo")),
+    ),
   ])
-  // bit_array.starts_with is pure Gleam (`<<pref:bits-size(prefix_size), _>>`
-  // with a runtime-variable segment size), which compiles to a dynamic-size
-  // bitstring match. Confirmed by direct repro that this crashes the VM
-  // outright — it's inlined match bytecode, not a function call, so there's
-  // no seam an Erlang shim can intercept. Real AtomVM limitation, not a gap
-  // this repo's shims can close; see README's bitstring-matching caveat.
-  // let _ = bit_array.starts_with(ba, bit_array.from_string("he"))
 }
