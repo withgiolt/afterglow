@@ -26,11 +26,11 @@ p2) name=glowc-p2-counter
   node tools/do/p2-deployed.mjs "$(base $name)" incr ;;
 p3) name=glowc-p3-pingpong
   deploy out/do-p3; ready $name
-  node tools/do/p3-test.mjs out/do-p3/wrangler.jsonc 200 "$(base $name)" ;;
+  node tools/do/p3-test.mjs out/do-p3/wrangler.jsonc "${P3_N:-200}" "$(base $name)" ;;
 p4) name=glowc-p4-timers
   deploy out/do-p4; ready $name
   node tools/do/p4-deployed.mjs "$(base $name)" arm 60000
-  echo "idle 200 s, no requests: only the alarm can wake the DO; cron runs each minute"; sleep 200
+  echo "idle ${P4_IDLE:-200} s, no requests: only the alarm can wake the DO; cron runs each minute"; sleep "${P4_IDLE:-200}"
   node tools/do/p4-deployed.mjs "$(base $name)" check ;;
 p5) name=glowc-p5-chat
   deploy out/do-p5; ready $name

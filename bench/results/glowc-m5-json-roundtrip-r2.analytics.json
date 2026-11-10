@@ -1,0 +1,27 @@
+{
+  "run": "glowc-m5-json-roundtrip-r2",
+  "scriptVersion": "6d524686-86c6-40bf-a70e-3e5a8b11d825",
+  "window": {
+    "start": "2026-11-10T00:08:07.000Z",
+    "end": "2026-11-10T00:11:26.000Z"
+  },
+  "byStatus": [
+    {
+      "status": "success",
+      "requests": 4984,
+      "errors": 0,
+      "cpuMs": {
+        "p25": 5.309,
+        "p50": 5.922,
+        "p75": 7.796,
+        "p90": 8.96,
+        "p99": 12.187,
+        "p999": 14.533
+      },
+      "wallMs": {
+        "p50": 6.262,
+        "p99": 12.762
+      }
+    }
+  ]
+}

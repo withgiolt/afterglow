@@ -1,0 +1,7 @@
+Uploaded glowc-p3-pingpong (5.53 sec)
+Current Version ID: fcd8282e-65b6-49e8-a7b9-7c9e22b0c736
+ready after 2 probes
+{"ponger":"started","pinger":"started","pingpong":{"roundTrips":4,"result":["done",4,308000],"wallMs":865,"usPerRoundTrip":77000},"watch":"started","beforePoke":"watching","poke":"poked","down":["down","noconnection"],"requests":9}
+PASS p3
+deleting glowc-p3-pingpong
+Successfully deleted glowc-p3-pingpong

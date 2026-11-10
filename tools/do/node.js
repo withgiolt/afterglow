@@ -7,11 +7,18 @@
 // Messages to other nodes leave in the turn's outbox: one {deliver, [{Dest, Msg}]}
 // turn per target DO, sent after the turn, in order per target (a promise chain), not
 // awaited by the turn. If a target fails, this node runs {noconnection, Node}.
+//
+// Cloudflare caps how deep a chain of requests between Workers and DOs can go: a send
+// made while handling another DO's send is one level deeper, and deployed, the 11th
+// level never arrived (no error). So each send carries its depth (x-glowc-hop). Past
+// HOP_MAX the outbox goes to SQLite (outq) instead, and the DO alarm, which starts a
+// new chain, sends it.
 import { DurableObject } from "cloudflare:workers";
 import wasm from "./app.wasm";
 
 const BUILD = "__BUILD__";
 const dec = new TextDecoder();
+const HOP_MAX = 8;
 
 export class GlowNode extends DurableObject {
   constructor(ctx, env) {
@@ -20,6 +27,7 @@ export class GlowNode extends DurableObject {
     this.chains = new Map();
     ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS procs (pid INTEGER PRIMARY KEY, build TEXT, bytes BLOB)");
     ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT)");
+    ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS outq (id INTEGER PRIMARY KEY AUTOINCREMENT, node TEXT, body BLOB)");
     const row = [...ctx.storage.sql.exec("SELECT v FROM meta WHERE k = 'name'")][0];
     this.name = row ? row.v : null;
   }
@@ -61,17 +69,21 @@ export class GlowNode extends DurableObject {
 
   async fetch(request) {
     const name = request.headers.get("x-glowc-node") || "default";
+    const hop = Number(request.headers.get("x-glowc-hop") || 0);
     if (this.name !== name) {
       this.name = name;
       this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta (k, v) VALUES ('name', ?)", name);
     }
     if (request.headers.get("upgrade") === "websocket") return this.accept(request);
     const input = new Uint8Array(await request.arrayBuffer());
-    const r = this.turn(input);
+    const r = this.turn(input, hop);
     return new Response(r.body, { status: r.status, headers: r.headers });
   }
 
-  turn(input) {
+  // hop: how deep in a chain of sends between DOs this turn runs (0: a client, alarm,
+  // WebSocket or Cron turn).
+  turn(input, hop = 0) {
+    this.hop = hop;
     const t0 = Date.now();
     const fresh = !this.inst;
     if (fresh) this.boot();
@@ -100,10 +112,11 @@ export class GlowNode extends DurableObject {
     x.rt_checkpoint_done();
     this.flush(x);
     this.sendWs(x);
-    // one alarm for the earliest erlang timer
-    const next = x.rt_next_timer();
+    // one alarm for the earliest erlang timer, or now if sends are queued
+    let next = x.rt_next_timer();
+    if (this.queued) { next = Date.now(); this.queued = false; }
     if (next >= 0) this.ctx.storage.setAlarm(next);
-    else this.ctx.storage.deleteAlarm();
+    else if (!this.pendingQueue()) this.ctx.storage.deleteAlarm();
     return { status, body, headers: {
       "x-glowc-boot": fresh ? JSON.stringify(this.bootInfo) : "warm",
       "x-glowc-rows": String(n), "x-glowc-row-bytes": String(bytesWritten),
@@ -166,9 +179,18 @@ export class GlowNode extends DurableObject {
     x.rt_ws_clear();
   }
 
+  pendingQueue() {
+    return [...this.ctx.storage.sql.exec("SELECT COUNT(*) AS n FROM outq")][0].n > 0;
+  }
+
   async alarm() {
     this.alarmRuns = (this.alarmRuns || 0) + 1;
+    const rows = [...this.ctx.storage.sql.exec("SELECT id, node, body FROM outq ORDER BY id")];
+    this.ctx.storage.sql.exec("DELETE FROM outq");
+    this.hop = 0;
+    const sends = rows.map((r) => this.enqueue(r.node, new Uint8Array(r.body)));
     this.turn(Uint8Array.from([131, ...atom("timers")]));
+    await Promise.all(sends);
   }
 
   flush(x) {
@@ -182,18 +204,28 @@ export class GlowNode extends DurableObject {
     x.rt_outbox_clear();
     for (const [node, items] of byNode) {
       const body = etfDeliver(items);
-      const prev = this.chains.get(node) || Promise.resolve();
-      const next = prev.then(() => this.send(node, body));
-      this.chains.set(node, next);
-      this.ctx.waitUntil(next);
+      // queued sends to a node stay ahead of later ones (order per sender and receiver)
+      const behind = [...this.ctx.storage.sql.exec("SELECT 1 FROM outq WHERE node = ? LIMIT 1", node)].length > 0;
+      if (this.hop >= HOP_MAX || behind) {
+        this.ctx.storage.sql.exec("INSERT INTO outq (node, body) VALUES (?, ?)", node, body);
+        this.queued = true;
+      } else this.ctx.waitUntil(this.enqueue(node, body));
     }
   }
 
-  async send(node, body) {
+  enqueue(node, body) {
+    const hop = this.hop + 1;
+    const prev = this.chains.get(node) || Promise.resolve();
+    const next = prev.then(() => this.send(node, body, hop));
+    this.chains.set(node, next);
+    return next;
+  }
+
+  async send(node, body, hop) {
     let ok = false;
     try {
       const stub = this.env.NODE.get(this.env.NODE.idFromName(node));
-      const r = await stub.fetch("http://do/", { method: "POST", body, headers: { "x-glowc-node": node } });
+      const r = await stub.fetch("http://do/", { method: "POST", body, headers: { "x-glowc-node": node, "x-glowc-hop": String(hop) } });
       await r.arrayBuffer();
       ok = r.ok;
     } catch {}

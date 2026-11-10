@@ -1,0 +1,19 @@
+{
+  "samples": [
+    {
+      "sample": 1,
+      "version": "6d524686-86c6-40bf-a70e-3e5a8b11d825",
+      "startupMs": 14,
+      "serverMs": 61.2,
+      "status": 200,
+      "requests": 18007,
+      "cpuMs": null,
+      "wallMs": null
+    }
+  ],
+  "median": {
+    "startupMs": 14,
+    "serverMs": 61.2,
+    "cpuMs": null
+  }
+}

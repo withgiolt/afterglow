@@ -1,0 +1,56 @@
+#### p3 00:05:20
+Uploaded glowc-p3-pingpong (5.68 sec)
+Current Version ID: 9d20d683-249d-41eb-bcf4-15f168bc11a7
+ready after 2 probes
+tools/do/deployed.sh: line 17: 30788 Terminated: 15          node tools/do/p3-test.mjs out/do-p3/wrangler.jsonc 200 "$(base $name)"
+deleting glowc-p3-pingpong
+Successfully deleted glowc-p3-pingpong
+#### p5 00:17:17
+Uploaded glowc-p5-chat (5.82 sec)
+Current Version ID: a0174978-47f3-4fd0-9348-3fc5beafb9e8
+ready after 2 probes
+{
+ "c1": [
+  "welcome 1",
+  "1: hi (members 2, messages 1)",
+  "2: yo (members 2, messages 2)"
+ ],
+ "c2": [
+  "welcome 2",
+  "1: hi (members 2, messages 1)",
+  "2: yo (members 2, messages 2)",
+  "__boot {\"restored\":2,\"upgraded\":0}"
+ ]
+}
+PASS p5 chat room state survived dropping the DO instance
+deleting glowc-p5-chat
+Successfully deleted glowc-p5-chat
+#### p4 00:18:21
+Uploaded glowc-p4-timers (5.68 sec)
+Current Version ID: 7369048c-52c9-49ad-bdff-ed1315b9a7a6
+ready after 1 probes
+{"f":"arm","status":200,"text":".w.armed","boot":"{\"restored\":0,\"upgraded\":0}","alarms":"0"}
+{"f":"ticker","status":200,"text":".w.ticking","boot":"warm","alarms":"0"}
+idle 200 s, no requests: only the alarm can wake the DO; cron runs each minute
+{"f":"result","status":200,"text":".h.w.firedb...`","boot":"{\"restored\":3,\"upgraded\":0}","alarms":"0"}
+{"f":"ticks","status":200,"text":".h.w.ticksa.j","boot":"warm","alarms":"0"}
+PASS p4 deployed: timer fired
+deleting glowc-p4-timers
+Successfully deleted glowc-p4-timers
+#### p2 00:22:00
+Uploaded glowc-p2-counter (5.69 sec)
+Current Version ID: f23cda70-468c-49a1-9050-02a13436b19d
+ready after 2 probes
+incr {v1,1} boot {"restored":0,"upgraded":0} rows 2 bytes 472 turn-ms 0
+incr {v1,2} boot warm rows 2 bytes 472 turn-ms 0
+idle 180 s (DO eviction)
+incr {v1,3} boot {"restored":2,"upgraded":0} rows 2 bytes 472 turn-ms 0
+Uploaded glowc-p2-counter (7.70 sec)
+Current Version ID: 2ba33aec-5fa9-4dec-ad92-9b40c372c843
+wait 90 s for the new version
+incr {v2,4} boot {"restored":2,"upgraded":2} rows 2 bytes 463 turn-ms 0
+get {v2,4} boot warm rows 2 bytes 463 turn-ms 0
+idle 180 s
+incr {v2,5} boot {"restored":2,"upgraded":0} rows 2 bytes 463 turn-ms 0
+deleting glowc-p2-counter
+Successfully deleted glowc-p2-counter

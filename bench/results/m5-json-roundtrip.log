@@ -1,0 +1,17 @@
+== glowc-m5-json-roundtrip 2026-11-10T00:01:18Z
+ready after 2 probes (last status 200)
+1,6d524686-86c6-40bf-a70e-3e5a8b11d825,14,61.2,87.2,200
+-- run 1 2026-11-10T00:02:57Z
+status {"200":5000} errors {}
+{"run":"glowc-m5-json-roundtrip-r1","scriptVersion":"6d524686-86c6-40bf-a70e-3e5a8b11d825","window":{"start":"2026-11-10T00:03:07.000Z","end":"2026-11-10T00:06:26.000Z"},"byStatus":[{"status":"success","requests":5015,"errors":0,"cpuMs":{"p25":5.472,"p50":7.473,"p75":8.561,"p90":9.908,"p99":13.451,"p999":17.631},"wallMs":{"p50":7.911,"p99":17.991}}]}
+-- run 2 2026-11-10T00:07:57Z
+status {"200":5000} errors {}
+{"run":"glowc-m5-json-roundtrip-r2","scriptVersion":"6d524686-86c6-40bf-a70e-3e5a8b11d825","window":{"start":"2026-11-10T00:08:07.000Z","end":"2026-11-10T00:11:26.000Z"},"byStatus":[{"status":"success","requests":4984,"errors":0,"cpuMs":{"p25":5.309,"p50":5.922,"p75":7.796,"p90":8.96,"p99":12.187,"p999":14.533},"wallMs":{"p50":6.262,"p99":12.762}}]}
+-- run 3 2026-11-10T00:12:57Z
+status {"200":5000} errors {}
+{"run":"glowc-m5-json-roundtrip-r3","scriptVersion":"6d524686-86c6-40bf-a70e-3e5a8b11d825","window":{"start":"2026-11-10T00:13:07.000Z","end":"2026-11-10T00:16:26.000Z"},"byStatus":[{"status":"success","requests":4988,"errors":0,"cpuMs":{"p25":5.649,"p50":7.637,"p75":8.508,"p90":9.53,"p99":12.894,"p999":15.027},"wallMs":{"p50":8.082,"p99":13.673}}]}
+{"startupMs":14,"serverMs":61.2,"cpuMs":null} [ null ]
+deleting glowc-m5-json-roundtrip
+────────────────────
+Successfully deleted glowc-m5-json-roundtrip
+exit 0
