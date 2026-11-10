@@ -1,5 +1,5 @@
 {
-  "name": "afterglow-phase0",
+  "name": "afterglow",
   "private": true,
   "type": "module",
   "devDependencies": {
