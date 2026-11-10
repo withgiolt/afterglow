@@ -42,7 +42,8 @@ pub fn compare(a: Term, b: Term) -> Ordering {
     unsafe { cmp(a, b, false) }
 }
 
-/// Order used for map keys and exact equality: 1 and 1.0 differ (integer first).
+/// Order used for map keys and exact equality (`=:=`): every integer comes before
+/// every float.
 pub fn map_key_cmp(a: Term, b: Term) -> Ordering {
     unsafe { cmp(a, b, true) }
 }
@@ -69,15 +70,14 @@ unsafe fn cmp(a: Term, b: Term, exact: bool) -> Ordering {
                 return num::to_big(a).unwrap().cmp(&num::to_big(b).unwrap());
             }
             // Mixed integer and float.
-            let o = if fa {
+            if exact {
+                return if fa { Ordering::Greater } else { Ordering::Less };
+            }
+            if fa {
                 cmp_float_int(float_val(a), b)
             } else {
                 cmp_float_int(float_val(b), a).reverse()
-            };
-            if o == Ordering::Equal && exact {
-                return if fa { Ordering::Greater } else { Ordering::Less };
             }
-            o
         }
         1 => atoms::name(a).as_bytes().cmp(atoms::name(b).as_bytes()),
         2 => (*ptr(a).add(1)).cmp(&*ptr(b).add(1)),
