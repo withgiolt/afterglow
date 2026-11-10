@@ -19,7 +19,7 @@ for f in m1:fib_test m1:sum_test m1:mixed_test \
          m3:t_big m3:t_funs m3:t_exc m3:t_bigmap ur:t \
          p1e:t_basic p1e:t_links p1e:t_monitors p1e:t_timeouts p1e:t_selective p1e:t_misc p1t:t_timers \
          fmtx:t_directives fmtx:t_short \
-         etfx:t_decode; do
+         etfx:t_decode litfun:t; do
   add tools/difftest.sh "$f/0" --beams out
 done
 # The depth test measures the deployable build's stack limit: always optimised (unoptimised

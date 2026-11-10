@@ -158,6 +158,10 @@ impl Program {
         if let Some(t) = self.targets.get(mfa) {
             return t.clone();
         }
+        // The export table names every target by atom. A target reached only through a
+        // literal (`fun erlang:abs/1`) may name atoms that no loaded atom table has.
+        self.atom(&mfa.0);
+        self.atom(&mfa.1);
         let name = mfa_str(mfa);
         let t = if self.runtime.contains_key(&name) {
             Target::Runtime(name.clone())
