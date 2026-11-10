@@ -30,5 +30,4 @@ jobs:
           curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz \
             | tar -xz -C ~/.local/opt
       - run: bun install --frozen-lockfile
-      - run: just build-fixtures
       - run: just test-all
