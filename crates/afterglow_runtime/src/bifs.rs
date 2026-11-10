@@ -344,11 +344,15 @@ bif!("erlang:list_to_existing_atom/1", fn list_to_existing_atom(l) {
     match char_list(l).and_then(|s| atoms::lookup(&s)) { Some(a) => a, None => badarg() }
 });
 
-unsafe fn int_to_string(i: Term, base: Term) -> Option<String> {
+/// A base Erlang accepts for integer text: 2..=36. Rust's digit parsing panics outside it.
+fn radix(base: Term) -> Option<u32> {
     let b = if is_small(base) { small_val(base) } else { return None };
-    if !(2..=36).contains(&b) { return None; }
+    (2..=36).contains(&b).then_some(b as u32)
+}
+unsafe fn int_to_string(i: Term, base: Term) -> Option<String> {
+    let b = radix(base)?;
     let v = num::to_big(i)?;
-    Some(v.to_str_radix(b as u32).to_uppercase())
+    Some(v.to_str_radix(b).to_uppercase())
 }
 bif!("erlang:integer_to_binary/1", fn integer_to_binary1(i) {
     if is_small(i) { return build::str_bin(&small_val(i).to_string()); }
@@ -382,24 +386,20 @@ bif!("erlang:binary_to_integer/1", fn binary_to_integer1(b) {
     match bin_text(b).and_then(|s| parse_int(&s, 10)) { Some(t) => t, None => badarg() }
 });
 bif!("erlang:binary_to_integer/2", fn binary_to_integer2(b, base) {
-    if !is_small(base) { return badarg(); }
-    match bin_text(b).and_then(|s| parse_int(&s, small_val(base) as u32)) { Some(t) => t, None => badarg() }
+    match radix(base).zip(bin_text(b)).and_then(|(r, s)| parse_int(&s, r)) { Some(t) => t, None => badarg() }
 });
 bif!("erts_internal:binary_to_integer/2", fn ei_binary_to_integer(b, base) {
-    if !is_small(base) { return badarg(); }
-    match bin_text(b).and_then(|s| parse_int(&s, small_val(base) as u32)) { Some(t) => t, None => BADARG }
+    match radix(base).zip(bin_text(b)).and_then(|(r, s)| parse_int(&s, r)) { Some(t) => t, None => BADARG }
 });
 bif!("erlang:list_to_integer/1", fn list_to_integer1(l) {
     match char_list(l).and_then(|s| parse_int(&s, 10)) { Some(t) => t, None => badarg() }
 });
 bif!("erlang:list_to_integer/2", fn list_to_integer2(l, base) {
-    if !is_small(base) { return badarg(); }
-    match char_list(l).and_then(|s| parse_int(&s, small_val(base) as u32)) { Some(t) => t, None => badarg() }
+    match radix(base).zip(char_list(l)).and_then(|(r, s)| parse_int(&s, r)) { Some(t) => t, None => badarg() }
 });
 bif!("erts_internal:list_to_integer/2", fn ei_list_to_integer(l, base) {
     // Returns {Integer, Rest} or badarg/no_integer, as erts_internal does.
-    let Some(s) = char_list(l) else { return BADARG };
-    let b = small_val(base) as u32;
+    let (Some(s), Some(b)) = (char_list(l), radix(base)) else { return BADARG };
     let bytes: Vec<char> = s.chars().collect();
     let mut i = 0;
     if i < bytes.len() && (bytes[i] == '-' || bytes[i] == '+') { i += 1; }
