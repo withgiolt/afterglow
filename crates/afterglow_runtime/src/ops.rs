@@ -118,6 +118,18 @@ pub unsafe extern "C" fn rt_fun_check(f: Term, arity: i32) -> i32 {
     idx
 }
 
+/// Stores apply's arguments in XREGS, with `reserved` registers left after them (1 for
+/// a fun call, which passes the fun). Like ERTS, which has the same number of X
+/// registers, running out of them is a system_limit.
+unsafe fn store_args(v: &[Term], reserved: usize) -> bool {
+    let x = &mut *core::ptr::addr_of_mut!(crate::mem::XREGS);
+    if v.len() + reserved >= x.len() {
+        return false;
+    }
+    x[..v.len()].copy_from_slice(v);
+    true
+}
+
 /// apply/3 setup: stores the argument list in XREGS and returns an external fun for
 /// M:F/length(Args), or NON_VALUE with an exception raised.
 #[no_mangle]
@@ -126,9 +138,8 @@ pub unsafe extern "C" fn rt_apply_prepare(m: Term, f: Term, args: Term) -> Term 
     if !is_atom(m) || !is_atom(f) {
         return error(BADARG);
     }
-    let x = &mut *core::ptr::addr_of_mut!(crate::mem::XREGS);
-    for (i, a) in v.iter().enumerate() {
-        x[i] = *a;
+    if !store_args(&v, 0) {
+        return error(SYSTEM_LIMIT);
     }
     funs::export_fun(m, f, v.len() as u32).unwrap()
 }
@@ -140,9 +151,8 @@ pub unsafe extern "C" fn rt_apply_prepare_fun(fun: Term, args: Term) -> Term {
     if !is_fun(fun) {
         return error2(BADFUN, fun);
     }
-    let x = &mut *core::ptr::addr_of_mut!(crate::mem::XREGS);
-    for (i, a) in v.iter().enumerate() {
-        x[i] = *a;
+    if !store_args(&v, 1) {
+        return error(SYSTEM_LIMIT);
     }
     fun
 }
