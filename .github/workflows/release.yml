@@ -28,6 +28,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y musl-tools
       - run: rustup target add ${{ matrix.target }}
       - run: cargo build --release -p afterglow --target ${{ matrix.target }}
+      # Every target builds on a runner that can execute it; this proves the binary
+      # starts there (static linking on Linux, no missing libraries anywhere).
+      - name: Run the compiler
+        run: target/${{ matrix.target }}/release/afterglow${{ matrix.exe }} dump
       - shell: bash
         run: |
           mkdir -p bin
