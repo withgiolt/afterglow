@@ -292,11 +292,12 @@ unsafe fn walk(t: Term, enc: Enc, out: &mut Vec<u32>) -> Result<(), (Stop, Term)
     let mut stack: Vec<Term> = vec![t];
     while let Some(t) = stack.pop() {
         let rest_of = |stack: &Vec<Term>, cur: Term| -> Term {
-            // the failing element followed by everything pending
+            // The failing element followed by everything pending, as ERTS builds it:
+            // [[Cur | Innermost] | ...] with the most recently pushed tail innermost.
             let mut r = cur;
-            for &pending in stack.iter() {
+            for &pending in stack.iter().rev() {
                 if pending != NIL {
-                    r = build::list(&[r, pending]);
+                    r = build::cons(r, pending);
                 }
             }
             r
