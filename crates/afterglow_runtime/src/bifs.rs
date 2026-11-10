@@ -745,14 +745,22 @@ bif!("erlang:md5/1", fn md5(data) {
     build::binary(&d)
 });
 
-// math: floats in, floats out; a non-finite result is badarith, like ERTS.
+// math: floats in, floats out; like ERTS, a non-number is badarg, and an integer too
+// large for a float or a non-finite result is badarith.
+unsafe fn math_arg(a: Term) -> Result<f64, Term> {
+    match num::to_f64(a) {
+        Some(x) => Ok(x),
+        None if is_number(a) => Err(error(BADARITH)),
+        None => Err(badarg()),
+    }
+}
 unsafe fn math1(a: Term, f: fn(f64) -> f64) -> Term {
-    let Some(x) = num::to_f64(a) else { return badarg() };
+    let x = match math_arg(a) { Ok(x) => x, Err(e) => return e };
     let r = f(x);
     if r.is_finite() { build::float(r) } else { error(BADARITH) }
 }
 unsafe fn math2(a: Term, b: Term, f: fn(f64, f64) -> f64) -> Term {
-    let (Some(x), Some(y)) = (num::to_f64(a), num::to_f64(b)) else { return badarg() };
+    let (x, y) = match (math_arg(a), math_arg(b)) { (Ok(x), Ok(y)) => (x, y), (Err(e), _) | (_, Err(e)) => return e };
     let r = f(x, y);
     if r.is_finite() { build::float(r) } else { error(BADARITH) }
 }

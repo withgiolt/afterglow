@@ -42,13 +42,15 @@ pub unsafe fn to_num(t: Term) -> Option<Num> {
     }
 }
 
+/// A number as a float, or None for a non-number or an integer too large for a float
+/// (which Erlang refuses with badarg or badarith rather than turning into infinity).
 pub unsafe fn to_f64(t: Term) -> Option<f64> {
     if is_small(t) {
         Some(small_val(t) as f64)
     } else if is_float(t) {
         Some(float_val(t))
     } else {
-        to_big(t).map(|b| big_to_f64(&b))
+        to_big(t).map(|b| big_to_f64(&b)).filter(|f| f.is_finite())
     }
 }
 
