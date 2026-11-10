@@ -10,7 +10,7 @@ const apply = (f, args) => Uint8Array.from([131, 104, 4, ...atom("apply"), ...at
 async function call(f, args = []) {
   const r = await fetch(`${base}/?node=t`, { method: "POST", body: apply(f, args) });
   const b = Buffer.from(await r.arrayBuffer());
-  const o = { f, status: r.status, text: b.toString("latin1").replace(/[^\x20-\x7e]/g, "."), boot: r.headers.get("x-glowc-boot"), alarms: r.headers.get("x-glowc-alarm-runs") };
+  const o = { f, status: r.status, hex: b.toString("hex"), text: b.toString("latin1").replace(/[^\x20-\x7e]/g, "."), boot: r.headers.get("x-glowc-boot"), alarms: r.headers.get("x-glowc-alarm-runs") };
   console.log(JSON.stringify(o));
   return o;
 }

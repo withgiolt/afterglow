@@ -1,0 +1,6 @@
+json_roundtrip, local workerd (tools/smoke/gen-config.mjs), 2026-11-10: glowvm :9400 vs glowc :9500
+status, headers (minus date) and body identical: 50136 bytes, sha256 71708799ea11a5e6e53d7f9b6892a727909fdcb923ec42c40d3e56bb95a8f262
+HTTP/1.1 200 OK
+Content-Length: 50136
+Content-Type: application/json; charset=utf-8
+

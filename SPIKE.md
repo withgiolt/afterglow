@@ -23,6 +23,31 @@ Phase 0 finding, decided 2026-11-09: `lustre_html` is not a heavy handler. Its C
 
 No row is traded against another: a faster runtime that breaks a fixture fails the spike.
 
+### Results (2026-11-10)
+
+**M5 verdict: pass on every row.** No kill criterion triggered. One caveat comes with the CPU row: it passes against the "glowc must hit" thresholds, which come from the Phase 0 baselines. In single side-by-side glowvm runs on the same day, glowvm's p99 was about half its Phase 0 value, and glowc's p99 advantage was 2.9× for both fixtures, not 3× (p50 was 8.0× and 8.5×). Those runs are n=1, not the 3-run method, so they don't override the threshold. Raw numbers are in PROGRESS.md (M5) and `bench/results/`; `compare.html` charts them.
+
+| Measure | Result | Verdict |
+| --- | --- | --- |
+| CPU, fixed overhead | Deployed, 3 runs × 5k, median of the per-run p50 / p99. `basic_get` 0.462 / 2.424 ms (≤ 1.38 / 4.65). `lustre_html` 0.554 / 2.782 ms (≤ 1.34 / 4.47). Against Phase 0 glowvm that is 8.9× / 5.8× and 7.3× / 4.8×. Side by side on 2026-11-09/10, one glowvm run each: `basic_get` glowvm 3.294 / 6.485 vs glowc 0.412 / 2.259 (8.0× / 2.9×), `lustre_html` glowvm 4.864 / 7.947 vs glowc 0.570 / 2.769 (8.5× / 2.9×) | pass against the thresholds; p99 under 3× side by side |
+| CPU, heavy handler | Deployed glowvm can't run `json_roundtrip`: every request got 503, error 1102 (CPU limit exceeded). Deployed glowc served 15,000 requests with no failures: p50 7.47, p99 12.89 ms (median of 3 runs). glowc's p99 is over the Free plan's nominal 10 ms, but nothing failed, so this doesn't show the workload fits Free. Local workerd, a sanity check only: glowvm 2367.73 / 2788.44 ms vs glowc 3.78 / 4.61 ms (626× / 605×) | pass |
+| Isolate startup | Side by side, 10 deploys each, the first request checked per version in analytics. Startup: glowc 6.5 ms vs glowvm 20 ms (`basic_get`) and 6.5 vs 21.5 ms (`lustre_html`). First-request server time: 32.8 vs 44.7 ms and 32.5 vs 55.4 ms. First-request CPU: 2.06 vs 3.68 ms and 3.09 vs 5.91 ms | pass |
+| Bundle size | gzip upload: 180.97 / 187.50 / 205.73 KiB vs glowvm 298.73 / 316.50 / 308.37 KiB | pass |
+| Peak memory | 512 / 512 KiB vs 576 / 640 KiB. `json_roundtrip` is higher on glowc: 4,992 vs 1,280 KiB, from the 2 MiB nursery | pass (flagged) |
+| Correctness | 30/30 smoke requests identical on workerd. Deployed `basic_get` and `lustre_html` identical to glowvm. `json_roundtrip` identical locally (50,136 B); glowvm can't serve it deployed | pass |
+| Tier 2 persistence | P2 deployed: {v1,1} {v1,2}, then after 180 s idle {v1,3} restored from SQLite. After a redeploy to v2, {v2,4} through `code_change`, then {v2,4} {v2,5}. Rows are about 470 B | pass |
+| Tier 2 messaging | P3 deployed: 200 round trips at 72.8 ms each, and 4 round trips at 77 ms each. Local workerd: 1.5 ms. The monitor fires `noconnection` | measured |
+
+Phase 2 (P1–P5) was built while M5 waited for the request budget; the goal makes it conditional on M5, which passed afterwards. Deployed, P2, P3 and P5 pass. P4's 60 s timer fired at 60,002 ms after the DO was evicted. The Cron Trigger delivered `{tick, Cron}`, but only once in 600 s against a schedule of every minute. Deviations from this doc:
+- no preemption by reduction count (P1);
+- no links across DOs, only monitors, and remote monitors aren't checkpointed (P3);
+- receive timeouts in a DO use virtual time;
+- deployed, a chain of sends between DOs stops at about 10 hops (Cloudflare's request depth limit), so past 8 hops sends go through the DO alarm.
+
+Also found:
+- Deep recursion traps at about 12,340 frames on workerd, where glowvm handles 1M, so glowc isn't a drop-in replacement yet.
+- On 2026-11-09 a script bug pushed the account to about 110k Worker requests, over the goal's 40k cap and the Free plan's 100k limit (PROGRESS.md, M5).
+
 ## Baseline: how glowvm runs a request today
 
 glowvm interprets BEAM bytecode inside Wasm and boots a fresh VM for every request. That per-request boot and the interpreter loop are the two costs the spike has to remove. From `withgiolt/glowvm` (`priv/index.js`, `native/src/main.c`, `src/glowvm/internal/bridge.gleam`):

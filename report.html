@@ -128,13 +128,46 @@
     </table>
   </div>
 
+  <h2>Spike results: M5 gate and Phase 2 (10 November 2026)</h2>
+  <div class="callout"><b>Request budget overrun, 9 November.</b> A script bug (BSD <code>seq 1 0</code> counts down) started load on four Workers at once and took the Giolt account to about 110,000 Worker requests that day: over the goal's 40k cap and the Free plan's 100k limit. It was stopped within 4 minutes and the Workers were deleted. Production analytics show only successful requests; requests refused at the limit wouldn't appear there. 10 November stayed under 40k.</div>
+  <div class="kpis">
+    <div class="kpi"><div class="v pass">pass</div><div class="l">M5 verdict, every row</div></div>
+    <div class="kpi"><div class="v">8.9×</div><div class="l">basic_get CPU p50 vs Phase 0 glowvm</div></div>
+    <div class="kpi"><div class="v">2.9×</div><div class="l">p99, glowvm side by side (n=1)</div></div>
+    <div class="kpi"><div class="v pass">5 / 5</div><div class="l">Phase 2 milestones built</div></div>
+  </div>
+  <div class="card">
+    <table>
+      <tr><th>Row</th><th>glowvm → glowc (deployed unless noted)</th><th>Result</th></tr>
+      <tr><td>CPU, fixed overhead</td><td>basic_get p50 / p99 4.13 / 13.94 → 0.462 / 2.424 ms; lustre_html 4.02 / 13.41 → 0.554 / 2.782 ms (3 runs × 5k). Side by side, one glowvm run each: 3.29 / 6.49 and 4.86 / 7.95 ms, so 8.0× / 2.9× and 8.5× / 2.9×</td><td class="pass">pass*</td></tr>
+      <tr><td>CPU, heavy handler</td><td>json_roundtrip: glowvm fails every request deployed (503, error 1102: CPU limit). glowc p50 7.47 / p99 12.89 ms over 15,000 requests, none failed. Local workerd: 2,368 → 3.78 ms (626×)</td><td class="pass">pass</td></tr>
+      <tr><td>Isolate startup</td><td>startup 20 / 21.5 → 6.5 / 6.5 ms; first-request server time 44.7 / 55.4 → 32.8 / 32.5 ms; first-request CPU 3.68 / 5.91 → 2.06 / 3.09 ms (10 deploys each, side by side)</td><td class="pass">pass</td></tr>
+      <tr><td>Bundle size</td><td>298.73 / 316.50 / 308.37 → 180.97 / 187.50 / 205.73 KiB gzip</td><td class="pass">pass</td></tr>
+      <tr><td>Peak memory</td><td>576 / 640 → 512 / 512 KiB. json_roundtrip 1,280 → 4,992 KiB (flagged)</td><td class="pass">pass</td></tr>
+      <tr><td>Correctness</td><td>30/30 smoke identical; deployed basic_get and lustre_html identical; json_roundtrip identical locally</td><td class="pass">pass</td></tr>
+      <tr><td>Tier 2 persistence (P2)</td><td>counter survives eviction and a redeploy through <code>code_change</code>: {v1,1} {v1,2} {v1,3} {v2,4} {v2,4} {v2,5}</td><td class="pass">pass</td></tr>
+      <tr><td>Tier 2 messaging (P3)</td><td>ping-pong between two DOs: 72.8 ms per round trip deployed (1.5 ms locally); <code>noconnection</code> fires</td><td>measured</td></tr>
+    </table>
+    <p class="note">* The CPU row passes against the "glowc must hit" thresholds, which come from the Phase 0 baselines. Side by side on the same day, glowvm's p99 was about half its Phase 0 value, and glowc's p99 advantage came out at 2.9×, just under 3×. Those are single runs. The kill criterion (below 2×) is far off. Charts: <code>compare.html</code>.</p>
+  </div>
+  <div class="card">
+    <b>Not yet a drop-in replacement</b>
+    <ul>
+      <li>Body recursion deeper than about 12,340 frames traps on workerd; glowvm handles 1,000,000.</li>
+      <li>No preemption by reduction count. No links across DOs, only monitors, and remote monitors aren't checkpointed. Receive timeouts in a DO run on virtual time.</li>
+      <li>Deployed, a chain of sends between DOs stops at about 10 hops (Cloudflare's request depth limit), so past 8 hops glowc relays sends through the DO alarm.</li>
+      <li>json_roundtrip's p99 is over Free's nominal 10 ms CPU, with no failures.</li>
+      <li>P4 deployed: the 60 s timer fired at 60,002 ms after eviction. The Cron Trigger delivered only 1 tick in 10 minutes on an every-minute schedule.</li>
+    </ul>
+  </div>
+
   <h2>Method</h2>
   <ul>
     <li>Each run: 1,000 warm-up requests, then 5,000 measured at concurrency 10 and 25 req/s with <code>oha</code>. Three runs per fixture; the reported figure is the median of the runs. The count was cut from 10,000 to protect the Free plan's daily request limit.</li>
     <li>CPU comes from Analytics quantiles over every request in the measured window. <code>wrangler tail</code> kept only about 8% of events, and Tail Workers need the Paid plan.</li>
     <li>The baselines were deployed from unmodified copies of glowvm's fixture builds: entry <code>index.min.js</code>, compatibility date 2025-08-06, no flags.</li>
     <li>Memory was measured locally with an instrumented copy; the deployed Workers were never modified.</li>
-    <li>There are no glowc numbers yet. They come at M5, deployed to the same account and region.</li>
+    <li>glowc numbers (above) come from the same method, on the same account. Cold start was redone side by side with a 60 s wait after each deploy, keeping only versions that served exactly the one request.</li>
   </ul>
 
   <footer>Source: glowc-phase0 · SPIKE.md, PROGRESS.md and bench/results/</footer>

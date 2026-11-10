@@ -38,34 +38,36 @@
 <body>
 <main>
   <h1>glowvm vs glowc</h1>
-  <p class="sub">M5 benchmark gate · Cloudflare Workers Free, Giolt account · glowvm commit <code>7190ebc</code> (AtomVM interpreter, fresh VM per request) vs glowc (BEAM compiled ahead of time to Wasm, one instance per isolate) · generated 2026-11-09 20:55 UTC</p>
+  <p class="sub">M5 benchmark gate · Cloudflare Workers Free, Giolt account · glowvm commit <code>7190ebc</code> (AtomVM interpreter, fresh VM per request) vs glowc (BEAM compiled ahead of time to Wasm, one instance per isolate) · generated 2026-11-10 00:38 UTC</p>
 
   <div class="kpis">
-    <div class=kpi><div class=v><span class=pend>pending</span></div><div class=l>M5 verdict</div></div>
-    <div class=kpi><div class=v>pending</div><div class=l>basic_get CPU p50, deployed</div></div>
-    <div class=kpi><div class=v>pending</div><div class=l>lustre_html CPU p50, deployed</div></div>
+    <div class=kpi><div class=v><span class=pass>pass</span></div><div class=l>M5 verdict</div></div>
+    <div class=kpi><div class=v>8.9×</div><div class=l>basic_get CPU p50, deployed</div></div>
+    <div class=kpi><div class=v>7.3×</div><div class=l>lustre_html CPU p50, deployed</div></div>
     <div class=kpi><div class=v>627×</div><div class=l>json_roundtrip p50, local workerd</div></div>
   </div>
+
+  <div class="callout"><b>Request budget overrun, 2026-11-09.</b> A script bug (BSD <code>seq 1 0</code> counts down) started load on four Workers at once and took the Giolt account to about 110,000 Worker requests that day: over the goal's 40k cap and the Free plan's 100k limit. Stopped within 4 minutes, Workers deleted. Production showed only successful requests in analytics; requests blocked at the limit wouldn't show there.</div>
 
   <h2>Verdict against SPIKE.md's success table</h2>
   <div class="card"><table>
     <tr><th>Row</th><th>Target</th><th>glowvm → glowc</th><th>Result</th></tr>
-    <tr><td>CPU, fixed overhead (basic_get, lustre_html)</td><td class=dim>≥ 3× lower p50 and p99 (deployed)</td><td>basic_get: p50 pending ≤ 1.38, p99 pending ≤ 4.65 ms<br>lustre_html: p50 pending ≤ 1.34, p99 pending ≤ 4.47 ms</td><td class=pend>pending</td></tr><tr><td>CPU, heavy handler (json_roundtrip)</td><td class=dim>≥ 5× lower p50 and p99 (local workerd: glowvm exceeds Free's CPU limit deployed)</td><td>p50 2367.73 → 3.78 ms (627×), p99 2788.44 → 4.61 ms (605×)</td><td class=pass>pass</td></tr><tr><td>Isolate startup</td><td class=dim>no worse (first request after deploy, median of 5)</td><td>basic_get: server 81.4 → pending ms, CPU 5.61 → pending ms<br>lustre_html: server 67.9 → pending ms, CPU 4.91 → pending ms</td><td class=pend>pending</td></tr><tr><td>Bundle size</td><td class=dim>≤ glowvm (gzip upload)</td><td>basic_get: 298.73 → 180.97 KiB<br>lustre_html: 316.5 → 187.5 KiB<br>json_roundtrip: 308.37 → 205.73 KiB</td><td class=pass>pass</td></tr><tr><td>Peak memory</td><td class=dim>lower (basic_get, lustre_html)</td><td>basic_get: 576 → 512 KiB<br>lustre_html: 640 → 512 KiB<br>json_roundtrip: 1280 → 4992 KiB<br><span class=dim>json_roundtrip is higher on glowc; not a fixture of this row, flagged below</span></td><td class=pass>pass</td></tr><tr><td>Correctness</td><td class=dim>byte-identical status, headers, body</td><td>30/30 smoke requests identical on local workerd; deployed check: basic_get pending, lustre_html pending</td><td class=pend>pending</td></tr>
+    <tr><td>CPU, fixed overhead (basic_get, lustre_html)</td><td class=dim>≥ 3× lower p50 and p99 (deployed)</td><td>basic_get: p50 0.46 ≤ 1.38, p99 2.42 ≤ 4.65 ms<br>lustre_html: p50 0.55 ≤ 1.34, p99 2.78 ≤ 4.47 ms</td><td class=pass>pass</td></tr><tr><td>CPU, heavy handler (json_roundtrip)</td><td class=dim>≥ 5× lower p50 and p99</td><td>Deployed: glowvm fails every request (503, error 1102: CPU limit exceeded); glowc p50 7.47, p99 12.89 ms over 14987 requests, 0 failed<br><span class=dim>local workerd (sanity check): p50 2367.73 → 3.78 ms (627×), p99 2788.44 → 4.61 ms (605×). glowc's deployed p99 is over Free's nominal 10 ms.</span></td><td class=pass>pass</td></tr><tr><td>Isolate startup</td><td class=dim>no worse (startup, first request after deploy; glowc and glowvm side by side, 10 deploys each)</td><td>basic_get: startup 20 → 7 ms, server 44.6 → 32.8 ms, CPU 3.68 → 2.06 ms<br>lustre_html: startup 22 → 7 ms, server 55.4 → 32.5 ms, CPU 5.91 → 3.09 ms</td><td class=pass>pass</td></tr><tr><td>Bundle size</td><td class=dim>≤ glowvm (gzip upload)</td><td>basic_get: 298.73 → 180.97 KiB<br>lustre_html: 316.5 → 187.5 KiB<br>json_roundtrip: 308.37 → 205.73 KiB</td><td class=pass>pass</td></tr><tr><td>Peak memory</td><td class=dim>lower (basic_get, lustre_html)</td><td>basic_get: 576 → 512 KiB<br>lustre_html: 640 → 512 KiB<br>json_roundtrip: 1280 → 4992 KiB<br><span class=dim>json_roundtrip is higher on glowc; not a fixture of this row, flagged below</span></td><td class=pass>pass</td></tr><tr><td>Correctness</td><td class=dim>byte-identical status, headers, body</td><td>30/30 smoke requests identical on local workerd; json_roundtrip identical on local workerd (50,136 B; glowvm can't serve it deployed); deployed check: basic_get pass, lustre_html pass</td><td class=pass>pass</td></tr>
   </table>
   <p class="note">Tier 2 rows (persistence, messaging) belong to Phase 2 and are not part of the M5 gate.</p></div>
 
   <h2>CPU per request, deployed</h2>
   <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span></div>
-  <div class="card"><svg viewBox="0 0 760 248" width="100%" role="img"><text x="0" y="15">basic_get p50</text><rect x="130" y="0" width="159.9" height="16" rx="3" fill="var(--a)"/><text class="val" x="295.8809096778822" y="12">4.13 ms</text><rect x="130" y="22" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="34">pending</text><text x="0" y="77">basic_get p99</text><rect x="130" y="62" width="540.0" height="16" rx="3" fill="var(--a)"/><text class="val" x="676" y="74">13.9 ms</text><rect x="130" y="84" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="96">pending</text><text x="0" y="139">lustre_html p50</text><rect x="130" y="124" width="155.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="291.69696534902073" y="136">4.02 ms</text><rect x="130" y="146" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="158">pending</text><text x="0" y="201">lustre_html p99</text><rect x="130" y="186" width="519.5" height="16" rx="3" fill="var(--a)"/><text class="val" x="655.5451610588995" y="198">13.4 ms</text><rect x="130" y="208" width="0.0" height="16" rx="3" fill="var(--b)"/><text class="val" x="136" y="220">pending</text></svg>
+  <div class="card"><svg viewBox="0 0 760 248" width="100%" role="img"><text x="0" y="15">basic_get p50</text><rect x="130" y="0" width="159.9" height="16" rx="3" fill="var(--a)"/><text class="val" x="295.8809096778822" y="12">4.13 ms</text><rect x="130" y="22" width="17.9" height="16" rx="3" fill="var(--b)"/><text class="val" x="153.89798407346294" y="34">0.46 ms</text><text x="0" y="77">basic_get p99</text><rect x="130" y="62" width="540.0" height="16" rx="3" fill="var(--a)"/><text class="val" x="676" y="74">13.9 ms</text><rect x="130" y="84" width="93.9" height="16" rx="3" fill="var(--b)"/><text class="val" x="229.9063060477796" y="96">2.42 ms</text><text x="0" y="139">lustre_html p50</text><rect x="130" y="124" width="155.7" height="16" rx="3" fill="var(--a)"/><text class="val" x="291.69696534902073" y="136">4.02 ms</text><rect x="130" y="146" width="21.5" height="16" rx="3" fill="var(--b)"/><text class="val" x="157.46208479804864" y="158">0.55 ms</text><text x="0" y="201">lustre_html p99</text><rect x="130" y="186" width="519.5" height="16" rx="3" fill="var(--a)"/><text class="val" x="655.5451610588995" y="198">13.4 ms</text><rect x="130" y="208" width="107.8" height="16" rx="3" fill="var(--b)"/><text class="val" x="243.77530669345003" y="220">2.78 ms</text></svg>
     <p class="note">Workers Analytics CPU time over every measured request (not sampled): 1,000 warm-up, then 5,000 at concurrency 10 and 25 req/s, 3 runs; the median of the runs' p50 and p99. glowvm numbers are the Phase 0 baselines (2026-11-09), same method.</p></div>
   <div class="card"><table>
     <tr><th>Fixture</th><th>glowvm p50 / p99 per run (ms)</th><th>glowc p50 / p99 per run (ms)</th><th class=num>glowc requests</th><th class=num>glowc non-success</th></tr>
-    <tr><td>basic_get</td><td>4.13 / 12.21<br>4.60 / 13.94<br>3.86 / 13.99</td><td>pending</td>
-    <td class=num>–</td><td class=num>–</td></tr><tr><td>lustre_html</td><td>4.25 / 13.41<br>3.84 / 11.30<br>4.02 / 15.79</td><td>pending</td>
-    <td class=num>–</td><td class=num>–</td></tr><tr><td>json_roundtrip</td><td>exceeds CPU limit (see below)</td><td>pending</td>
-    <td class=num>–</td><td class=num>–</td></tr>
+    <tr><td>basic_get</td><td>4.13 / 12.21<br>4.60 / 13.94<br>3.86 / 13.99</td><td>0.48 / 2.42<br>0.46 / 2.50<br>0.46 / 2.37</td>
+    <td class=num>14398</td><td class=num>0</td></tr><tr><td>lustre_html</td><td>4.25 / 13.41<br>3.84 / 11.30<br>4.02 / 15.79</td><td>0.56 / 2.78<br>0.55 / 2.78<br>0.55 / 2.86</td>
+    <td class=num>15044</td><td class=num>0</td></tr><tr><td>json_roundtrip</td><td>every request 503, error 1102 (CPU limit)</td><td>7.47 / 13.45<br>5.92 / 12.19<br>7.64 / 12.89</td>
+    <td class=num>14987</td><td class=num>0</td></tr>
   </table></div>
-  
+  <div class="card"><h3>Side by side on the same day</h3><table><tr><th>Fixture</th><th class=num>glowvm Phase 0 (3 runs)</th><th class=num>glowvm redeployed (1 run)</th><th class=num>glowc (1 run, same hour)</th><th class=num>ratio p50 / p99</th></tr><tr><td>basic_get</td><td class=num>4.13 / 13.94</td><td class=num>3.29 / 6.49</td><td class=num>0.41 / 2.26</td><td class=num>8.0× / 2.9×</td></tr><tr><td>lustre_html</td><td class=num>4.02 / 13.41</td><td class=num>4.86 / 7.95</td><td class=num>0.57 / 2.77</td><td class=num>8.5× / 2.9×</td></tr></table><p class="note">p50 / p99 CPU ms. One run of each, n=1, not the 3-run method, so the verdict uses the Phase 0 thresholds. glowvm's p99 that day was about half its Phase 0 value, so side by side glowc's p99 is 2.9× lower, just under the 3× target; p50 is 8× or more.</p></div>
 
   <h2>Local workerd, same machine</h2>
   <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span><span>log scale</span></div>
@@ -75,8 +77,8 @@
   <h2>Cold start</h2>
   <div class="card"><table>
     <tr><th>Fixture</th><th class=num>startup (wrangler)</th><th class=num>first request, server time</th><th class=num>first request CPU</th></tr>
-    <tr><td>basic_get</td><td class=num>22 → pending ms</td><td class=num>81.4 → pending ms</td><td class=num>5.61 → pending ms</td></tr><tr><td>lustre_html</td><td class=num>21 → pending ms</td><td class=num>67.9 → pending ms</td><td class=num>4.91 → pending ms</td></tr><tr><td>json_roundtrip</td><td class=num>– → pending ms</td><td class=num>pending → pending ms</td><td class=num>pending → pending ms</td></tr>
-  </table><p class="note">Five deploys each, the first request after each one; medians. glowvm → glowc.</p></div>
+    <tr><td>basic_get</td><td class=num>20 → 6.5 ms</td><td class=num>44.6 → 32.8 ms</td><td class=num>3.68 → 2.06 ms</td></tr><tr><td>lustre_html</td><td class=num>21.5 → 6.5 ms</td><td class=num>55.4 → 32.5 ms</td><td class=num>5.91 → 3.09 ms</td></tr><tr><td>json_roundtrip</td><td class=num>– → pending ms</td><td class=num>pending → pending ms</td><td class=num>pending → pending ms</td></tr>
+  </table><p class="note">10 deploys of each, glowc and glowvm side by side (2026-11-09 23:35 UTC), a 60 s wait, then one request. Only a version with exactly that one request in analytics counts (8–9 of 10 per Worker). Medians, glowvm → glowc.</p></div>
 
   <h2>Size and memory</h2>
   <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span></div>
@@ -89,10 +91,11 @@
     <li><b>Recursion depth.</b> Body recursion deeper than about 12,340 frames fails on workerd (502, the next request works). glowvm handles 1,000,000. <code>lists:map</code> over ~12k elements hits it. The benchmark fixtures don't.</li>
     <li><b>json_roundtrip memory.</b> 4,992 KiB vs glowvm's 1,280 KiB, from the 2 MiB GC nursery chosen for speed.</li>
     <li><b>Map order above 32 keys and atom-key order in small maps</b> can differ from ERTS when a map is iterated (lookups and equality are the same).</li>
-    <li><b>Stack traces</b> are coarser than ERTS. No processes or <code>receive</code> yet (Phase 2).</li>
+    <li><b>Stack traces</b> are coarser than ERTS.</li>
+    <li><b>Tier 2 (Phase 2) deviations.</b> No preemption by reduction count. No links across DOs (monitors only), and remote monitors aren't checkpointed. Receive timeouts in a DO run on virtual time. Deployed, sends between DOs relay through the DO alarm every 8 hops (Cloudflare's request depth limit).</li>
   </ul></div>
 
-  <footer>Sources: <code>bench/results/*.analytics.json</code>, <code>*-coldstart.cpu.json</code>, <code>bench/results/local/</code>, PROGRESS.md (M5). Regenerate with <code>node bench/compare.mjs</code>.</footer>
+  <footer>Sources: <code>bench/results/*.analytics.json</code>, <code>*-cold10.cpu.json</code>, <code>*-sbs1.analytics.json</code>, <code>bench/results/local/</code>, PROGRESS.md (M5). Regenerate with <code>node bench/compare.mjs</code>.</footer>
 </main>
 </body>
 </html>

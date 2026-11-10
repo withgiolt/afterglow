@@ -1,0 +1,11 @@
+== glowvm-baseline-lustre-html 2026-11-10T00:27:11Z
+ready after 2 probes (last status 200)
+1,1ad89f70-a977-40e3-9dc2-c2ace57c7213,25,58.2,82.1,200
+-- run 1 2026-11-10T00:28:46Z
+status {"200":5000} errors {}
+{"run":"glowvm-baseline-lustre-html-r1","scriptVersion":"1ad89f70-a977-40e3-9dc2-c2ace57c7213","window":{"start":"2026-11-10T00:28:55.000Z","end":"2026-11-10T00:32:14.000Z"},"byStatus":[{"status":"success","requests":5018,"errors":0,"cpuMs":{"p25":3.513,"p50":4.864,"p75":5.466,"p90":6.105,"p99":7.947,"p999":20.213},"wallMs":{"p50":5.285,"p99":10.031}}]}
+{"startupMs":25,"serverMs":58.2,"cpuMs":null} [ null ]
+deleting glowvm-baseline-lustre-html
+────────────────────
+Successfully deleted glowvm-baseline-lustre-html
+exit 0

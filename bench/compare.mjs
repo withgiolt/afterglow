@@ -28,6 +28,12 @@ function deployed(prefix) {
 }
 // Cold start: the side-by-side 10-deploy series (2026-11-09 23:35 UTC, 60 s wait, versions
 // checked in analytics), not the Phase 0 5-deploy series.
+// One side-by-side run (n=1) of glowvm redeployed next to glowc, same day.
+const sbs = (prefix) => {
+  const r = read(`${R}/${prefix}-sbs1.analytics.json`);
+  const ok = r?.byStatus.find((s) => s.status === "success");
+  return ok ? { p50: ok.cpuMs.p50, p99: ok.cpuMs.p99, n: ok.requests } : null;
+};
 const cold = (prefix) => read(`${R}/${prefix}-cold10.cpu.json`)?.median ?? null;
 const local = (rt, f) => {
   const j = read(`${R}/local/local-${rt}-${f}.json`);
@@ -36,8 +42,8 @@ const local = (rt, f) => {
 };
 
 const F = [
-  { id: "basic_get", name: "basic_get", vm: "glowvm-baseline-basic-get", gc: "glowc-m5-basic-get", vm2: "glowvm-m5-basic-get", factor: 3 },
-  { id: "lustre_html", name: "lustre_html", vm: "glowvm-baseline-lustre-html", gc: "glowc-m5-lustre-html", vm2: "glowvm-m5-lustre-html", factor: 3 },
+  { id: "basic_get", name: "basic_get", vm: "glowvm-baseline-basic-get", gc: "glowc-m5-basic-get", vm2: "glowvm-baseline-basic-get", factor: 3 },
+  { id: "lustre_html", name: "lustre_html", vm: "glowvm-baseline-lustre-html", gc: "glowc-m5-lustre-html", vm2: "glowvm-baseline-lustre-html", factor: 3 },
   { id: "json_roundtrip", name: "json_roundtrip", vm: null, gc: "glowc-m5-json-roundtrip", vm2: null, factor: 5 },
 ];
 // Fixed facts measured outside these files (PROGRESS.md, M5).
@@ -50,8 +56,8 @@ const cls = (ok) => (ok == null ? "pend" : ok ? "pass" : "fail");
 const word = (ok) => (ok == null ? "pending" : ok ? "pass" : "fail");
 
 const rows = F.map((f) => {
-  const vm = f.vm ? deployed(f.vm) : null, gc = deployed(f.gc), vm2 = f.vm2 ? deployed(f.vm2) : null;
-  return { ...f, vm, gc, vm2, lvm: local("vm", f.id), lgc: local("gc", f.id), cvm: f.vm ? cold(f.vm) : null, cgc: cold(f.gc) };
+  const vm = f.vm ? deployed(f.vm) : null, gc = deployed(f.gc), vm2 = f.vm2 ? sbs(f.vm2) : null, gc2 = sbs(f.gc);
+  return { ...f, vm, gc, vm2, gc2, lvm: local("vm", f.id), lgc: local("gc", f.id), cvm: f.vm ? cold(f.vm) : null, cgc: cold(f.gc) };
 });
 
 // Verdict per row of SPIKE.md's first table.
@@ -61,7 +67,11 @@ const cpuFixed = rows.slice(0, 2).map((r) => {
   return { r, t50, t99, ok };
 });
 const j = rows[2];
-const heavyOk = j.lgc && j.lvm ? j.lgc.p50 * 5 <= j.lvm.p50 && j.lgc.p99 * 5 <= j.lvm.p99 : null;
+// Deployed glowvm fails every json_roundtrip request (503, error 1102: CPU limit), so the
+// row passes on glowc serving it with no failures; the local ratio is a sanity check.
+const probe = `${R}/glowvm-baseline-json-roundtrip-probe.txt`;
+const vmJsonFails = fs.existsSync(probe) && /response 1: 503/.test(fs.readFileSync(probe, "utf8"));
+const heavyOk = j.gc && vmJsonFails ? j.gc.failures === 0 && j.lgc.p50 * 5 <= j.lvm.p50 && j.lgc.p99 * 5 <= j.lvm.p99 : null;
 const coldOk = rows.slice(0, 2).every((r) => r.cgc) ? rows.slice(0, 2).every((r) => r.cgc.startupMs <= r.cvm.startupMs && r.cgc.serverMs <= r.cvm.serverMs && r.cgc.cpuMs <= r.cvm.cpuMs) : null;
 const sizeOk = Object.values(size).every(([v, g]) => g <= v);
 const memOk = ["basic_get", "lustre_html"].every((k) => memory[k][1] < memory[k][0]);
@@ -77,13 +87,13 @@ const verdictRows = [
   ["CPU, fixed overhead (basic_get, lustre_html)", "≥ 3× lower p50 and p99 (deployed)",
     cpuFixed.map(({ r, t50, t99 }) => `${r.name}: p50 ${fmt(r.gc?.p50)} ≤ ${fmt(t50)}, p99 ${fmt(r.gc?.p99)} ≤ ${fmt(t99)} ms`).join("<br>"),
     cpuFixed.every((c) => c.ok === true) ? true : cpuFixed.some((c) => c.ok === false) ? false : null],
-  ["CPU, heavy handler (json_roundtrip)", "≥ 5× lower p50 and p99 (local workerd: glowvm exceeds Free's CPU limit deployed)",
-    `p50 ${fmt(j.lvm?.p50)} → ${fmt(j.lgc?.p50)} ms (${fmt(ratio(j.lvm?.p50, j.lgc?.p50), 0)}×), p99 ${fmt(j.lvm?.p99)} → ${fmt(j.lgc?.p99)} ms (${fmt(ratio(j.lvm?.p99, j.lgc?.p99), 0)}×)`, heavyOk],
+  ["CPU, heavy handler (json_roundtrip)", "≥ 5× lower p50 and p99",
+    `Deployed: glowvm ${vmJsonFails ? "fails every request (503, error 1102: CPU limit exceeded)" : "pending"}; glowc p50 ${fmt(j.gc?.p50)}, p99 ${fmt(j.gc?.p99)} ms over ${j.gc?.requests ?? "?"} requests, ${j.gc?.failures ?? "?"} failed<br><span class=dim>local workerd (sanity check): p50 ${fmt(j.lvm?.p50)} → ${fmt(j.lgc?.p50)} ms (${fmt(ratio(j.lvm?.p50, j.lgc?.p50), 0)}×), p99 ${fmt(j.lvm?.p99)} → ${fmt(j.lgc?.p99)} ms (${fmt(ratio(j.lvm?.p99, j.lgc?.p99), 0)}×). glowc's deployed p99 is over Free's nominal 10 ms.</span>`, heavyOk],
   ["Isolate startup", "no worse (startup, first request after deploy; glowc and glowvm side by side, 10 deploys each)",
     rows.slice(0, 2).map((r) => `${r.name}: startup ${fmt(r.cvm?.startupMs, 0)} → ${fmt(r.cgc?.startupMs, 0)} ms, server ${fmt(r.cvm?.serverMs, 1)} → ${fmt(r.cgc?.serverMs, 1)} ms, CPU ${fmt(r.cvm?.cpuMs)} → ${fmt(r.cgc?.cpuMs)} ms`).join("<br>"), coldOk],
   ["Bundle size", "≤ glowvm (gzip upload)", Object.entries(size).map(([k, [v, g]]) => `${k}: ${v} → ${g} KiB`).join("<br>"), sizeOk],
   ["Peak memory", "lower (basic_get, lustre_html)", Object.entries(memory).map(([k, [v, g]]) => `${k}: ${v} → ${g} KiB`).join("<br>") + "<br><span class=dim>json_roundtrip is higher on glowc; not a fixture of this row, flagged below</span>", memOk],
-  ["Correctness", "byte-identical status, headers, body", `30/30 smoke requests identical on local workerd; deployed check: ${correctness.map((c, i) => `${rows[i].name} ${word(c)}`).join(", ")}`, corrOk],
+  ["Correctness", "byte-identical status, headers, body", `30/30 smoke requests identical on local workerd; json_roundtrip identical on local workerd (50,136 B; glowvm can't serve it deployed); deployed check: ${correctness.map((c, i) => `${rows[i].name} ${word(c)}`).join(", ")}`, corrOk],
 ];
 const all = verdictRows.map((v) => v[3]);
 const overall = all.every((x) => x === true) ? "pass" : all.some((x) => x === false) ? "fail" : "pending";
@@ -121,12 +131,12 @@ const memChart = bars(Object.entries(memory).map(([k, [v, g]]) => pair(k, v, g))
 
 const runTable = rows.map((r) => {
   const cell = (d) => (d ? d.perRun.map((p) => `${fmt(p.p50)} / ${fmt(p.p99)}`).join("<br>") : "pending");
-  return `<tr><td>${r.name}</td><td>${r.vm ? cell(r.vm) : r.id === "json_roundtrip" ? "exceeds CPU limit (see below)" : "pending"}</td><td>${cell(r.gc)}</td>
+  return `<tr><td>${r.name}</td><td>${r.vm ? cell(r.vm) : r.id === "json_roundtrip" ? "every request 503, error 1102 (CPU limit)" : "pending"}</td><td>${cell(r.gc)}</td>
     <td class=num>${r.gc ? r.gc.requests : "–"}</td><td class=num>${r.gc ? r.gc.failures + (r.gc.failureKinds.length ? " (" + r.gc.failureKinds.join(", ") + ")" : "") : "–"}</td></tr>`;
 }).join("");
 
 const sideBySide = rows.slice(0, 2).filter((r) => r.vm2).map((r) =>
-  `<tr><td>${r.name}</td><td class=num>${fmt(r.vm.p50)} / ${fmt(r.vm.p99)}</td><td class=num>${fmt(r.vm2.p50)} / ${fmt(r.vm2.p99)}</td><td class=num>${fmt(r.gc?.p50)} / ${fmt(r.gc?.p99)}</td></tr>`).join("");
+  `<tr><td>${r.name}</td><td class=num>${fmt(r.vm.p50)} / ${fmt(r.vm.p99)}</td><td class=num>${fmt(r.vm2.p50)} / ${fmt(r.vm2.p99)}</td><td class=num>${fmt(r.gc2?.p50)} / ${fmt(r.gc2?.p99)}</td><td class=num>${fmt(ratio(r.vm2.p50, r.gc2?.p50), 1)}× / ${fmt(ratio(r.vm2.p99, r.gc2?.p99), 1)}×</td></tr>`).join("");
 
 const kpi = (v, l) => `<div class=kpi><div class=v>${v}</div><div class=l>${l}</div></div>`;
 const bg = rows[0], lh = rows[1];
@@ -179,6 +189,8 @@ const html = `<!doctype html>
     ${kpi(j.lgc && j.lvm ? fmt(j.lvm.p50 / j.lgc.p50, 0) + "×" : "pending", "json_roundtrip p50, local workerd")}
   </div>
 
+  <div class="callout"><b>Request budget overrun, 2026-11-09.</b> A script bug (BSD <code>seq 1 0</code> counts down) started load on four Workers at once and took the Giolt account to about 110,000 Worker requests that day: over the goal's 40k cap and the Free plan's 100k limit. Stopped within 4 minutes, Workers deleted. Production showed only successful requests in analytics; requests blocked at the limit wouldn't show there.</div>
+
   <h2>Verdict against SPIKE.md's success table</h2>
   <div class="card"><table>
     <tr><th>Row</th><th>Target</th><th>glowvm → glowc</th><th>Result</th></tr>
@@ -194,7 +206,7 @@ const html = `<!doctype html>
     <tr><th>Fixture</th><th>glowvm p50 / p99 per run (ms)</th><th>glowc p50 / p99 per run (ms)</th><th class=num>glowc requests</th><th class=num>glowc non-success</th></tr>
     ${runTable}
   </table></div>
-  ${sideBySide ? `<div class="card"><h3>Side by side on the same day</h3><table><tr><th>Fixture</th><th class=num>glowvm Phase 0</th><th class=num>glowvm redeployed</th><th class=num>glowc</th></tr>${sideBySide}</table><p class="note">One run of glowvm redeployed next to glowc, to check that the Phase 0 baseline still holds.</p></div>` : ""}
+  ${sideBySide ? `<div class="card"><h3>Side by side on the same day</h3><table><tr><th>Fixture</th><th class=num>glowvm Phase 0 (3 runs)</th><th class=num>glowvm redeployed (1 run)</th><th class=num>glowc (1 run, same hour)</th><th class=num>ratio p50 / p99</th></tr>${sideBySide}</table><p class="note">p50 / p99 CPU ms. One run of each, n=1, not the 3-run method, so the verdict uses the Phase 0 thresholds. glowvm's p99 that day was about half its Phase 0 value, so side by side glowc's p99 is 2.9× lower, just under the 3× target; p50 is 8× or more.</p></div>` : ""}
 
   <h2>Local workerd, same machine</h2>
   <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span><span>log scale</span></div>
@@ -205,7 +217,7 @@ const html = `<!doctype html>
   <div class="card"><table>
     <tr><th>Fixture</th><th class=num>startup (wrangler)</th><th class=num>first request, server time</th><th class=num>first request CPU</th></tr>
     ${rows.map((r) => `<tr><td>${r.name}</td><td class=num>${r.cvm ? r.cvm.startupMs : "–"} → ${r.cgc ? r.cgc.startupMs : "pending"} ms</td><td class=num>${fmt(r.cvm?.serverMs, 1)} → ${fmt(r.cgc?.serverMs, 1)} ms</td><td class=num>${fmt(r.cvm?.cpuMs)} → ${fmt(r.cgc?.cpuMs)} ms</td></tr>`).join("")}
-  </table><p class="note">Five deploys each, the first request after each one; medians. glowvm → glowc.</p></div>
+  </table><p class="note">10 deploys of each, glowc and glowvm side by side (2026-11-09 23:35 UTC), a 60 s wait, then one request. Only a version with exactly that one request in analytics counts (8–9 of 10 per Worker). Medians, glowvm → glowc.</p></div>
 
   <h2>Size and memory</h2>
   <div class="legend"><span><i style="background:var(--a)"></i>glowvm</span><span><i style="background:var(--b)"></i>glowc</span></div>
@@ -218,10 +230,11 @@ const html = `<!doctype html>
     <li><b>Recursion depth.</b> Body recursion deeper than about 12,340 frames fails on workerd (502, the next request works). glowvm handles 1,000,000. <code>lists:map</code> over ~12k elements hits it. The benchmark fixtures don't.</li>
     <li><b>json_roundtrip memory.</b> 4,992 KiB vs glowvm's 1,280 KiB, from the 2 MiB GC nursery chosen for speed.</li>
     <li><b>Map order above 32 keys and atom-key order in small maps</b> can differ from ERTS when a map is iterated (lookups and equality are the same).</li>
-    <li><b>Stack traces</b> are coarser than ERTS. No processes or <code>receive</code> yet (Phase 2).</li>
+    <li><b>Stack traces</b> are coarser than ERTS.</li>
+    <li><b>Tier 2 (Phase 2) deviations.</b> No preemption by reduction count. No links across DOs (monitors only), and remote monitors aren't checkpointed. Receive timeouts in a DO run on virtual time. Deployed, sends between DOs relay through the DO alarm every 8 hops (Cloudflare's request depth limit).</li>
   </ul></div>
 
-  <footer>Sources: <code>bench/results/*.analytics.json</code>, <code>*-coldstart.cpu.json</code>, <code>bench/results/local/</code>, PROGRESS.md (M5). Regenerate with <code>node bench/compare.mjs</code>.</footer>
+  <footer>Sources: <code>bench/results/*.analytics.json</code>, <code>*-cold10.cpu.json</code>, <code>*-sbs1.analytics.json</code>, <code>bench/results/local/</code>, PROGRESS.md (M5). Regenerate with <code>node bench/compare.mjs</code>.</footer>
 </main>
 </body>
 </html>

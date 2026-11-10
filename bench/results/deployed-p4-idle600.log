@@ -1,0 +1,11 @@
+Uploaded glowc-p4-timers (5.57 sec)
+Current Version ID: 785a3731-bf6d-4519-b813-df0edb17eb44
+ready after 1 probes
+{"f":"arm","status":200,"text":".w.armed","boot":"{\"restored\":0,\"upgraded\":0}","alarms":"0"}
+{"f":"ticker","status":200,"text":".w.ticking","boot":"warm","alarms":"0"}
+idle 600 s, no requests: only the alarm can wake the DO; cron runs each minute
+{"f":"result","status":200,"hex":"83680277056669726564620000ea62","text":".h.w.firedb...b","boot":"{\"restored\":3,\"upgraded\":0}","alarms":"0"}
+{"f":"ticks","status":200,"hex":"83680377057469636b7361016c000000016d000000092a202a202a202a202a6a","text":".h.w.ticksa.l....m....* * * * *j","boot":"warm","alarms":"0"}
+PASS p4 deployed: timer fired
+deleting glowc-p4-timers
+Successfully deleted glowc-p4-timers

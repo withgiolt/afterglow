@@ -318,7 +318,7 @@ In this repo:
 - `tools/regress.sh`: 49 difftests vs erl (M1–M3 unit tests, all fixtures, gc_churn).
 - Port note: Helium's CDP listens on 9222, so the harness uses 9400+/9500+.
 
-### M5: benchmark gate (in progress)
+### M5: benchmark gate (done 2026-11-10: pass, verdict in SPIKE.md)
 
 - Size pass (ccd46bb): only literals used by reachable code are emitted, Y stack 16K
   words, Rust shadow stack 64 KiB, smaller GC blocks. sizes below. Size row: pass.
@@ -409,19 +409,37 @@ In this repo:
   gote.giolt.app 200. Fixed: m5.sh counts with an arithmetic loop. The three completed
   runs are kept as `*-sbs1` (one side-by-side run): basic_get glowc 0.412 / 2.259 vs
   glowvm 3.294 / 6.485 ms p50 / p99 (8.0× / 2.9×), lustre_html glowc 0.570 / 2.769.
-  The glowvm lustre_html run was cut short and has no result.
+  The glowvm lustre_html run was cut short and has no result. Production analytics
+  for 23:40-00:05 UTC: 7 requests, all successful (giolt, giolt-dash, giolt-dash-next,
+  gote). Requests refused at the daily limit wouldn't show up there.
+- 2026-11-10 (day total 24,482 requests at 00:36 UTC, account-wide):
+  - json_roundtrip, glowc, 3 runs, all 15,000 measured requests successful: p50 / p99
+    7.473 / 13.451, 5.922 / 12.187, 7.637 / 12.894 ms, so median 7.47 / 12.89. That is
+    over Free's nominal 10 ms at p99, with no failures. Cold start (1 deploy): startup
+    14 ms, server 61.2 ms.
+  - json_roundtrip, glowvm, deployed (`bench/probe-once.sh`): 3 of 3 requests got 503
+    `error code: 1102` (CPU limit exceeded) after about 2.1 s. glowvm can't serve the
+    fixture deployed, so the heavy row compares glowc's deployed success with local
+    numbers (626× at p50).
+  - json_roundtrip correctness: glowvm and glowc on local workerd answer identically
+    (50,136 B, `bench/results/json-roundtrip-local-compare.txt`).
+  - glowvm lustre_html side by side, 1 run (`*-sbs1`): 4.864 / 7.947 ms vs glowc 0.570
+    / 2.769 (8.5× / 2.9×). With basic_get's 2.9×, glowvm's same-day p99 is about half
+    its Phase 0 value. The verdict uses the Phase 0 thresholds (n=1 here); the 2.9× is
+    stated in the verdict.
+- Verdict (SPIKE.md, Results): pass on every row, no kill criterion.
 - First-request cost, local: with the flag warm-up (glowvm's contract, which glowc
   keeps), the first real request runs handler code V8 has not compiled yet. Under Node
   that costs about 0.9 ms more than later requests; a warm-up through the real handler
   removes it (0.03 ms). glowvm's warm-up skips the handler too, so the gate build keeps
   the flag warm-up. A full-handler warm-up would also run user code at global scope,
   where workerd refuses random values.
-- Schedule (40k/day), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
+- Schedule (superseded by the runs above), as first planned: 2026-11-10 UTC glowc basic_get + lustre_html (36,010 requests).
   2026-11-11 UTC glowc json_roundtrip (18,005), glowvm basic_get and lustre_html
   redeployed for one side-by-side run each (12,010), one glowvm json_roundtrip request
   to record the failure mode.
 
-### P1: in-request scheduler (started 2026-11-09 while M5 waits for the request budget)
+### P1: in-request scheduler (done; local)
 
 Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not rebuilt.
 
@@ -454,7 +472,7 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   (100,000 messages), tests/erl/p1e.erl (basic, links, monitors, timeouts, selective
   receive, registry). regress: 57/57. Smoke on workerd: 30/30.
 
-### P2: checkpoint and restore (Node harness passing; Durable Object next)
+### P2: checkpoint and restore (done; deployed PASS 2026-11-10)
 
 - glowrt node mode (`rt_node_mode`): heap, arena and processes persist across turns;
   each turn gets a fresh main process on the main stack. Dirty tracking per process
@@ -492,7 +510,7 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 - Next: one deployed check on Giolt (`glowc-p2-counter`, about 10 requests) after the
   day's M5 runs, then P3.
 
-### P3: messages between DOs (local workerd passing; deployed check pending)
+### P3: messages between DOs (done; deployed PASS 2026-11-10)
 
 - Remote pids: the node's atom index sits in bits 36.. of the pid word; ETF carries the
   node name (decoded back to a local pid when it names this node). `erlang:node/0,1`
@@ -512,7 +530,7 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   4.0 ms each), then a remote monitor fires noconnection after b throws on purpose
   (`glowc:node_crash/0`). PASS. P2 DO test, regress 59/59 and smoke 30/30 still pass.
 
-### P4: timers (local workerd passing; deployed check pending)
+### P4: timers (done; deployed timer PASS 2026-11-10, cron sparse)
 
 - glowrt: erlang:send_after/3,4, start_timer/3,4 ({timeout, Ref, Msg}), cancel_timer/1,2,
   read_timer/1,2. Tier 1: virtual clock (a timer fires when nothing can run, before a
@@ -529,7 +547,7 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   (they do not arm alarms): a deviation.
 - regress 60/60, P2 and P3 DO tests still pass.
 
-### P5: WebSockets (local workerd passing; deployed check pending)
+### P5: WebSockets (done; deployed PASS 2026-11-10)
 
 - DO host: `Upgrade: websocket` -> `ctx.acceptWebSocket` (Hibernation API). A socket is
   `{glowc_ws, Id}` (id from a persisted counter), its owner process name and module in
@@ -543,6 +561,30 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
   "2: yo (members 2, messages 2)", and the restore is reported ({"restored":2}). PASS.
   Deployed: wait past the hibernation idle time instead of "__evict".
 
+### Phase 2 deployed checks (2026-11-10, `tools/do/deployed.sh`, each Worker deleted)
+
+- P2: {v1,1} {v1,2}; after 180 s idle {v1,3} with boot {"restored":2}; redeploy to v2,
+  then {v2,4} with {"restored":2,"upgraded":2} (code_change), {v2,4}; after 180 s idle
+  {v2,5} restored. Rows 472 / 463 B. PASS.
+- P3: first run stalled. With a debug build logging each send's depth, the 11th hop
+  between the two DOs never arrived, and nothing was logged: Cloudflare caps how deep
+  a chain of requests between Workers and DOs can go. Fix in `tools/do/node.js`: each
+  send carries `x-glowc-hop`, and past 8 hops the outbox goes to an SQLite queue (outq)
+  that the DO alarm sends, which starts a new chain. A node with queued sends queues
+  later ones too, to keep order per sender and receiver. Deployed after the fix: 200
+  round trips at 72.8 ms each, 4 round trips (no relay) at 77 ms each, so the relay adds
+  nothing measurable. `noconnection` fires. PASS. Local: 1.47 ms per round trip.
+- P4: armed a 60 s timer, then 200 s with no requests. The result call found the
+  timer fired, from a restored instance ({"restored":3}). That run didn't record the
+  fired-after value, so it can't separate the alarm firing at 60 s from a lazy fire.
+  Cron ticks: 0. Rerun with 600 s idle (`bench/results/deployed-p4-idle600.log`): the
+  timer fired 60,002 ms after arming (decoded from the reply), read from a restored
+  instance ({"restored":3}), so the alarm woke the evicted DO on time. PASS for the P4
+  test. Cron: 1 tick ({tick, "* * * * *"}) in 600 s, where about 10 were due. Delivery
+  works, but deployed cron ran far less often than its schedule; not explained.
+- P5: two WebSocket clients, 30 s idle between messages, room state restored
+  ({"restored":2}). PASS.
+
 ## User requests during the run
 
 - 2026-11-09: "after you are done, create an html file so i can visualize and compare
@@ -552,6 +594,6 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 
 ## Next steps
 
-1. M5: cold-start series (running), then from 2026-11-10 00:00 UTC json_roundtrip
-   (glowc 3 runs, glowvm one request), glowvm side-by-side runs, deployed P2-P5 checks.
-   Then the verdict, SPIKE.md, report.html and compare.html.
+1. Optional: two more glowvm side-by-side runs per fixture (2026-11-11 or later) to
+   firm up the 2.9× p99 ratio.
+2. Cleanup list above (Workers already deleted).
