@@ -1,11 +1,11 @@
 import gleam/option
-import glowvm
+import afterglow
 import wisp
 
 /// wisp.File responses aren't supported (no filesystem on a Worker) —
-/// glowvm.serve should turn this into a 501, not crash.
+/// afterglow.serve should turn this into a 501, not crash.
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(_req: wisp.Request) -> wisp.Response {

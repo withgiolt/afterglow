@@ -1,9 +1,9 @@
-import glowvm
+import afterglow
 import wisp
 
-/// Exercises wisp.get_query -> gleam/uri -> AtomVM's uri_string shim.
+/// Exercises wisp.get_query -> gleam/uri -> uri_string.
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(req: wisp.Request) -> wisp.Response {

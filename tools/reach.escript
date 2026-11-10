@@ -7,15 +7,13 @@
 
 main([Root, ModS | Rest]) ->
     {F, A} = case Rest of [Fs, As] -> {list_to_atom(Fs), list_to_integer(As)}; [] -> {start, 0} end,
-    Shims = [base64, io_lib_format, json, maps, rand, string, uri_string],
     Paths = [P || P <- filelib:wildcard(Root ++ "/*/ebin")],
-    put(paths, Paths), put(shims, Shims),
+    put(paths, Paths),
     walk([{list_to_atom(ModS), F, A}], #{}),
     report().
 
 find_beam(M) ->
-    Local = [P ++ "/" ++ atom_to_list(M) ++ ".beam" || P <- get(paths),
-             not (lists:member(M, get(shims)) andalso lists:suffix("glowvm/ebin", P))],
+    Local = [P ++ "/" ++ atom_to_list(M) ++ ".beam" || P <- get(paths)],
     case [B || B <- Local, filelib:is_file(B)] of
         [B | _] -> B;
         [] -> case code:which(M) of

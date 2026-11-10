@@ -6,8 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 for v in 1 2; do
   mkdir -p out/p2v$v
-  erlc -o out/p2v$v tests/erl/p2/glowc_node.erl tests/erl/p2v$v/counter.erl
-  tools/glowc-build.sh out/p2v$v.wasm --beams out/p2v$v --keep counter --keep gen --keep gen_server --keep glowc_node --entry glowc_node:turn/0 2>/dev/null
+  erlc -o out/p2v$v tests/erl/p2/afterglow_node.erl tests/erl/p2v$v/counter.erl
+  tools/afterglow-build.sh out/p2v$v.wasm --beams out/p2v$v --keep counter --keep gen --keep gen_server --keep afterglow_node --entry afterglow_node:turn/0 2>/dev/null
 done
 got=$(node tools/node-harness.mjs tests/p2-scenario.json | node -e 'const l=JSON.parse(require("fs").readFileSync(0));console.log(l.filter(s=>s.call).map(s=>s.reply).join(" "))')
 want="{v1,1} {v1,2} {v1,3} {v2,4} {v2,4} {v2,5}"

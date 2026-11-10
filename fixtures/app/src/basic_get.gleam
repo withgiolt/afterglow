@@ -1,10 +1,10 @@
-import glowvm
+import afterglow
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(_req: wisp.Request) -> wisp.Response {
-  wisp.ok() |> wisp.string_body("hello from glowvm")
+  wisp.ok() |> wisp.string_body("hello from afterglow")
 }

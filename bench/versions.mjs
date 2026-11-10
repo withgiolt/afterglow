@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error("set CLOUDFLARE_ACCOUNT_ID");
 const [script, s, e] = process.argv.slice(2);
-const token = fs.readFileSync(`${os.homedir()}/.config/glowc-phase0/cf-analytics-token`, "utf8").trim();
+const token = fs.readFileSync(`${os.homedir()}/.config/afterglow-phase0/cf-analytics-token`, "utf8").trim();
 const query = `query($a:String!,$n:String!,$s:Time!,$e:Time!){viewer{accounts(filter:{accountTag:$a}){
   workersInvocationsAdaptive(limit:100,filter:{scriptName:$n,datetime_geq:$s,datetime_leq:$e}){
     dimensions{scriptVersion status} sum{requests} quantiles{cpuTimeP50}}}}}`;

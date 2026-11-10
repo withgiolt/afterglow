@@ -1,6 +1,5 @@
-// Port of withgiolt/glowvm scripts/smoke.test.ts (7190ebc), assertions unchanged, run
-// against glowc Workers instead of glowvm. Same fixtures (fixtures/app/src), same
-// requests. Build the Workers first: tools/smoke/build.sh (out/workers/<fixture>).
+// One request per fixture in fixtures/app/src through its afterglow Worker. Build the
+// Workers first: tools/smoke/build.sh (out/workers/<fixture>).
 //   bun test tests/smoke.test.ts
 import { expect, test } from "bun:test";
 import { plugin } from "bun";
@@ -9,7 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 // index.js imports ./app.wasm as a WebAssembly.Module, which is how workerd resolves
 // it; Bun needs a plugin to do the same.
 plugin({
-  name: "glowc-assets",
+  name: "afterglow-assets",
   setup(build) {
     build.onLoad({ filter: /app\.wasm$/ }, (args) => ({
       exports: { default: new WebAssembly.Module(readFileSync(args.path)) },
@@ -46,7 +45,7 @@ async function fetchFixture(
 test("basic_get returns 200 with body", async () => {
   const r = await fetchFixture("basic_get", "/");
   expect(r.status).toEqual(200);
-  expect(r.text).toEqual("hello from glowvm");
+  expect(r.text).toEqual("hello from afterglow");
 });
 
 test("not_found returns 404", async () => {
@@ -75,7 +74,7 @@ test("bytes_body returns raw bytes", async () => {
 });
 
 test("echo_body round-trips binary bodies containing the frame marker", async () => {
-  const marker = new TextEncoder().encode("\n__GLOWVM__");
+  const marker = new TextEncoder().encode("\n__AFTERGLOW__");
   const body = new Uint8Array([0, 0xff, 131, ...marker, 0, 0, 0, 1, ...marker]);
   const r = await fetchFixture("echo_body", "/", { method: "POST", body });
   expect(r.status).toEqual(200);
@@ -113,7 +112,7 @@ test("file_body is not implemented", async () => {
 
 test("lustre html generations returns ok", async () => {
   const r = await fetchFixture("lustre_html", "/");
-  expect(r.text).toContain("<h1>hello from glowvm</h1>");
+  expect(r.text).toContain("<h1>hello from afterglow</h1>");
   expect(r.status).toEqual(200);
 });
 

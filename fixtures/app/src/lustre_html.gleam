@@ -1,10 +1,10 @@
-import glowvm
+import afterglow
 import lustre/element
 import lustre/element/html
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(_req: wisp.Request) -> wisp.Response {
@@ -15,6 +15,6 @@ fn handle_request(_req: wisp.Request) -> wisp.Response {
 pub fn element() {
   html.html([], [
     html.head([], []),
-    html.body([], [html.h1([], [html.text("hello from glowvm")])]),
+    html.body([], [html.h1([], [html.text("hello from afterglow")])]),
   ])
 }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/beam-reader", "crates/glowc", "crates/glowrt"]
+members = ["crates/beam-reader", "crates/afterglow", "crates/afterglow_runtime"]
 
 [profile.release]
 opt-level = 3

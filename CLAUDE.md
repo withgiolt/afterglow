@@ -1,14 +1,14 @@
 # CLAUDE.md
 
-afterglow compiles BEAM bytecode from Gleam and Erlang ahead of time to WebAssembly, linked with a Rust runtime (glowrt), so Giolt can run BEAM apps on Cloudflare Workers and Durable Objects in place of glowvm.
+afterglow compiles BEAM bytecode from Gleam and Erlang ahead of time to WebAssembly, linked with a Rust runtime (`crates/afterglow_runtime`), so Giolt can run BEAM apps on Cloudflare Workers and Durable Objects. Apps call `afterglow.serve` from the Gleam package in `gleam/`.
 
-On Windows, run the tools from Git Bash after `source tools/env.sh` (Erlang and Binaryen on PATH). Without Developer Mode, the first `gleam build` of a project must run elevated through `tools/gleam-elevated.ps1 "<dir>|build"`; later builds don't. Tests need the fixture apps built: `gleam build` in `fixtures/app` and `gleam run -m build_all` in `../glowvm/fixtures/app`. Then `tools/regress.sh` (difftests against erl), `tools/smoke/run.sh` (both runtimes on workerd) and `bun test tests/smoke.test.ts` (after `tools/smoke/build.sh`). `tools/difftest-project.sh DIR MODULE METHOD PATH` compares any built Gleam project with erl. Pass URL paths to `bun tools/fetch-worker.ts` with `MSYS_NO_PATHCONV=1`.
+On Windows, run the tools from Git Bash after `source tools/env.sh` (Erlang and Binaryen on PATH). Without Developer Mode, the first `gleam build` of a project must run elevated through `tools/gleam-elevated.ps1 "<dir>|build"`; later builds don't. Tests need the fixture app built: `gleam build` in `fixtures/app`. Then `tools/regress.sh` (difftests against erl), `tools/smoke/run.sh` (the Workers on workerd) and `bun test tests/smoke.test.ts` (after `tools/smoke/build.sh`). `tools/difftest-project.sh DIR MODULE METHOD PATH` compares any built Gleam project with erl. Pass URL paths to `bun tools/fetch-worker.ts` with `MSYS_NO_PATHCONV=1`.
 
-Related repos: `../glowvm` (the runtime this replaces; `fixtures/app` depends on it by path, and `tests/smoke.test.ts` is ported from its tests), `../giolt` (the platform that uploads Workers), `../cli` (the giolt CLI, which gets the runtime switch) and `../docs` (the docs site).
+Related repos: `../giolt` (the platform that uploads Workers), `../cli` (the giolt CLI, which gets the runtime switch) and `../docs` (the docs site).
 
 ## Settings
 
-- Tracker: GitHub issues in withgiolt/glowc
+- Tracker: GitHub issues in withgiolt/afterglow
 - Tests: when a cheap test seam exists
 - Commits: one per feature, ask before each
 - Pushes and pull requests: ask before pushing
@@ -57,7 +57,7 @@ One file per kind of code that shows how this repo does it. Copy its shape when 
 
 | To add | Copy |
 |---|---|
-| a runtime BIF or OTP override | `crates/glowrt/src/bifs.rs` (`bif!("m:f/a", …)`) |
+| a runtime BIF or OTP override | `crates/afterglow_runtime/src/bifs.rs` (`bif!("m:f/a", …)`) |
 | an Erlang difftest | `tests/erl/fmtx.erl`, plus its line in `tools/regress.sh` |
 | a request fixture | `fixtures/app/src/stdlib_int.gleam` (`fixture_check.run`) |
 

@@ -1,4 +1,4 @@
-# glowrt's Rust shadow stack: 64 KiB instead of the default 1 MiB (it is part of every
+# afterglow_runtime's Rust shadow stack: 64 KiB instead of the default 1 MiB (it is part of every
 # instance's memory). Runtime code iterates over list tails; only term nesting recurses.
 [target.wasm32-unknown-unknown]
 rustflags = ["-C", "link-arg=-zstack-size=65536"]

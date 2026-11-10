@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# run.sh [FIXTURE...]: builds glowc Workers, starts one workerd with every fixture on
-# both runtimes, runs compare.mjs, stops workerd.
+# run.sh [FIXTURE...]: builds afterglow Workers, serves every fixture from one workerd,
+# runs check.mjs, stops workerd.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 F=("$@")
@@ -12,5 +12,5 @@ node tools/smoke/gen-config.mjs out/smoke.capnp "${F[@]}"
 node_modules/.bin/workerd serve out/smoke.capnp --experimental >out/smoke.workerd.log 2>&1 &
 wpid=$!
 trap 'kill $wpid 2>/dev/null || true' EXIT
-for i in $(seq 1 100); do curl -s -o /dev/null "http://127.0.0.1:$((9500 + ${#F[@]} - 1))/" && break; sleep 0.2; done
-node tools/smoke/compare.mjs "${F[@]}"
+for i in $(seq 1 100); do curl -s -o /dev/null "http://127.0.0.1:$((9400 + ${#F[@]} - 1))/" && break; sleep 0.2; done
+node tools/smoke/check.mjs "${F[@]}"

@@ -20,7 +20,7 @@ async function session(config, msgs) {
     const r = await w.fetch("http://x/?node=counter", { method: "POST", body: msg(m) });
     const b = Buffer.from(await r.arrayBuffer());
     out.push(r.status === 200 ? show(b) : `HTTP ${r.status}: ${b}`);
-    console.error(m, r.status, r.headers.get("x-glowc-boot"), r.headers.get("x-glowc-rows"), r.headers.get("x-glowc-row-bytes"));
+    console.error(m, r.status, r.headers.get("x-afterglow-boot"), r.headers.get("x-afterglow-rows"), r.headers.get("x-afterglow-row-bytes"));
   }
   await w.dispose();
 }

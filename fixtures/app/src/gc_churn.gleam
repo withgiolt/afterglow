@@ -9,11 +9,11 @@ import gleam/string
 import gleam/option
 import gleam/result
 import gleam/uri
-import glowvm
+import afterglow
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(req: wisp.Request) -> wisp.Response {

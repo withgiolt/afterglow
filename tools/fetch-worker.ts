@@ -1,4 +1,4 @@
-// bun tools/fetch-worker.ts WORKER_DIR [METHOD] PATH [BODY]: one request through a glowc
+// bun tools/fetch-worker.ts WORKER_DIR [METHOD] PATH [BODY]: one request through an afterglow
 // Worker (index.js + app.wasm) in-process, the way tests/smoke.test.ts loads them.
 // Prints status, headers and body.
 import { plugin } from "bun";
@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 plugin({
-  name: "glowc-assets",
+  name: "afterglow-assets",
   setup(build) {
     build.onLoad({ filter: /app\.wasm$/ }, (args) => ({
       exports: { default: new WebAssembly.Module(readFileSync(args.path)) },

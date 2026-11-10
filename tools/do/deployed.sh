@@ -14,7 +14,7 @@ base() { echo "https://$1.$CF_WORKERS_SUBDOMAIN.workers.dev"; }
 name=""
 trap '[[ -n $name ]] && { echo "deleting $name"; npx wrangler delete --name "$name" --force 2>&1 | tail -1; }' EXIT
 case $1 in
-p2) name=glowc-p2-counter
+p2) name=afterglow-p2-counter
   deploy out/do-v1; ready $name
   node tools/do/p2-deployed.mjs "$(base $name)" incr incr
   echo "idle 180 s (DO eviction)"; sleep 180
@@ -23,15 +23,15 @@ p2) name=glowc-p2-counter
   node tools/do/p2-deployed.mjs "$(base $name)" incr get
   echo "idle 180 s"; sleep 180
   node tools/do/p2-deployed.mjs "$(base $name)" incr ;;
-p3) name=glowc-p3-pingpong
+p3) name=afterglow-p3-pingpong
   deploy out/do-p3; ready $name
   node tools/do/p3-test.mjs out/do-p3/wrangler.jsonc "${P3_N:-200}" "$(base $name)" ;;
-p4) name=glowc-p4-timers
+p4) name=afterglow-p4-timers
   deploy out/do-p4; ready $name
   node tools/do/p4-deployed.mjs "$(base $name)" arm 60000
   echo "idle ${P4_IDLE:-200} s, no requests: only the alarm can wake the DO; cron runs each minute"; sleep "${P4_IDLE:-200}"
   node tools/do/p4-deployed.mjs "$(base $name)" check ;;
-p5) name=glowc-p5-chat
+p5) name=afterglow-p5-chat
   deploy out/do-p5; ready $name
   node tools/do/p5-test.mjs out/do-p5/wrangler.jsonc "wss://$name.$CF_WORKERS_SUBDOMAIN.workers.dev" 30000 ;;
 esac

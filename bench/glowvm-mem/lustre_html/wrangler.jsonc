@@ -1,1 +1,0 @@
-{ "name": "glowvm-mem-lustre-html", "main": "mem.js", "compatibility_date": "2025-08-06", "rules": [{ "type": "Data", "globs": ["**/*.avm"] }] }

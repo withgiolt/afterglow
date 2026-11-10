@@ -8,6 +8,6 @@ for (const m of msgs) {
   const r = await fetch(`${base}/?node=counter`, { method: "POST", body: msg(m) });
   const b = Buffer.from(await r.arrayBuffer());
   console.log(m, r.status === 200 ? show(b) : `HTTP ${r.status}: ${b.toString().slice(0, 200)}`,
-    "boot", r.headers.get("x-glowc-boot"), "rows", r.headers.get("x-glowc-rows"), "bytes", r.headers.get("x-glowc-row-bytes"),
-    "turn-ms", r.headers.get("x-glowc-turn-ms"));
+    "boot", r.headers.get("x-afterglow-boot"), "rows", r.headers.get("x-afterglow-rows"), "bytes", r.headers.get("x-afterglow-row-bytes"),
+    "turn-ms", r.headers.get("x-afterglow-turn-ms"));
 }

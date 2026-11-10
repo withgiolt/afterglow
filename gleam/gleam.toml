@@ -1,0 +1,11 @@
+name = "afterglow"
+version = "0.1.0"
+internal_modules = ["afterglow/internal", "afterglow/internal/*"]
+description = "Run Gleam apps compiled ahead of time to WebAssembly"
+repository = { type = "github", user = "withgiolt", repo = "afterglow", path = "gleam" }
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+gleam_crypto = ">= 1.6.0 and < 2.0.0"
+gleam_http = ">= 4.4.0 and < 5.0.0"
+wisp = ">= 2.2.2 and < 3.0.0"

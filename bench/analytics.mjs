@@ -3,13 +3,13 @@
 // warm-up and other runs are excluded. New scripts show as "__unknown__" in
 // analytics, so the Worker is selected by its scriptVersion id.
 // Usage: node bench/analytics.mjs bench/results/<name>-<label> <scriptVersion>
-// Token: ~/.config/glowc-phase0/cf-analytics-token (Account Analytics: Read).
+// Token: ~/.config/afterglow-phase0/cf-analytics-token (Account Analytics: Read).
 import fs from "node:fs";
 import os from "node:os";
 if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error("set CLOUDFLARE_ACCOUNT_ID");
 
 const [base, version] = process.argv.slice(2);
-const token = fs.readFileSync(`${os.homedir()}/.config/glowc-phase0/cf-analytics-token`, "utf8").trim();
+const token = fs.readFileSync(`${os.homedir()}/.config/afterglow-phase0/cf-analytics-token`, "utf8").trim();
 const oha = JSON.parse(fs.readFileSync(`${base}.oha.json`, "utf8"));
 const endMs = fs.statSync(`${base}.oha.json`).mtimeMs;
 const startMs = endMs - oha.summary.total * 1000;

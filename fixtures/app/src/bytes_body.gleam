@@ -1,10 +1,10 @@
 import gleam/bytes_tree
-import glowvm
+import afterglow
 import wisp
 
 /// Non-UTF8 bytes in the response body must reach the client unchanged.
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(_req: wisp.Request) -> wisp.Response {

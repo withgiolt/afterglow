@@ -1,5 +1,5 @@
 {
-  "name": "glowc-phase0-tail",
+  "name": "afterglow-phase0-tail",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
   "workers_dev": true,

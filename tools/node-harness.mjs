@@ -1,4 +1,4 @@
-// Tier 2 harness under Node: a simulated Durable Object around a glowc build in node
+// Tier 2 harness under Node: a simulated Durable Object around an afterglow build in node
 // mode. Rows (one per process, plus meta) live in a Map standing in for SQLite, tagged
 // with the build's hash. "evict" drops the instance; the next turn restores lazily.
 // Usage: node tools/node-harness.mjs SCRIPT.json
@@ -29,7 +29,7 @@ async function boot() {
   inst = instance.exports;
   mem = inst.memory;
   inst.init();
-  if (process.env.GLOWC_DEBUG) inst.rt_set_debug(1);
+  if (process.env.AFTERGLOW_DEBUG) inst.rt_set_debug(1);
   inst.rt_node_mode();
   let restored = 0, upgraded = 0;
   for (const [, row] of store) {
@@ -96,7 +96,7 @@ for (const st of steps) {
     const pid = inst.rt_ckpt_pid(i);
     const bytes = unpack(inst.rt_ckpt_blob(i));
     store.set(pid, { build, bytes });
-    if (process.env.GLOWC_DUMP) fs.writeFileSync(`/tmp/row-${log.length}-${pid}.bin`, bytes);
+    if (process.env.AFTERGLOW_DUMP) fs.writeFileSync(`/tmp/row-${log.length}-${pid}.bin`, bytes);
     rows.push([pid, bytes.length]);
   }
   for (let i = 0; i < inst.rt_dead_count(); i++) store.delete(inst.rt_dead_pid(i));

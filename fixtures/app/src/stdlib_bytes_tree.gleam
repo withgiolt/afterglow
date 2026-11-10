@@ -1,12 +1,12 @@
 import fixture_check
-import glowvm
+import afterglow
 import gleam/bit_array
 import gleam/bytes_tree
 import gleam/string_tree
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn expect(s: String) -> BitArray {

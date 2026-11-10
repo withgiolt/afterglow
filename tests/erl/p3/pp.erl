@@ -12,7 +12,7 @@ start_ponger() ->
 ponger() ->
     receive
         {ping, From, I} -> From ! {pong, I}, ponger();
-        die_node -> glowc:node_crash(), ponger()
+        die_node -> afterglow_runtime:node_crash(), ponger()
     end.
 
 %% N round trips to {ponger, Node}; the result is kept by the pinger process.

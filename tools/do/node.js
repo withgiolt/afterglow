@@ -1,4 +1,4 @@
-// Tier 2: a Durable Object hosting one glowc node (one instance, many processes).
+// Tier 2: a Durable Object hosting one afterglow node (one instance, many processes).
 // Each fetch is a turn: the request body is the turn input (ETF), the reply is the turn
 // output. After the turn, dirty processes are written to SQLite, one row per process,
 // tagged with BUILD (sha256 of app.wasm, filled in by build-do.sh). On wake-up the rows
@@ -10,7 +10,7 @@
 //
 // Cloudflare caps how deep a chain of requests between Workers and DOs can go: a send
 // made while handling another DO's send is one level deeper, and deployed, the 11th
-// level never arrived (no error). So each send carries its depth (x-glowc-hop). Past
+// level never arrived (no error). So each send carries its depth (x-afterglow-hop). Past
 // HOP_MAX the outbox goes to SQLite (outq) instead, and the DO alarm, which starts a
 // new chain, sends it.
 import { DurableObject } from "cloudflare:workers";
@@ -20,7 +20,7 @@ const BUILD = "__BUILD__";
 const dec = new TextDecoder();
 const HOP_MAX = 8;
 
-export class GlowNode extends DurableObject {
+export class AfterglowNode extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
     this.inst = null;
@@ -68,8 +68,8 @@ export class GlowNode extends DurableObject {
   }
 
   async fetch(request) {
-    const name = request.headers.get("x-glowc-node") || "default";
-    const hop = Number(request.headers.get("x-glowc-hop") || 0);
+    const name = request.headers.get("x-afterglow-node") || "default";
+    const hop = Number(request.headers.get("x-afterglow-hop") || 0);
     if (this.name !== name) {
       this.name = name;
       this.ctx.storage.sql.exec("INSERT OR REPLACE INTO meta (k, v) VALUES ('name', ?)", name);
@@ -97,7 +97,7 @@ export class GlowNode extends DurableObject {
     if (x.rt_take_crash()) {
       // a failing node: drop the instance without checkpointing this turn
       this.inst = null;
-      throw new Error("glowc node crashed on purpose");
+      throw new Error("afterglow node crashed on purpose");
     }
     const n = x.rt_checkpoint();
     const sql = this.ctx.storage.sql;
@@ -119,10 +119,10 @@ export class GlowNode extends DurableObject {
     if (next >= 0) this.ctx.storage.setAlarm(next);
     else this.ctx.storage.deleteAlarm();
     return { status, body, headers: {
-      "x-glowc-boot": fresh ? JSON.stringify(this.bootInfo) : "warm",
-      "x-glowc-rows": String(n), "x-glowc-row-bytes": String(bytesWritten),
-      "x-glowc-turn-ms": String(Date.now() - t0),
-      "x-glowc-alarm-runs": String(this.alarmRuns || 0),
+      "x-afterglow-boot": fresh ? JSON.stringify(this.bootInfo) : "warm",
+      "x-afterglow-rows": String(n), "x-afterglow-row-bytes": String(bytesWritten),
+      "x-afterglow-turn-ms": String(Date.now() - t0),
+      "x-afterglow-alarm-runs": String(this.alarmRuns || 0),
     } };
   }
 
@@ -147,7 +147,7 @@ export class GlowNode extends DurableObject {
     const a = ws.deserializeAttachment();
     if (!this.name) this.name = a.node;
     const fresh = !this.inst;
-    const ref = [104, 2, ...atom("glowc_ws"), 98, ...u32be(a.id)];
+    const ref = [104, 2, ...atom("afterglow_ws"), 98, ...u32be(a.id)];
     this.turn(Uint8Array.from([131, 104, 5, ...atom("ws"), ...atom(a.owner), ...atom(a.mod), ...ref, ...eventEtf]));
     if (fresh && this.bootInfo.restored > 0) {
       try { ws.send("__boot " + JSON.stringify(this.bootInfo)); } catch {}
@@ -226,7 +226,7 @@ export class GlowNode extends DurableObject {
     let ok = false;
     try {
       const stub = this.env.NODE.get(this.env.NODE.idFromName(node));
-      const r = await stub.fetch("http://do/", { method: "POST", body, headers: { "x-glowc-node": node, "x-glowc-hop": String(hop) } });
+      const r = await stub.fetch("http://do/", { method: "POST", body, headers: { "x-afterglow-node": node, "x-afterglow-hop": String(hop) } });
       await r.arrayBuffer();
       ok = r.ok;
     } catch {}
@@ -252,8 +252,8 @@ function etfNoconnection(node) {
   return Uint8Array.from([131, 104, 2, ...atom("noconnection"), ...atom(node)]);
 }
 
-// Cron Triggers: {tick, Cron} to the process registered as GLOWC_CRON_PROC in the DO
-// named GLOWC_CRON_NODE.
+// Cron Triggers: {tick, Cron} to the process registered as AFTERGLOW_CRON_PROC in the DO
+// named AFTERGLOW_CRON_NODE.
 function etfTick(proc, cron) {
   const c = enc.encode(cron);
   const out = [131, 104, 2, ...atom("deliver"), 108, 0, 0, 0, 1,
@@ -265,9 +265,9 @@ function etfTick(proc, cron) {
 
 export default {
   async scheduled(event, env, ctx) {
-    const node = env.GLOWC_CRON_NODE || "default", proc = env.GLOWC_CRON_PROC || "ticker";
+    const node = env.AFTERGLOW_CRON_NODE || "default", proc = env.AFTERGLOW_CRON_PROC || "ticker";
     const stub = env.NODE.get(env.NODE.idFromName(node));
-    const r = await stub.fetch("http://do/", { method: "POST", body: etfTick(proc, event.cron), headers: { "x-glowc-node": node } });
+    const r = await stub.fetch("http://do/", { method: "POST", body: etfTick(proc, event.cron), headers: { "x-afterglow-node": node } });
     await r.arrayBuffer();
   },
   async fetch(request, env) {
@@ -275,7 +275,7 @@ export default {
     const name = url.searchParams.get("node") || "default";
     const stub = env.NODE.get(env.NODE.idFromName(name));
     const headers = new Headers(request.headers);
-    headers.set("x-glowc-node", name);
+    headers.set("x-afterglow-node", name);
     return stub.fetch(new Request(request, { headers }));
   },
 };

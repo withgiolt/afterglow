@@ -1,0 +1,8 @@
+{
+  // afterglow build of fixtures/app json_roundtrip (tools/build-worker.sh).
+  "name": "afterglow-m5-json-roundtrip",
+  "main": "index.js",
+  "workers_dev": true,
+  "compatibility_date": "2025-08-06",
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Deploy a Worker, wait out the workers.dev 1042 window, record what its first real
 # responses are (status, headers, start of body), then delete it. For a fixture that is
-# expected to fail (glowvm json_roundtrip over the CPU limit).
+# expected to fail (over the CPU limit).
 # Usage: bench/probe-once.sh <worker-dir> [requests]   Requests: 1042 probes + requests.
 set -euo pipefail
 if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" || -z "${CF_WORKERS_SUBDOMAIN:-}" ]]; then

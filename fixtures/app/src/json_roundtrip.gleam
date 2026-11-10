@@ -2,11 +2,11 @@
 // records with gleam_json, then encode them again. Allocation-heavy parsing.
 import gleam/dynamic/decode
 import gleam/json
-import glowvm
+import afterglow
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 pub type Address {

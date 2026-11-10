@@ -5,7 +5,7 @@ import fs from "node:fs";
 import os from "node:os";
 if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error("set CLOUDFLARE_ACCOUNT_ID");
 const [csv] = process.argv.slice(2);
-const token = fs.readFileSync(`${os.homedir()}/.config/glowc-phase0/cf-analytics-token`, "utf8").trim();
+const token = fs.readFileSync(`${os.homedir()}/.config/afterglow-phase0/cf-analytics-token`, "utf8").trim();
 const rows = fs.readFileSync(csv, "utf8").trim().split("\n").slice(1).map((l) => l.split(","));
 const start = new Date(fs.statSync(csv).mtimeMs - 20 * 3600e3).toISOString();
 const end = new Date().toISOString();

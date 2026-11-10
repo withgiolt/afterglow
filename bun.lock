@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "glowc-phase0",
+      "name": "afterglow-phase0",
       "devDependencies": {
         "wrangler": "4.159.0",
       },

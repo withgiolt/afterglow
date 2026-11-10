@@ -19,7 +19,7 @@ const start = () => unstable_startWorker({ config, dev: { persist, server: { por
 async function call(w, f, args = []) {
   const r = await w.fetch("http://x/?node=t", { method: "POST", body: apply(f, args) });
   const b = Buffer.from(await r.arrayBuffer());
-  return { status: r.status, hex: b.toString("hex"), text: b.toString("latin1").replace(/[^\x20-\x7e]/g, "."), boot: r.headers.get("x-glowc-boot"), alarms: r.headers.get("x-glowc-alarm-runs") };
+  return { status: r.status, hex: b.toString("hex"), text: b.toString("latin1").replace(/[^\x20-\x7e]/g, "."), boot: r.headers.get("x-afterglow-boot"), alarms: r.headers.get("x-afterglow-alarm-runs") };
 }
 const out = {};
 let w = await start(); await w.ready;

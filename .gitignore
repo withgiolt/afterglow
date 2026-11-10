@@ -6,3 +6,4 @@ target/
 out/
 fixtures/app/dist/
 erl_crash.dump
+gleam/build/

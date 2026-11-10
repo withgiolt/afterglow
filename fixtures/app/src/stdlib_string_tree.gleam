@@ -1,11 +1,11 @@
 import fixture_check
-import glowvm
+import afterglow
 import gleam/list
 import gleam/string_tree
 import wisp
 
 pub fn start() {
-  glowvm.serve(handle_request)
+  afterglow.serve(handle_request)
 }
 
 fn handle_request(_req: wisp.Request) -> wisp.Response {

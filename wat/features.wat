@@ -2,7 +2,7 @@
 (module
   (import "host" "twice" (func $twice (param i64) (result i64)))
   (memory (export "memory") 1)
-  (data $seg "glowc")
+  (data $seg "hello")
   ;; multivalue: returns two results
   (func $pair (param i64) (result i64 i64) (local.get 0) (i64.mul (local.get 0) (i64.const 2)))
   (func (export "features") (param $k i64) (param $big f64) (result i64)

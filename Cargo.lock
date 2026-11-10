@@ -9,6 +9,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "afterglow"
+version = "0.1.0"
+dependencies = [
+ "beam-reader",
+ "wasm-encoder",
+ "wasmparser",
+]
+
+[[package]]
+name = "afterglow_runtime"
+version = "0.1.0"
+dependencies = [
+ "md-5",
+ "num-bigint",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -82,25 +101,6 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
-]
-
-[[package]]
-name = "glowc"
-version = "0.1.0"
-dependencies = [
- "beam-reader",
- "wasm-encoder",
- "wasmparser",
-]
-
-[[package]]
-name = "glowrt"
-version = "0.1.0"
-dependencies = [
- "md-5",
- "num-bigint",
- "num-integer",
- "num-traits",
 ]
 
 [[package]]

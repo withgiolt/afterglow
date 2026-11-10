@@ -8,13 +8,13 @@ start() -> loop([], 0).
 loop(Members, N) ->
     receive
         {websocket, Ref, open} ->
-            glowc:ws_send(Ref, [<<"welcome ">>, integer_to_binary(id(Ref))]),
+            afterglow_runtime:ws_send(Ref, [<<"welcome ">>, integer_to_binary(id(Ref))]),
             loop([Ref | Members], N);
         {websocket, Ref, {text, Text}} ->
             Line = iolist_to_binary([integer_to_binary(id(Ref)), <<": ">>, Text,
                                      <<" (members ">>, integer_to_binary(length(Members)),
                                      <<", messages ">>, integer_to_binary(N + 1), <<")">>]),
-            [glowc:ws_send(M, Line) || M <- Members],
+            [afterglow_runtime:ws_send(M, Line) || M <- Members],
             loop(Members, N + 1);
         {websocket, Ref, closed} ->
             loop(lists:delete(Ref, Members), N);
@@ -22,4 +22,4 @@ loop(Members, N) ->
             loop(Members, N)
     end.
 
-id({glowc_ws, Id}) -> Id.
+id({afterglow_ws, Id}) -> Id.

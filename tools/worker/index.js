@@ -1,7 +1,8 @@
-// Worker entry for a glowc build. Same request/response contract as glowvm's
-// index.js (request ETF {Method, Url, Headers, Body} in, framed {Status, Headers,
-// Body} out), but one Wasm instance per isolate, reused across requests: glowrt
-// resets the heap, binary arena and process state in rt_begin.
+// Worker entry for an afterglow build. The request goes in as ETF {Method, Url,
+// Headers, Body} and the response comes out framed as {Status, Headers, Body} (see
+// gleam/src/afterglow/internal/bridge.gleam). One Wasm instance per isolate, reused
+// across requests: afterglow_runtime resets the heap, binary arena and process state
+// in rt_begin.
 import wasm from "./app.wasm";
 
 const encoder = new TextEncoder(),
@@ -54,7 +55,7 @@ function run(requestEtf, env) {
   }
 }
 
-const SENTINEL = encoder.encode("\n__GLOWVM__");
+const SENTINEL = encoder.encode("\n__AFTERGLOW__");
 
 function parseOutput(out) {
   const end = lastIndexOf(out, SENTINEL);
@@ -180,7 +181,7 @@ function decodeEtf(bytes) {
 // throwaway request (the bridge skips the handler for it) during startup.
 try {
   run(
-    encodeRequest("GET", "/", [["host", "localhost"], ["accept", "*/*"], ["user-agent", "glowc"]], new Uint8Array(0), true),
+    encodeRequest("GET", "/", [["host", "localhost"], ["accept", "*/*"], ["user-agent", "afterglow"]], new Uint8Array(0), true),
     {},
   );
 } catch {}
