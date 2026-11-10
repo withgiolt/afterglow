@@ -1,5 +1,5 @@
 {
-  // afterglow build of fixtures/app json_roundtrip (tools/build-worker.sh).
+  // fixtures/app json_roundtrip, built by `tools/build-worker.sh json_roundtrip bench/afterglow/json_roundtrip`.
   "name": "afterglow-m5-json-roundtrip",
   "main": "index.js",
   "workers_dev": true,

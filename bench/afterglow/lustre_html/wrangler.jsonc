@@ -1,5 +1,5 @@
 {
-  // afterglow build of fixtures/app lustre_html (tools/build-worker.sh).
+  // fixtures/app lustre_html, built by `tools/build-worker.sh lustre_html bench/afterglow/lustre_html`.
   "name": "afterglow-m5-lustre-html",
   "main": "index.js",
   "workers_dev": true,

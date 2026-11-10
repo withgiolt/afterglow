@@ -1,5 +1,5 @@
 {
-  // afterglow build of fixtures/app basic_get (tools/build-worker.sh).
+  // fixtures/app basic_get, built by `tools/build-worker.sh basic_get bench/afterglow/basic_get`.
   "name": "afterglow-m5-basic-get",
   "main": "index.js",
   "workers_dev": true,
