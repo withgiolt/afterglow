@@ -215,12 +215,18 @@ impl<'a> Decoder<'a> {
         Some(b)
     }
     fn take(&mut self, n: usize) -> Option<&'a [u8]> {
-        if self.pos + n > self.data.len() {
+        // Not `pos + n > len`: n comes from the input and the sum can overflow on wasm32.
+        if n > self.data.len() - self.pos {
             return None;
         }
         let s = &self.data[self.pos..self.pos + n];
         self.pos += n;
         Some(s)
+    }
+    /// A Vec for `n` elements read from the input. Every element takes at least one
+    /// byte, so a count larger than the bytes left is a bad input, not an allocation.
+    fn elements<T>(&self, n: usize) -> Vec<T> {
+        Vec::with_capacity(n.min(self.data.len() - self.pos))
     }
     fn u16(&mut self) -> Option<usize> {
         let b = self.take(2)?;
@@ -275,7 +281,7 @@ impl<'a> Decoder<'a> {
             }
             SMALL_TUPLE | LARGE_TUPLE => {
                 let n = if tag == SMALL_TUPLE { self.u8()? as usize } else { self.u32()? };
-                let mut v = Vec::with_capacity(n);
+                let mut v = self.elements(n);
                 for _ in 0..n {
                     v.push(self.term()?);
                 }
@@ -290,7 +296,7 @@ impl<'a> Decoder<'a> {
             }
             LIST => {
                 let n = self.u32()?;
-                let mut v = Vec::with_capacity(n);
+                let mut v = self.elements(n);
                 for _ in 0..n {
                     v.push(self.term()?);
                 }
@@ -309,13 +315,17 @@ impl<'a> Decoder<'a> {
             BIT_BINARY => {
                 let n = self.u32()?;
                 let bits = self.u8()? as u64;
+                // Like OTP: 1..=8 bits used in the last byte, or no bytes and no bits.
+                if (n == 0) != (bits == 0) || bits > 8 {
+                    return None;
+                }
                 let bytes = self.take(n)?;
                 let total = if n == 0 { 0 } else { (n as u64 - 1) * 8 + bits };
                 Some(build::bitstring(bytes, total))
             }
             MAP => {
                 let n = self.u32()?;
-                let mut pairs = Vec::with_capacity(n);
+                let mut pairs = self.elements(n);
                 for _ in 0..n {
                     let k = self.term()?;
                     let v = self.term()?;
@@ -347,8 +357,9 @@ impl<'a> Decoder<'a> {
                 let _node = self.term()?;
                 self.take(4)?;
                 let ids = self.take(4 * n)?;
-                let a = u32::from_be_bytes([ids[0], ids[1], ids[2], ids[3]]) as u64;
-                let b = if n > 1 { u32::from_be_bytes([ids[4], ids[5], ids[6], ids[7]]) as u64 } else { 0 };
+                // OTP accepts a reference with no ids; missing ids read as 0.
+                let id = |i: usize| ids.get(4 * i..4 * i + 4).map_or(0, |w| u32::from_be_bytes([w[0], w[1], w[2], w[3]]) as u64);
+                let (a, b) = (id(0), id(1));
                 Some(crate::bifs::make_ref_with((b << 18) | a))
             }
             _ => None,
