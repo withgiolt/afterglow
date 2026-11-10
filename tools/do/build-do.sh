@@ -22,12 +22,12 @@ cat > "$out/wrangler.jsonc" <<J
 J
 # Cron and its target, when CRON is set: CRON="* * * * *" CRON_NODE=t CRON_PROC=ticker
 if [[ -n "${CRON:-}" ]]; then
-  python3 - "$out/wrangler.jsonc" "$CRON" "${CRON_NODE:-default}" "${CRON_PROC:-ticker}" <<'P'
-import sys
-p, cron, node, proc = sys.argv[1:]
-s = open(p).read()
-s = s.replace('"observability"', '"triggers": { "crons": ["%s"] },\n  "vars": { "AFTERGLOW_CRON_NODE": "%s", "AFTERGLOW_CRON_PROC": "%s" },\n  "observability"' % (cron, node, proc))
-open(p, "w").write(s)
-P
+  node - "$out/wrangler.jsonc" "$CRON" "${CRON_NODE:-default}" "${CRON_PROC:-ticker}" <<'N'
+const fs = require("fs");
+const [p, cron, node, proc] = process.argv.slice(2);
+const s = fs.readFileSync(p, "utf8").replace('"observability"',
+  `"triggers": { "crons": ["${cron}"] },\n  "vars": { "AFTERGLOW_CRON_NODE": "${node}", "AFTERGLOW_CRON_PROC": "${proc}" },\n  "observability"`);
+fs.writeFileSync(p, s);
+N
 fi
 echo "$out build $build"
