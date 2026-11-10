@@ -28,7 +28,8 @@ doesn't work yet.
 
 ## Tests
 
-The tests need Erlang/OTP, Rust, Binaryen and Bun. Build the fixture app with
+The tests need Erlang/OTP, rebar3, Rust (with the `wasm32-unknown-unknown`
+target), Binaryen, Bun and Node 22 or newer. Build the fixture app with
 `gleam build` in `fixtures/app`, then run:
 
 - `tools/regress.sh`, which compares afterglow's output with real `erl`
