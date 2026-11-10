@@ -8,7 +8,7 @@ Related repos: `../giolt` (the platform that uploads Workers), `../cli` (the gio
 
 ## Settings
 
-- Tracker: GitHub issues in withgiolt/afterglow
+- Tracker: GitHub issues in withgiolt/issues (the home for public Giolt issues), titled `afterglow: …`
 - Tests: when a cheap test seam exists
 - Commits: one per feature, ask before each
 - Pushes and pull requests: ask before pushing
