@@ -87,8 +87,9 @@ unsafe fn cmp(a: Term, b: Term, exact: bool) -> Ordering {
         1 => atoms::name(a).as_bytes().cmp(atoms::name(b).as_bytes()),
         2 => (*ptr(a).add(1)).cmp(&*ptr(b).add(1)),
         3 => {
-            // funs: by module, then name/index, then free variables
-            for i in [3usize, 4] {
+            // funs: by module, then name (external) or lambda id (local), then arity,
+            // then free variables
+            for i in [3usize, 4, 2] {
                 let o = cmp(*ptr(a).add(i), *ptr(b).add(i), exact);
                 if o != Ordering::Equal {
                     return o;
