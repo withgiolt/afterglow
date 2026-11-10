@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 F=("$@")
-[[ ${#F[@]} == 0 ]] && F=(basic_get not_found env_get query_param bytes_body echo_body no_content lustre_html file_body json_roundtrip $(ls fixtures/app/src | sed -n 's/^\(stdlib_[a-z_]*\)\.gleam$/\1/p'))
+[[ ${#F[@]} == 0 ]] && F=(basic_get not_found env_get query_param bytes_body echo_body no_content lustre_html file_body json_roundtrip missing_function $(ls fixtures/app/src | sed -n 's/^\(stdlib_[a-z_]*\)\.gleam$/\1/p'))
 cargo build -q --release -p afterglow 2>/dev/null
 cargo build -q --release -p afterglow_runtime --target wasm32-unknown-unknown 2>/dev/null
 export AFTERGLOW_PREBUILT=1

@@ -110,6 +110,14 @@ test("file_body is not implemented", async () => {
   expect(r.status).toEqual(501);
 });
 
+test("a call to a function afterglow lacks returns 500 naming it", async () => {
+  const r = await fetchFixture("missing_function", "/");
+  expect(r.status).toEqual(500);
+  expect(JSON.parse(r.text)).toEqual({
+    error: "afterglow does not implement afterglow_test_absent:not_provided/1",
+  });
+});
+
 test("lustre html generations returns ok", async () => {
   const r = await fetchFixture("lustre_html", "/");
   expect(r.text).toContain("<h1>hello from afterglow</h1>");

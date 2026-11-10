@@ -17,6 +17,7 @@ const cases = {
   no_content: [['/', {}, (r) => r.status === 204 && r.bytes.length === 0]],
   file_body: [['/', {}, (r) => r.status === 501]],
   lustre_html: [['/', {}, (r) => r.status === 200 && r.text.includes('<h1>hello from afterglow</h1>')]],
+  missing_function: [['/', {}, (r) => r.status === 500 && r.text === '{"error":"afterglow does not implement afterglow_test_absent:not_provided/1"}']],
   json_roundtrip: [['/', {}, (r) => r.status === 200 && r.bytes.length > 50000]],
 };
 const get = async (port, p, init) => {
