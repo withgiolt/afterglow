@@ -678,6 +678,9 @@ macro_rules! bif {
     };
 }
 
+/// The process a send goes to: None for a bad destination (badarg), Some(None) when
+/// the message is dropped, like ERTS does for a dead pid, an inactive alias or an
+/// unregistered {Name, node()}.
 unsafe fn resolve_dest(d: Term) -> Option<Option<usize>> {
     if is_pid(d) {
         return Some(find(pid_val(d)));
@@ -685,8 +688,8 @@ unsafe fn resolve_dest(d: Term) -> Option<Option<usize>> {
     if is_atom(d) {
         return s().registered.iter().find(|&&(n, _)| n == d).map(|&(_, p)| find(p));
     }
-    if is_tuple(d) && tuple_arity(d) == 2 && is_atom(tuple_get(d, 0)) {
-        return resolve_dest(tuple_get(d, 0));
+    if is_tuple(d) && tuple_arity(d) == 2 && is_atom(tuple_get(d, 0)) && is_atom(tuple_get(d, 1)) {
+        return Some(resolve_dest(tuple_get(d, 0)).flatten());
     }
     if is_ref(d) {
         // an alias; a message to an inactive alias is dropped, like ERTS
@@ -722,12 +725,12 @@ pub unsafe extern "C" fn rt_send(d: Term, msg: Term) -> Term {
             deliver(i, msg);
             msg
         }
-        Some(None) if is_pid(d) => msg, // dead pid: dropped
-        _ => exc::badarg(),
+        Some(None) => msg,
+        None => exc::badarg(),
     }
 }
 bif!("erlang:send/2", fn send2(d, m) { rt_send(d, m) });
-bif!("erlang:send/3", fn send3(d, m, _o) { rt_send(d, m); OK });
+bif!("erlang:send/3", fn send3(d, m, _o) { if rt_send(d, m) == NON_VALUE { NON_VALUE } else { OK } });
 bif!("erlang:self/0", fn self0() { self_pid() });
 
 unsafe fn spawn_common(fun: Term, args: Term, link: bool, monitor: bool) -> Term {
