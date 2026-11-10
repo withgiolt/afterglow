@@ -3,25 +3,10 @@
 // Usage: node tools/do/p3-test.mjs [CONFIG] [ROUND_TRIPS] [BASE_URL]
 // With BASE_URL the deployed Worker is used instead of a local one.
 import { unstable_startWorker } from "wrangler";
+import { atom, int, apply, decode } from "./etf.mjs";
 
 const [config = "out/do-p3/wrangler.jsonc", nArg = "200", base] = process.argv.slice(2);
 const N = Number(nArg);
-const enc = new TextEncoder();
-const atom = (s) => { const b = enc.encode(s); return [119, b.length, ...b]; };
-const int = (n) => { const b = Buffer.alloc(5); b[0] = 98; b.writeInt32BE(n, 1); return [...b]; };
-const list = (xs) => xs.length ? [108, 0, 0, 0, xs.length, ...xs.flat(), 106] : [106];
-const apply = (f, args) => Uint8Array.from([131, 104, 4, ...atom("apply"), ...atom("pp"), ...atom(f), ...list(args)]);
-function show(b) {
-  let o = 1; const dv = new DataView(b.buffer, b.byteOffset, b.byteLength);
-  const t = () => { const g = b[o++];
-    if (g === 97) return b[o++];
-    if (g === 98) { const v = dv.getInt32(o); o += 4; return v; }
-    if (g === 110) { const n = b[o++]; const s = b[o++]; let v = 0; for (let i = n - 1; i >= 0; i--) v = v * 256 + b[o + i]; o += n; return s ? -v : v; }
-    if (g === 119) { const n = b[o++]; const s = Buffer.from(b.subarray(o, o + n)).toString(); o += n; return s; }
-    if (g === 104) { const n = b[o++]; const xs = []; for (let i = 0; i < n; i++) xs.push(t()); return xs; }
-    return "?" + g; };
-  return t();
-}
 let w = null, fetcher;
 if (base) fetcher = (u, init) => fetch(base + u, init);
 else {
@@ -32,10 +17,10 @@ else {
 let requests = 0;
 async function call(node, f, args = []) {
   requests++;
-  const r = await fetcher(`/?node=${node}`, { method: "POST", body: apply(f, args) });
+  const r = await fetcher(`/?node=${node}`, { method: "POST", body: apply("pp", f, args) });
   const b = new Uint8Array(await r.arrayBuffer());
   if (r.status !== 200) throw new Error(`${node} ${f}: HTTP ${r.status} ${Buffer.from(b)}`);
-  return show(b);
+  return decode(b);
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const out = {};

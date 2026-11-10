@@ -4,20 +4,16 @@
 // Usage: node tools/do/p4-test.mjs [CONFIG] [TIMER_MS]
 import { unstable_startWorker } from "wrangler";
 import fs from "node:fs";
+import { int, apply } from "./etf.mjs";
 
 const [config = "out/do-p4/wrangler.jsonc", msArg = "60000"] = process.argv.slice(2);
 const MS = Number(msArg);
 const persist = "out/do-p4-persist";
 fs.rmSync(persist, { recursive: true, force: true });
-const enc = new TextEncoder();
-const atom = (s) => { const b = enc.encode(s); return [119, b.length, ...b]; };
-const int = (n) => { const b = Buffer.alloc(5); b[0] = 98; b.writeInt32BE(n, 1); return [...b]; };
-const list = (xs) => xs.length ? [108, 0, 0, 0, xs.length, ...xs.flat(), 106] : [106];
-const apply = (f, args) => Uint8Array.from([131, 104, 4, ...atom("apply"), ...atom("tm"), ...atom(f), ...list(args)]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const start = () => unstable_startWorker({ config, dev: { persist, server: { port: 0 }, inspector: false, testScheduled: true } });
 async function call(w, f, args = []) {
-  const r = await w.fetch("http://x/?node=t", { method: "POST", body: apply(f, args) });
+  const r = await w.fetch("http://x/?node=t", { method: "POST", body: apply("tm", f, args) });
   const b = Buffer.from(await r.arrayBuffer());
   return { status: r.status, hex: b.toString("hex"), text: b.toString("latin1").replace(/[^\x20-\x7e]/g, "."), boot: r.headers.get("x-afterglow-boot"), alarms: r.headers.get("x-afterglow-alarm-runs") };
 }
