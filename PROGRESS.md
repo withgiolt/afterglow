@@ -134,14 +134,11 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
 - [x] deleted 2026-11-09: `glowvm-baseline-basic-get` (https://glowvm-baseline-basic-get.SUBDOMAIN.workers.dev), observability on.
 - [x] deleted 2026-11-09: `glowvm-baseline-lustre-html` (https://glowvm-baseline-lustre-html.SUBDOMAIN.workers.dev), observability on.
 - [x] `glowc-m5-basic-get`: created 2026-11-09 22:35 UTC (6 versions), deleted 22:39 UTC.
-- [ ] M5, planned (bench/m5.sh deletes each one when its runs finish, also on failure):
-      `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip`
-      (https://<name>.SUBDOMAIN.workers.dev), observability on.
-- [ ] P4/P5, planned: `glowc-p4-timers` (DO + Cron "* * * * *"), `glowc-p5-chat` (DO with
-      WebSockets). Delete after their checks.
-- [ ] P3, planned: `glowc-p3-pingpong` (DO class GlowNode, nodes a and b). Delete after.
-- [ ] P2, planned: `glowc-p2-counter` (DO class GlowNode with SQLite rows). Delete after
-      the check (`wrangler delete` removes the DO namespace and its data).
+- [x] M5: `glowc-m5-basic-get`, `glowc-m5-lustre-html`, `glowc-m5-json-roundtrip` and the
+      glowvm side-by-side Workers, deleted by bench/m5.sh after their runs (M5 notes above).
+- [x] P2-P5: `glowc-p2-counter`, `glowc-p3-pingpong`, `glowc-p4-timers`, `glowc-p5-chat`,
+      deleted by tools/do/deployed.sh after each check (Phase 2 deployed checks above).
+      Not re-checked against the account from the Windows machine (no wrangler login there).
 - Workers Logs from observability are kept by Cloudflare (retention per plan); they go with the Workers.
 - Workers with Durable Objects (`glowc-phase0-do`) also own DO namespaces and
   SQLite data; `wrangler delete` removes them with the Worker.
@@ -151,7 +148,8 @@ Cloudflare, account Giolt (`00000000000000000000000000000000`):
       only, expires 2026-11-16). Created via the dashboard in the user's Helium browser.
       User decided: let it expire on 2026-11-16 (no revoke). Delete the local file after.
 
-Local machine:
+Local machine (the Mac that ran the spike; none of these exist on the Windows machine,
+checked 2026-11-10, so they need doing on the Mac):
 - [ ] Token file `~/.config/glowc-phase0/cf-analytics-token` (mode 600). Delete with the token.
 - [ ] Helium remote debugging was turned on by the user (chrome://inspect/#remote-debugging);
       the user turns it off.
@@ -166,10 +164,13 @@ Local machine:
       2026-11-09 (`ps` filtered to this dir), nothing to do.
 
 In this repo:
-- [ ] `run-local.mjs` hangs if a worker fails to start (no fetch timeout). Fix or
-      delete it; `probe.mjs` replaced it.
-- [ ] `bench/results/*.tail.json` and `phase0-core-deployed-tail.json` hold the client IP and
-      `cf` geo data. Strip or delete them before the repo ever gets a remote.
+- [x] `run-local.mjs` deleted 2026-11-10 (it hung when a worker failed to start; `probe.mjs`
+      replaced it).
+- [x] `bench/results/*.tail.json` and `phase0-core-deployed-tail.json`: client IP, country
+      and `cf` geo data stripped 2026-11-10 with `bench/strip-tail.mjs` (keeps colo and every
+      measured field; event counts and CPU/wall sums checked unchanged). `bench/run.sh` now
+      strips new tail files. **Git history still has the original files**: rewrite history
+      (or start a fresh repo) before the repo ever gets a remote.
 - [ ] `build/` artifacts are committed on purpose (the exact bytes tested). Revisit
       if the repo gets a remote.
 
@@ -603,4 +604,4 @@ Local only; the M5 Worker binaries in bench/glowc are from af5e8d0 and were not 
 
 1. Optional: two more glowvm side-by-side runs per fixture (2026-11-11 or later) to
    firm up the 2.9× p99 ratio.
-2. Cleanup list above (Workers already deleted).
+2. Cleanup list above: only the Mac-side items and the git-history rewrite are left.

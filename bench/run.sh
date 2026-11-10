@@ -18,4 +18,5 @@ sleep 10
 oha -n 5000 -c 10 -q 25 --no-tui --output-format json "$url" > "$out.oha.json"
 sleep 15
 pkill -f "wrangler tail $name --format json" || true
+node bench/strip-tail.mjs "$out.tail.json"
 node bench/summarize.mjs "$out"
