@@ -15,11 +15,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+          components: clippy
       - uses: Swatinem/rust-cache@v2
       - uses: erlef/setup-beam@v1
         with:
           otp-version: "28"
-          gleam-version: "1.18"
+          gleam-version: "1.19"
           rebar3-version: "3.27"
       # tools/do/p5-test.mjs uses Node's global WebSocket (Node 22 and later).
       - uses: actions/setup-node@v4
@@ -27,11 +28,13 @@ jobs:
           node-version: "24"
       - uses: oven-sh/setup-bun@v2
       - uses: extractions/setup-just@v4
-      # tools/env.sh finds Binaryen under ~/.local/opt.
+      # tools/env.sh finds Binaryen under ~/.local/opt. Keep it on the version the giolt CLI
+      # installs for users (binaryen_version in its afterglow.gleam).
       - name: Install Binaryen
         run: |
           mkdir -p ~/.local/opt
-          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_133/binaryen-version_133-x86_64-linux.tar.gz \
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz \
             | tar -xz -C ~/.local/opt
+      - run: cargo clippy --all-targets -- -D warnings
       - run: bun install --frozen-lockfile
       - run: just test-all
