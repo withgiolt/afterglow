@@ -3,7 +3,7 @@
 // argument; only the string values in it reach the app as vars. There is no
 // `process.env` fallback, so the app sees no vars unless the caller passes them.
 import wasm from "./app.wasm";
-import { instantiate } from "./host.js";
+import { instantiate } from "./host.mjs";
 
 const app = instantiate(wasm);
 

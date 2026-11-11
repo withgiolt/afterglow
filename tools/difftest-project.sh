@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # difftest-project.sh PROJECT_DIR MODULE [METHOD] [URL] [BODY]
 # One request to MODULE:start/0 of a built Gleam project (`gleam build`), under real erl
-# and under afterglow (Node), in the ETF shape host.js sends. Compares the decoded
+# and under afterglow (Node), in the ETF shape host.mjs sends. Compares the decoded
 # responses ({Status, Headers, Body}) byte for byte; stdout around the frame (erl's
 # logger, io:format) is ignored. Reuses out/project/<module>.wasm if SKIP_BUILD=1.
 set -euo pipefail

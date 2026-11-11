@@ -13,7 +13,7 @@ fixtures.forEach((f, i) => {
   const dir = rel(path.join(root, 'out/workers', f));
   workers.push(`const w${ident('_' + f)} :Workerd.Worker = (
   modules = [ (name = "index.mjs", esModule = embed "${dir}/index.mjs"),
-              (name = "host.js", esModule = embed "${dir}/host.js"),
+              (name = "host.mjs", esModule = embed "${dir}/host.mjs"),
               (name = "app.wasm", wasm = embed "${dir}/app.wasm") ],
   compatibilityDate = "2025-08-06", bindings = ${bindings});`);
   services.push(`(name = "${f}", worker = .w${ident('_' + f)})`);

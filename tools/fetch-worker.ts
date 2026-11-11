@@ -1,5 +1,5 @@
 // bun tools/fetch-worker.ts WORKER_DIR [METHOD] PATH [BODY]: one request through an afterglow
-// Worker (index.mjs, host.js and app.wasm) in-process, the way tests/smoke.test.ts loads them.
+// Worker (index.mjs, host.mjs and app.wasm) in-process, the way tests/smoke.test.ts loads them.
 // Passes process.env as the vars. Prints status, headers and body.
 import { plugin } from "bun";
 import { readFileSync } from "node:fs";

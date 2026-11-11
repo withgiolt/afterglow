@@ -25,7 +25,7 @@ doesn't work yet.
 - `gleam/`: the `afterglow` Hex package, with `afterglow.serve` and, once
   `tools/package.sh` fills `priv/`, the compilers and the runtime
 - `tools/worker`: the glue the Hex package ships next to an app's `app.wasm`:
-  `index.mjs`, the Worker entry, and `host.js`, which passes each request and the
+  `index.mjs`, the Worker entry, and `host.mjs`, which passes each request and the
   vars the caller hands it into the Wasm
 
 ## Tests

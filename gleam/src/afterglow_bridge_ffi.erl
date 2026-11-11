@@ -1,6 +1,6 @@
 -module(afterglow_bridge_ffi).
 
-%% Validates the request tuple host.js sends before Gleam trusts its shape.
+%% Validates the request tuple host.mjs sends before Gleam trusts its shape.
 %% binary_to_term raises on malformed input; turn that and any shape mismatch
 %% into an error so the bridge answers 400 instead of crashing the VM.
 

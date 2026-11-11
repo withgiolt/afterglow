@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # difftest-req.sh MODULE [METHOD] [URL] [BODY]
 # Builds fixture MODULE:start/0 with afterglow, sends one request (the ETF shape
-# host.js sends) under Node and under erl, and compares stdout byte for byte.
+# host.mjs sends) under Node and under erl, and compares stdout byte for byte.
 # Files are per request (out/difftest-req/<tag>.*), so runs can go in parallel.
 set -euo pipefail
 cd "$(dirname "$0")/.."
