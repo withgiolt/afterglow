@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # package.sh [BIN_DIR]: fills gleam/priv for the Hex package, the files the giolt CLI
-# builds with: afterglow_runtime.wasm, index.js (the Worker entry) and
+# builds with: afterglow_runtime.wasm, host.js (the library a Worker entry runs the app with) and
 # bin/afterglow-<platform>[.exe], one compiler per platform, named after Node's
 # process.platform and process.arch.
 # BIN_DIR holds those compilers (the release workflow downloads them there). Without
@@ -11,7 +11,7 @@ priv=gleam/priv
 rm -rf "$priv" && mkdir -p "$priv/bin"
 cargo build -q --release -p afterglow_runtime --target wasm32-unknown-unknown
 cp target/wasm32-unknown-unknown/release/afterglow_runtime.wasm "$priv/"
-cp tools/worker/index.js "$priv/"
+cp tools/worker/host.js "$priv/"
 if [[ $# -ge 1 ]]; then
   cp "$1"/afterglow-* "$priv/bin/"
 else
