@@ -205,7 +205,8 @@ function decodeEtf(bytes) {
 // The buffer holds `key=value\0` pairs, so a NUL anywhere or an `=` in a key would
 // let one var forge another; such vars are dropped.
 function stringVars(vars) {
-  const out = {};
+  // No prototype, so a var named `__proto__` is kept like any other.
+  const out = Object.create(null);
   for (const [key, val] of Object.entries(vars ?? {})) {
     if (typeof val !== "string" || key.includes("=") || key.includes("\0") || val.includes("\0")) continue;
     out[key] = val;
