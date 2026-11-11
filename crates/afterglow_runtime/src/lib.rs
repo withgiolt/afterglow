@@ -32,14 +32,6 @@ use term::*;
 
 static mut LITERALS: Vec<Term> = Vec::new();
 
-/// Marks which host ABI this build speaks: the exports and imports `tools/worker/host.js`
-/// uses and the ETF framing of requests and responses. Bump the number in the name, and
-/// `ABI_VERSION` in host.js, when any of them changes. It is an export rather than a
-/// custom section because wasm-opt keeps exports, and a platform can read export names
-/// from the bytes without compiling the module.
-#[no_mangle]
-pub extern "C" fn afterglow_abi_1() {}
-
 /// Called once per instance. Blobs:
 /// - atoms: names separated by NUL (fixed atoms first, then the compiler's)
 /// - exports: u32 LE quadruples (module atom, function atom, arity, table index)

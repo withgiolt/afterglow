@@ -24,9 +24,9 @@ doesn't work yet.
 - `crates/beam-reader`: the BEAM file parser the compiler uses
 - `gleam/`: the `afterglow` Hex package, with `afterglow.serve` and, once
   `tools/package.sh` fills `priv/`, the compilers and the runtime
-- `tools/worker`: `host.js`, the library a Worker entry runs an app with (the Hex
-  package ships it; the platform deploying the app writes the entry), and `index.js`,
-  the Worker entry the tests use
+- `tools/worker`: the glue the Hex package ships next to an app's `app.wasm`:
+  `index.mjs`, the Worker entry, and `host.js`, which passes each request and the
+  vars the caller hands it into the Wasm
 
 ## Tests
 

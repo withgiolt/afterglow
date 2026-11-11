@@ -1,16 +1,10 @@
-// Runs an afterglow app.wasm for a Worker entry someone else owns: the Giolt platform
-// in production, tools/worker/index.js in this repo's tests. It has no `export default`
-// and never reads `env` or `process.env`; the entry decides which vars the app sees.
+// Runs an afterglow app.wasm for index.mjs, the Worker entry it ships with. It never
+// reads `env` or `process.env`; the entry decides which vars the app sees.
 //
 // The request goes in as ETF {Method, Url, Headers, Body} and the response comes out
 // framed as {Status, Headers, Body} (see gleam/src/afterglow/internal/bridge.gleam).
 // One Wasm instance per `instantiate`, reused across requests: afterglow_runtime resets
 // the heap, binary arena and process state in rt_begin.
-
-// Bump together with the `afterglow_abi_N` export in crates/afterglow_runtime/src/lib.rs.
-export const ABI_VERSION = 1;
-
-const ABI_EXPORT = `afterglow_abi_${ABI_VERSION}`;
 
 const MAX_BODY_SIZE = 1024 * 1024;
 
@@ -18,11 +12,6 @@ const encoder = new TextEncoder(),
   decoder = new TextDecoder();
 
 export function instantiate(wasmModule) {
-  const exports = WebAssembly.Module.exports(wasmModule);
-  if (!exports.some((e) => e.name === ABI_EXPORT)) {
-    throw new Error(`this app.wasm was not built for afterglow host ABI ${ABI_VERSION}`);
-  }
-
   let inst = null;
   let mem = null;
 

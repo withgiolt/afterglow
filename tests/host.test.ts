@@ -1,4 +1,4 @@
-// tools/worker/host.js, the library a platform's Worker entry uses to run an app.wasm.
+// tools/worker/host.js, which index.mjs runs an app.wasm with.
 // Uses the Workers tools/smoke/build.sh writes to out/workers/<fixture>.
 //   bun test tests/host.test.ts
 import { expect, test } from "bun:test";
@@ -11,25 +11,15 @@ function fixtureModule(name: string) {
   return new WebAssembly.Module(readFileSync(url));
 }
 
-const EMPTY_WASM_MODULE = new WebAssembly.Module(
-  Uint8Array.from([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]),
-);
-
-test("host.js is a library, not a Worker entry", () => {
+test("host.js is not a Worker entry", () => {
   expect("default" in host).toBe(false);
 });
 
-test("an app built for this ABI runs a request", async () => {
+test("an app runs a request", async () => {
   const app = host.instantiate(fixtureModule("basic_get"));
   const response = await app.handle(new Request("http://example.com/"), {});
   expect(response.status).toEqual(200);
   expect(await response.text()).toEqual("hello from afterglow");
-});
-
-test("a module without the ABI export is refused before it runs", () => {
-  expect(() => host.instantiate(EMPTY_WASM_MODULE)).toThrow(
-    "this app.wasm was not built for afterglow host ABI 1",
-  );
 });
 
 test("the app reads only the vars it is given", async () => {

@@ -12,7 +12,7 @@ fixtures.forEach((f, i) => {
   const bindings = f === 'env_get' ? '[ (name = "SECRET_KEY", text = "secret") ]' : '[]';
   const dir = rel(path.join(root, 'out/workers', f));
   workers.push(`const w${ident('_' + f)} :Workerd.Worker = (
-  modules = [ (name = "index.js", esModule = embed "${dir}/index.js"),
+  modules = [ (name = "index.mjs", esModule = embed "${dir}/index.mjs"),
               (name = "host.js", esModule = embed "${dir}/host.js"),
               (name = "app.wasm", wasm = embed "${dir}/app.wasm") ],
   compatibilityDate = "2025-08-06", bindings = ${bindings});`);

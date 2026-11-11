@@ -41,7 +41,7 @@ test-all: build-fixtures test test-workers test-smoke test-do
 difftest-project dir module method="GET" path="/" *body:
     MSYS_NO_PATHCONV=1 tools/difftest-project.sh {{ dir }} {{ module }} {{ method }} {{ path }} {{ body }}
 
-# A Worker (app.wasm + index.js) for MODULE:start/0 of a built Gleam project.
+# A Worker (app.wasm, index.mjs and host.js) for MODULE:start/0 of a built Gleam project.
 build-project dir module out *args:
     tools/build-project.sh {{ dir }} {{ module }} {{ out }} {{ args }}
 
