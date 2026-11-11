@@ -25,10 +25,10 @@ test:
 test-workers *fixtures:
     tools/smoke/run.sh {{ fixtures }}
 
-# Build the fixture Workers, then run tests/smoke.test.ts.
+# Build the fixture Workers, then run tests/smoke.test.ts and tests/host.test.ts.
 test-smoke *fixtures:
     tools/smoke/build.sh {{ fixtures }}
-    bun test tests/smoke.test.ts
+    bun test tests/smoke.test.ts tests/host.test.ts
 
 # The P3-P5 Durable Object Workers on local workerd, e.g. just test-do p4.
 test-do *tests:
@@ -41,7 +41,7 @@ test-all: build-fixtures test test-workers test-smoke test-do
 difftest-project dir module method="GET" path="/" *body:
     MSYS_NO_PATHCONV=1 tools/difftest-project.sh {{ dir }} {{ module }} {{ method }} {{ path }} {{ body }}
 
-# A Worker (app.wasm + index.js) for MODULE:start/0 of a built Gleam project.
+# A Worker (app.wasm, index.mjs and host.mjs) for MODULE:start/0 of a built Gleam project.
 build-project dir module out *args:
     tools/build-project.sh {{ dir }} {{ module }} {{ out }} {{ args }}
 

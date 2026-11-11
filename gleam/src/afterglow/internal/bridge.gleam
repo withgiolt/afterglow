@@ -1,4 +1,4 @@
-/// Translates between the request and response binaries index.js exchanges
+/// Translates between the request and response binaries host.mjs exchanges
 /// with the runtime and wisp's Request/Response types. Apps call
 /// `afterglow.serve`, not this module.
 ///
@@ -31,9 +31,9 @@ fn read_stdin() -> BitArray
 @external(erlang, "afterglow_io", "write_stdout")
 fn write_stdout(data: BitArray) -> Nil
 
-/// Ends the response frame, mirrored by SENTINEL in index.js. The frame is
+/// Ends the response frame, mirrored by SENTINEL in host.mjs. The frame is
 /// the ETF payload, its byte length as a big-endian u32, then this marker.
-/// Putting the marker last means index.js can take its last occurrence:
+/// Putting the marker last means host.mjs can take its last occurrence:
 /// stray prints in user code all come before it, and a body that happens to
 /// contain the marker sits before it too.
 pub const sentinel = "\n__AFTERGLOW__"
@@ -45,7 +45,7 @@ fn frame(payload: BitArray) -> BitArray {
 
 /// Pure request/response bridge, without the stdin/stdout IO — this is
 /// what tests drive directly. `request` is the ETF tuple
-/// `{Method, Url, [{Name, Value}], Body}` index.js sends, all binaries, or
+/// `{Method, Url, [{Name, Value}], Body}` host.mjs sends, all binaries, or
 /// `{warmup, Method, Url, [{Name, Value}], Body}` for the warm-up; the
 /// result is the ETF tuple `{Status, [{Name, Value}], Body}`.
 pub fn handle(
@@ -59,7 +59,7 @@ pub fn handle(
   }
 }
 
-/// index.js runs one throwaway request at startup so V8 compiles the wasm
+/// host.mjs runs one throwaway request at startup so V8 compiles the wasm
 /// before the first real request. That request is tagged in the payload
 /// itself, which a client or binding can't forge, and goes through the
 /// whole bridge except the user's handler.

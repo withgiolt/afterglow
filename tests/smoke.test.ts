@@ -5,7 +5,7 @@ import { expect, test } from "bun:test";
 import { plugin } from "bun";
 import { existsSync, readFileSync } from "node:fs";
 
-// index.js imports ./app.wasm as a WebAssembly.Module, which is how workerd resolves
+// index.mjs imports ./app.wasm as a WebAssembly.Module, which is how workerd resolves
 // it; Bun needs a plugin to do the same.
 plugin({
   name: "afterglow-assets",
@@ -23,8 +23,9 @@ async function fetchFixture(
   name: string,
   path: string,
   init: RequestInit = {},
+  vars?: Record<string, unknown>,
 ) {
-  const indexUrl = new URL(`${name}/index.js`, workersDir);
+  const indexUrl = new URL(`${name}/index.mjs`, workersDir);
   if (!existsSync(indexUrl)) throw new Error(`missing ${indexUrl.pathname}: run tools/smoke/build.sh`);
   const { default: worker } = await import(indexUrl.href);
   const request = new Request(`http://example.com${path}`, {
@@ -32,7 +33,7 @@ async function fetchFixture(
     headers: { host: "example.com" },
     ...init,
   });
-  const response = await worker.fetch(request);
+  const response = await worker.fetch(request, vars);
   const bytes = new Uint8Array(await response.arrayBuffer());
   return {
     status: response.status,
@@ -53,12 +54,20 @@ test("not_found returns 404", async () => {
   expect(r.status).toEqual(404);
 });
 
-test("env_get returns secret", async () => {
-  process.env.SECRET_KEY = "secret";
-
-  const r = await fetchFixture("env_get", "/");
+test("env_get reads the vars fetch is given", async () => {
+  const r = await fetchFixture("env_get", "/", {}, { SECRET_KEY: "secret" });
   expect(r.status).toEqual(200);
   expect(r.text).toEqual("secret");
+});
+
+test("env_get sees no vars when fetch is given none, even with process.env set", async () => {
+  process.env.SECRET_KEY = "from process.env";
+  try {
+    const r = await fetchFixture("env_get", "/");
+    expect(r.text).toEqual("NONE");
+  } finally {
+    delete process.env.SECRET_KEY;
+  }
 });
 
 test("query_param reads the query string", async () => {

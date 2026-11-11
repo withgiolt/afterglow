@@ -1,6 +1,6 @@
 // bun tools/fetch-worker.ts WORKER_DIR [METHOD] PATH [BODY]: one request through an afterglow
-// Worker (index.js + app.wasm) in-process, the way tests/smoke.test.ts loads them.
-// Prints status, headers and body.
+// Worker (index.mjs, host.mjs and app.wasm) in-process, the way tests/smoke.test.ts loads them.
+// Passes process.env as the vars. Prints status, headers and body.
 import { plugin } from "bun";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -23,10 +23,10 @@ if (/^[A-Za-z]:[\\/]/.test(path)) {
   console.error(`path became ${path}: run with MSYS_NO_PATHCONV=1`);
   process.exit(2);
 }
-const { default: worker } = await import(pathToFileURL(resolve(dir, "index.js")).href);
+const { default: worker } = await import(pathToFileURL(resolve(dir, "index.mjs")).href);
 const res = await worker.fetch(new Request(`http://example.com${path}`, {
   method, headers: { host: "example.com" }, body: method === "GET" ? undefined : body,
-}));
+}), process.env);
 console.log(res.status);
 for (const [k, v] of res.headers) console.log(`${k}: ${v}`);
 console.log();

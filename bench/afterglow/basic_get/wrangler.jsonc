@@ -1,7 +1,7 @@
 {
   // fixtures/app basic_get, built by `tools/build-worker.sh basic_get bench/afterglow/basic_get`.
   "name": "afterglow-m5-basic-get",
-  "main": "index.js",
+  "main": "index.mjs",
   "workers_dev": true,
   "compatibility_date": "2025-08-06",
   "observability": { "enabled": true, "head_sampling_rate": 1 }

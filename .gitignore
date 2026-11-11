@@ -9,4 +9,7 @@ erl_crash.dump
 gleam/build/
 gleam/priv/
 bench/afterglow/*/app.wasm
+# Left by builds from before the entry became index.mjs.
 bench/afterglow/*/index.js
+bench/afterglow/*/index.mjs
+bench/afterglow/*/host.mjs

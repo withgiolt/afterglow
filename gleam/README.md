@@ -14,8 +14,9 @@ pub fn handle(req: wisp.Request) -> wisp.Response
 ```
 
 The package holds `afterglow.serve`, which the generated start module calls.
-Its `priv/` directory holds the runtime and a compiler for Linux and macOS (x64
-and arm64) and Windows (x64).
+Its `priv/` directory holds the runtime, a compiler for Linux and macOS (x64
+and arm64) and Windows (x64), and the Worker entry `giolt build` copies next to
+`app.wasm`: `index.mjs` and the `host.mjs` it imports.
 
 Some OTP functions aren't implemented yet. `giolt build` lists the ones your app
 reaches, and a request that calls one gets a 500 naming it. The

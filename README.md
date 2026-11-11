@@ -24,7 +24,9 @@ doesn't work yet.
 - `crates/beam-reader`: the BEAM file parser the compiler uses
 - `gleam/`: the `afterglow` Hex package, with `afterglow.serve` and, once
   `tools/package.sh` fills `priv/`, the compilers and the runtime
-- `tools/worker`: the Worker entry (`index.js`) that passes each request to the app
+- `tools/worker`: the glue the Hex package ships next to an app's `app.wasm`:
+  `index.mjs`, the Worker entry, and `host.mjs`, which passes each request and the
+  vars the caller hands it into the Wasm
 
 ## Tests
 
@@ -34,7 +36,7 @@ target), Binaryen, Bun and Node 22 or newer. Build the fixture app with
 
 - `tools/regress.sh`, which compares afterglow's output with real `erl`
 - `tools/smoke/run.sh`, which runs the fixture Workers on workerd
-- `bun test tests/smoke.test.ts`, after `tools/smoke/build.sh`
+- `bun test tests/smoke.test.ts tests/host.test.ts`, after `tools/smoke/build.sh`
 - `tools/do/test.sh`, which runs the Durable Object Workers on workerd
 
 `just test-all` runs all of them.

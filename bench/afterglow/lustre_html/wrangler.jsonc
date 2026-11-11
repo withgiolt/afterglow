@@ -1,7 +1,7 @@
 {
   // fixtures/app lustre_html, built by `tools/build-worker.sh lustre_html bench/afterglow/lustre_html`.
   "name": "afterglow-m5-lustre-html",
-  "main": "index.js",
+  "main": "index.mjs",
   "workers_dev": true,
   "compatibility_date": "2025-08-06",
   "observability": { "enabled": true, "head_sampling_rate": 1 }
