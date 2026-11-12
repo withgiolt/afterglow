@@ -72,6 +72,12 @@ jobs:
     environment: Production
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Only main is protected by a pull request with passing CI, so a tag
+      # on any other commit would publish code that skipped both.
+      - name: Check the tagged commit is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - uses: actions/download-artifact@v4
         with:
           name: priv
