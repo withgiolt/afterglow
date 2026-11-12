@@ -37,6 +37,10 @@ test-do *tests:
 # Everything: difftests, workerd, smoke, Durable Objects.
 test-all: build-fixtures test test-workers test-smoke test-do
 
+# Compute workloads timed on erl, afterglow and Gleam JS; WARMUP and ITERS override the counts.
+bench-compute:
+    bench/compute.sh
+
 # Compare a built Gleam project with erl, e.g. just difftest-project DIR app GET /
 difftest-project dir module method="GET" path="/" *body:
     MSYS_NO_PATHCONV=1 tools/difftest-project.sh {{ dir }} {{ module }} {{ method }} {{ path }} {{ body }}
