@@ -17,6 +17,10 @@ gleam run --target javascript -m giolt build
 an app, and [About afterglow](https://docs.giolt.com/afterglow/about) lists what
 doesn't work yet.
 
+afterglow supports Erlang/OTP 28 and 29. The tests also run on OTP master, where a
+failure doesn't fail the run, so changes to the bytecode erlc emits show up before
+they reach a release.
+
 ## Layout
 
 - `crates/afterglow`: the compiler, from BEAM files to a Wasm module
