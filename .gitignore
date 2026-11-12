@@ -13,3 +13,4 @@ bench/afterglow/*/app.wasm
 bench/afterglow/*/index.js
 bench/afterglow/*/index.mjs
 bench/afterglow/*/host.mjs
+bench/compute/build/

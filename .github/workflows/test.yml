@@ -51,3 +51,9 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: bun install --frozen-lockfile
       - run: just test-all
+      # Timings on a shared runner are noisy, so the benchmark never fails the run, and
+      # one leg is enough to put the table in the job summary.
+      - name: Compute benchmarks
+        if: matrix.otp == '28'
+        continue-on-error: true
+        run: just bench-compute >> "$GITHUB_STEP_SUMMARY"
