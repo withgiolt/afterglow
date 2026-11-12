@@ -10,6 +10,19 @@ on:
 jobs:
   test:
     runs-on: ubuntu-24.04
+    # Each OTP release can change the bytecode erlc emits, and afterglow compiles both
+    # the app and the OTP stdlib it is built with, so every supported OTP runs the suite.
+    # master shows new opcodes before they reach a release; it may fail without
+    # failing the run.
+    strategy:
+      fail-fast: false
+      matrix:
+        otp: ["28", "29"]
+        include:
+          - otp: master
+            experimental: true
+    continue-on-error: ${{ matrix.experimental == true }}
+    name: test (OTP ${{ matrix.otp }})
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -19,7 +32,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: "28"
+          otp-version: ${{ matrix.otp }}
           gleam-version: "1.19"
           rebar3-version: "3.27"
       # tools/do/p5-test.mjs uses Node's global WebSocket (Node 22 and later).
