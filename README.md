@@ -50,7 +50,20 @@ On Windows, run them from Git Bash after `source tools/env.sh`.
 ## Releases
 
 Pushing a `v*` tag that matches the version in `gleam/gleam.toml` builds the
-compiler for each platform and publishes the Hex package.
+compiler for each platform and publishes the Hex package. The tagged commit
+must be on `main`, or the publish fails.
+
+## AI use
+
+AI may write code in every Giolt repository, and this one is heavily AI-assisted: agents critique its structure, proofread, and write the tedious parts, such as the BEAM file parser.
+
+How AI use is managed here:
+
+- Every change reaches `main` through a pull request with passing CI, and CI publishes releases only from `main`. GitHub enforces both, for everyone.
+- Before each commit and merge, an agent waits for the maintainer to confirm they reviewed the change, and the commit records it in a `Reviewed-by:` trailer. GitHub doesn't check this. It is a rule the agents follow.
+- A change to core code, where a quiet mistake could leak a token, lose data, ship a broken deploy or break every build, gets a code review pass first, and the agent names each core file it touched.
+
+The agents' rules are in [AI.md](AI.md). The [AI use policy](https://giolt.com/ai) covers every Giolt repository.
 
 ## Issues
 
