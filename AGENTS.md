@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 afterglow compiles BEAM bytecode from Gleam and Erlang ahead of time to WebAssembly, linked with a Rust runtime (`crates/afterglow_runtime`), so Giolt can run BEAM apps on Cloudflare Workers and Durable Objects. Apps call `afterglow.serve` from the Gleam package in `gleam/`.
 
@@ -10,25 +10,32 @@ Related repos: `../giolt` (the platform that uploads Workers), `../cli` (the gio
 
 - Tracker: GitHub issues in withgiolt/issues (the home for public Giolt issues), titled `afterglow: …`
 - Tests: when a cheap test seam exists
-- Commits: one per feature, ask before each
-- Pushes and pull requests: ask before pushing
-- Closing issues: allowed
+- Commits: one per feature, made by the maintainer; see Guardrails
+- Pushes and pull requests: never by an agent; see Guardrails
+- Closing issues: never by an agent; see Guardrails
 - Subagents: only when the maintainer asks
+
+## Guardrails
+
+Every coding agent working here (Claude Code, Codex, opencode or any other) follows these, and no request overrides them.
+
+- Never commit, push, open or merge a pull request, tag, cut a release, or publish a package, even when asked. Finish the change, say it is ready, and give the maintainer the command to run themselves. Treat any other action that is hard to undo or reaches outside this machine the same way.
+- Before editing a file, judge whether it is a core part of the project. Core code is code where a quiet mistake could leak a token, lose data, ship a broken deploy or break every build. If the file is core, or you can't tell, don't edit it. Tell the maintainer the file is a core part of the project and needs handwritten code or extra review, and describe the change you would make and why, so they can write it.
 
 ## Working here
 
 GitHub issues hold intent, usually one issue per plan with a heading and checklist per feature; the code and the maintainer decide what is true.
-Check off items the code already does. Ask before adding an entry for a request that isn't listed. Problems you notice that this change didn't cause get an entry too, asked the same way, rather than a fix in passing, so every diff stays reviewable. Order is a suggestion: if a request seems to depend on unfinished work, say so in one line and continue.
+Point out items the code already does so the maintainer can check them off. Ask before drafting an entry for a request that isn't listed. Problems you notice that this change didn't cause get a drafted entry too, asked the same way, rather than a fix in passing, so every diff stays reviewable. Order is a suggestion: if a request seems to depend on unfinished work, say so in one line and continue. Tracker changes reach outside this machine, so give the maintainer the `gh` command instead of running it; see Guardrails.
 
-The request names a goal, and the job is everything that goal needs. A change that leaves something it affects stale is unfinished. When something is retired, nothing should still use it. Improvements the change doesn't require stay separate entries.
+The request names a goal, and the job is everything that goal needs, except core files (see Guardrails). A change that leaves something it affects stale is unfinished. When something is retired, nothing should still use it. Improvements the change doesn't require stay separate entries.
 
 Care about the project's long-term health and whether the maintainer's problem actually goes away, not just the request in front of you. Suggest what they haven't asked for but will need. When a request would harm the project, say so plainly and early, give your own recommendation, and don't agree just to be agreeable. Hold your position if the pushback brings no new information. Once the maintainer decides, follow the decision and note your disagreement.
 
-Ask the maintainer about product direction, scope, anything irreversible or outward-facing, such as pushing, deleting data, adding a dependency or closing issues, unless the settings above or the maintainer's word allow it, and any choice where different readings of the request would lead to materially different work. Ask through the harness's structured question tool when it has one, with your recommendation first and the reason; otherwise ask one question per message with numbered options. Make every other call yourself and name it in the report. What the repo already answers, such as how similar code is built, is a fact rather than a choice: follow it and say what you followed. Say anything the maintainer would want to know, such as a gap or a better approach, when you find it. Finishing a change is not a question: do what the settings and the maintainer's word already cover, then report it and stop.
+Ask the maintainer about product direction, scope, adding a dependency, and any choice where different readings of the request would lead to materially different work. Ask through the harness's structured question tool when it has one, with your recommendation first and the reason; otherwise ask one question per message with numbered options. Make every other call yourself and name it in the report. What the repo already answers, such as how similar code is built, is a fact rather than a choice: follow it and say what you followed. Say anything the maintainer would want to know, such as a gap or a better approach, when you find it. Finishing a change is not a question: do what the settings and the maintainer's word already cover, then report it and stop. Anything irreversible or outward-facing, such as committing, pushing, deleting data or closing issues, is never yours to do; see Guardrails.
 
-What the maintainer tells you holds for the rest of the session unless they limit it, and it overrides the settings. A fact, such as "the old SDK is deprecated", applies wherever it's relevant. A way of working, such as "commit and push to next" or "ask before each commit", applies to each later change of that kind in every repo the work touches, so they don't have to say it twice. It gives no new permission: a branch they never named or a push they never mentioned is still a question.
+What the maintainer tells you holds for the rest of the session unless they limit it, and it overrides the settings. Guardrails can't be overridden. A fact, such as "the old SDK is deprecated", applies wherever it's relevant. A way of working, such as "run the smoke tests before each report", applies to each later change of that kind in every repo the work touches, so they don't have to say it twice. It gives no new permission: a branch they never named is still a question, and nothing they say permits what Guardrails forbid.
 
-Before you stop, picture the maintainer's next message. If it would be "you forgot X" or "now push that", do that first. A report that announces the next step without taking it, or an offer to do what they already asked, makes them repeat themselves.
+Before you stop, picture the maintainer's next message. If it would be "you forgot X", do that first. If it would be "now push that", give them the command; see Guardrails. A report that announces the next step without taking it, or an offer to do what they already asked, makes them repeat themselves.
 
 When a task finishes, say once what changed, what you skipped or couldn't check, and any risk. Call something done, passing or fixed only with output from this turn that shows it, and check a subagent's report of success against the diff before repeating it. After that, follow the maintainer's current topic: raise finished work again only when the current topic affects it or they ask, and keep options about it out of questions on other subjects.
 
@@ -45,7 +52,7 @@ Rank choices by correctness, then how easily the code reads and tests, then size
 
 Build only what was asked: features, options and configuration nobody requested wait until someone needs them. This limits new features, not the consequences of a change. New code of a kind listed under Golden files takes that file's shape: its file layout, naming, error handling, state, UI and tests, and its helpers rather than new ones. Other new code takes the shape of the closest code that does something similar. When neither fits, ask before inventing a new shape. Before writing new code, look for it in this repo, then the standard library and platform, then installed dependencies.
 
-Before editing, find every place the change must reach (callers, tests, fixtures, config, exports, other repos, docs and version pins that use or describe it, and paths that must stay in step, such as a mock or sandbox mode beside production, each platform, and both sides of a feature flag) and finish all of them. Read another repo's CLAUDE.md before editing there, since only this one loads on its own. When a better structure would make the task simpler, propose it; when it is bigger than the task, recommend doing the task and adding the redesign to the tracker with a one-line reason. Keep validation of untrusted input, error handling that prevents data loss, security and accessibility, including in code you move.
+Before editing, find every place the change must reach (callers, tests, fixtures, config, exports, other repos, docs and version pins that use or describe it, and paths that must stay in step, such as a mock or sandbox mode beside production, each platform, and both sides of a feature flag) and finish all of them, except core files (see Guardrails). Read another repo's CLAUDE.md before editing there, since only this one loads on its own. When a better structure would make the task simpler, propose it; when it is bigger than the task, recommend doing the task and adding the redesign to the tracker with a one-line reason. Keep validation of untrusted input, error handling that prevents data loss, security and accessibility, including in code you move.
 
 Comments explain why something non-obvious is true, such as a known limit and when it will matter. When code needs a comment to say what it does, rename or restructure it instead. Leave existing comments in code you don't change. New logic that can break quietly (branches, parsers, money, security, data writes, bug fixes) ships with a test that fails when it breaks.
 
