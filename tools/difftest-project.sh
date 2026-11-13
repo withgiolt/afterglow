@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # difftest-project.sh PROJECT_DIR MODULE [METHOD] [URL] [BODY]
+# HEADERS="name: value" lines (newline separated) add request headers; host is always sent.
 # One request to MODULE:start/0 of a built Gleam project (`gleam build`), under real erl
 # and under afterglow (Node), in the ETF shape host.mjs sends. Compares the decoded
 # responses ({Status, Headers, Body}) byte for byte; stdout around the frame (erl's
@@ -11,7 +12,12 @@ cd "$here"
 d=out/project; mkdir -p $d
 tag=$mod$(echo "$method$url" | tr -c 'a-zA-Z0-9' '_')
 req=$d/$tag.req
-erl -noshell -eval "file:write_file(\"$req\", term_to_binary({<<\"$method\">>,<<\"$url\">>,[{<<\"host\">>,<<\"localhost\">>}],<<\"$body\">>})), halt()."
+erl_body=${body//\\/\\\\};erl_body=${erl_body//\"/\\\"}
+hdrs='{<<"host">>,<<"localhost">>}'
+while IFS= read -r line; do
+  [[ -n "$line" ]] && hdrs+=",{<<\"${line%%: *}\">>,<<\"${line#*: }\">>}"
+done <<<"${HEADERS:-}"
+erl -noshell -eval "file:write_file(\"$req\", term_to_binary({<<\"$method\">>,<<\"$url\">>,[$hdrs],<<\"$erl_body\">>})), halt()."
 if [[ "${SKIP_BUILD:-}" != 1 || ! -f $d/$mod.wasm ]]; then
   args=(); for e in "$proj"/build/dev/erlang/*/ebin; do args+=(--beams "$e"); done
   tools/afterglow-build.sh $d/$mod.wasm --entry "$mod:start/0" "${args[@]}" 2>$d/$mod.build.log || { cat $d/$mod.build.log; exit 1; }

@@ -17,6 +17,11 @@ build:
 build-fixtures:
     cd fixtures/app && gleam build
 
+# The wisp fixture app, one request per route against erl (on Windows without Developer Mode, first build it via tools/gleam-elevated.ps1).
+test-wisp:
+    cd fixtures/wisp && gleam build
+    tools/wisp-fixture.sh
+
 # Every difftest against erl. Needs `just build-fixtures`.
 test:
     tools/regress.sh

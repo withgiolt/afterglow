@@ -66,6 +66,7 @@ One file per kind of code that shows how this repo does it. Copy its shape when 
 | a runtime BIF or OTP override | `crates/afterglow_runtime/src/bifs.rs` (`bif!("m:f/a", …)`) |
 | an Erlang difftest | `tests/erl/fmtx.erl`, plus its line in `tools/regress.sh` |
 | a request fixture | `fixtures/app/src/stdlib_int.gleam` (`fixture_check.run`) |
+| a web framework fixture | `fixtures/wisp/`, `tools/wisp-fixture.sh`, its `just` recipe and its job in `.github/workflows/test.yml` |
 
 ## Enforced rules
 

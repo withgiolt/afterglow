@@ -286,6 +286,10 @@ target), Binaryen, Bun and Node 22 or newer. Build the fixture app with
 
 `just test-all` runs all of them.
 
+Each web framework has its own fixture app and CI job. `just test-wisp` builds
+`fixtures/wisp` and compares one request per route with `erl`; CI runs it as
+the `wisp` job.
+
 On Windows, run them from Git Bash after `source tools/env.sh`.
 
 ## Releases

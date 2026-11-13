@@ -57,3 +57,32 @@ jobs:
         if: matrix.otp == '28'
         continue-on-error: true
         run: just bench-compute >> "$GITHUB_STEP_SUMMARY"
+
+  # One job per web framework fixture (fixtures/<framework>): the app is built with Gleam
+  # and each route is compared with erl, so a framework is only listed as working while
+  # this job passes. OTP 28 only: the matrix above already covers the OTP versions.
+  wisp:
+    runs-on: ubuntu-24.04
+    name: wisp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "28"
+          gleam-version: "1.19"
+          rebar3-version: "3.27"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      # Keep this in step with the Binaryen install in the test job.
+      - name: Install Binaryen
+        run: |
+          mkdir -p ~/.local/opt
+          curl -fsSL https://github.com/WebAssembly/binaryen/releases/download/version_132/binaryen-version_132-x86_64-linux.tar.gz \
+            | tar -xz -C ~/.local/opt
+      - run: cd fixtures/wisp && gleam build
+      - run: tools/wisp-fixture.sh

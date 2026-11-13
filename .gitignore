@@ -1,6 +1,7 @@
 node_modules/
 .wrangler/
 fixtures/app/build/
+fixtures/wisp/build/
 target/
 *.dist/
 out/
