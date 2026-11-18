@@ -111,7 +111,10 @@ npx wrangler dev
 ```
 
 String values in the Worker's env, such as `vars`, reach the app as its
-environment. Bindings don't.
+environment. Bindings don't. Apps can read them with `os:getenv/1` and
+`os:getenv/0`, set them with `os:putenv/2`, and remove them with
+`os:unsetenv/1`. The host's `rt_env_set` replaces the environment on every
+request, so changes last only until the next request.
 
 To run it on Node, load `app.wasm` yourself, because `index.mjs` imports it the
 way Workers do:
