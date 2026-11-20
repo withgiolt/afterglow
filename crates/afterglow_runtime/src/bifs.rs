@@ -590,18 +590,21 @@ unsafe fn charlist(s: &str) -> Term {
     let v: Vec<Term> = s.chars().map(|c| small(c as i64)).collect();
     build::list(&v)
 }
+unsafe fn env_string(t: Term) -> Option<String> {
+    if is_binary(t) {
+        return Some(String::from_utf8_lossy(&bin_of(t).to_vec()).into());
+    }
+    let v = build::list_to_vec(t)?;
+    let mut s = String::new();
+    for c in v {
+        if !is_small(c) { return None; }
+        let code = u32::try_from(small_val(c)).ok()?;
+        s.push(char::from_u32(code)?);
+    }
+    Some(s)
+}
 bif!("os:getenv/1", fn getenv(n) {
-    let name: String = if is_binary(n) {
-        String::from_utf8_lossy(&bin_of(n).to_vec()).into()
-    } else {
-        let Some(v) = build::list_to_vec(n) else { return badarg() };
-        let mut s = String::new();
-        for c in v {
-            if !is_small(c) { return badarg(); }
-            match char::from_u32(small_val(c) as u32) { Some(ch) => s.push(ch), None => return badarg() }
-        }
-        s
-    };
+    let Some(name) = env_string(n) else { return badarg() };
     let e = &*core::ptr::addr_of!(ENV_VARS);
     match e.iter().find(|(k, _)| *k == name) {
         Some((_, v)) => charlist(v),
@@ -612,6 +615,25 @@ bif!("os:getenv/0", fn getenv0() {
     let e = &*core::ptr::addr_of!(ENV_VARS);
     let v: Vec<Term> = e.iter().map(|(k, v)| charlist(&format!("{}={}", k, v))).collect();
     build::list(&v)
+});
+// rt_env_set replaces ENV_VARS on every request, so writes last only until the next request.
+bif!("os:putenv/2", fn putenv(n, v) {
+    let Some(name) = env_string(n) else { return badarg() };
+    let Some(value) = env_string(v) else { return badarg() };
+    if name.contains(['=', '\0']) || value.contains('\0') { return badarg(); }
+    let e = &mut *core::ptr::addr_of_mut!(ENV_VARS);
+    match e.iter_mut().find(|(k, _)| *k == name) {
+        Some((_, v)) => *v = value,
+        None => e.push((name, value)),
+    }
+    TRUE
+});
+bif!("os:unsetenv/1", fn unsetenv(n) {
+    let Some(name) = env_string(n) else { return badarg() };
+    if name.contains(['=', '\0']) { return badarg(); }
+    let e = &mut *core::ptr::addr_of_mut!(ENV_VARS);
+    e.retain(|(k, _)| *k != name);
+    TRUE
 });
 /// Time in `unit` from a nanosecond count. None for a bad unit.
 unsafe fn in_unit(ns: i128, unit: Term) -> Option<Term> {

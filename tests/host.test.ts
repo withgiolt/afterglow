@@ -63,3 +63,12 @@ test("two apps in one isolate each run their own module", async () => {
   expect(await a.text()).toEqual("hello from afterglow");
   expect(await b.text()).toEqual("b");
 });
+
+test("environment writes last only until the next request", async () => {
+  const app = host.instantiate(fixtureModule("stdlib_env"));
+  for (let i = 0; i < 2; i++) {
+    const response = await app.handle(new Request("http://example.com/"), {});
+    expect(response.status).toEqual(200);
+    expect(await response.text()).toEqual("OK");
+  }
+});
